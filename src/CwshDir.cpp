@@ -1,0 +1,43 @@
+#include "CwshI.h"
+
+string
+CwshDir::
+lookup(Cwsh *cwsh, const string &dirname, bool required)
+{
+  if (CFile::exists(dirname) && CFile::isDirectory(dirname))
+    return dirname;
+
+  int len = dirname.size();
+
+  if (len > 0 && (dirname[0] == '/' || dirname[0] == '.')) {
+    if (required)
+      CWSH_THROWQ(dirname, "No such file or directory.");
+    else
+      return "";
+  }
+
+  CwshVariable *variable = cwsh->lookupVariable("cdpath");
+
+  if (variable == NULL) {
+    if (required)
+      CWSH_THROWQ(dirname, "No such file or directory.");
+    else
+      return "";
+  }
+
+  int num_values = variable->getNumValues();
+
+  for (int i = 0; i < num_values; ++i) {
+    string dirname1 = variable->getValue(i) + "/" + dirname;
+
+    if (CFile::exists(dirname1) && CFile::isDirectory(dirname1)) {
+      cout << CwshString::replaceHome(dirname1) << endl;
+      return dirname1;
+    }
+  }
+
+  if (required)
+    CWSH_THROWQ(dirname, "No such file or directory.");
+  else
+    return "";
+}
