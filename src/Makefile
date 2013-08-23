@@ -70,9 +70,6 @@ CPathList.cpp \
 CFileMatch.cpp \
 CReadLine.cpp \
 CHistory.cpp \
-COSLimit.cpp \
-COSTerm.cpp \
-COSErr.cpp \
 CEscape.cpp \
 
 OBJS = $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(SRC))
