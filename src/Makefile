@@ -65,11 +65,8 @@ CCommandSrc.cpp \
 CCommandStringDest.cpp \
 CCommandStringSrc.cpp \
 CCommandUtil.cpp \
-CRGBName.cpp \
 CPathList.cpp \
 CFileMatch.cpp \
-CReadLine.cpp \
-CHistory.cpp \
 CEscape.cpp \
 
 OBJS = $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(SRC))
@@ -82,6 +79,8 @@ CPPFLAGS = \
 -I../../CGlob/include \
 -I../../COS/include \
 -I../../CUtil/include \
+-I../../CReadLine/include \
+-I../../CRGBName/include \
 -I.
 
 LFLAGS = \
@@ -92,12 +91,17 @@ $(LEBUG) \
 -L../../CStrUtil/lib \
 -L../../CGlob/lib \
 -L../../COS/lib \
+-L../../CReadLine/lib \
+-L../../CRGBName/lib \
 -lCFile \
 -lCArgs \
+-lCReadLine \
 -lCOS \
 -lCGlob \
+-lCRGBName \
 -lCStrUtil \
--lreadline
+-lreadline \
+-lcurses
 
 .SUFFIXES: .cpp
 
