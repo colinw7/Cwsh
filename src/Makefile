@@ -54,17 +54,6 @@ CwshVariable.cpp \
 CwshVariableParser.cpp \
 CwshWildCard.cpp \
 CwshWord.cpp \
-CCommand.cpp \
-CCommandDest.cpp \
-CCommandFileDest.cpp \
-CCommandFileSrc.cpp \
-CCommandPipe.cpp \
-CCommandPipeDest.cpp \
-CCommandPipeSrc.cpp \
-CCommandSrc.cpp \
-CCommandStringDest.cpp \
-CCommandStringSrc.cpp \
-CCommandUtil.cpp \
 CPathList.cpp \
 CFileMatch.cpp \
 CEscape.cpp \
@@ -73,6 +62,7 @@ OBJS = $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(SRC))
 
 CPPFLAGS = \
 -I$(INC_DIR) \
+-I../../CCommand/include \
 -I../../CFile/include \
 -I../../CArgs/include \
 -I../../CStrUtil/include \
@@ -84,8 +74,9 @@ CPPFLAGS = \
 -I.
 
 LFLAGS = \
-$(LEBUG) \
+$(LDEBUG) \
 -L$(LIB_DIR) \
+-L../../CCommand/lib \
 -L../../CFile/lib \
 -L../../CArgs/lib \
 -L../../CStrUtil/lib \
@@ -93,6 +84,7 @@ $(LEBUG) \
 -L../../COS/lib \
 -L../../CReadLine/lib \
 -L../../CRGBName/lib \
+-lCCommand \
 -lCFile \
 -lCArgs \
 -lCReadLine \
