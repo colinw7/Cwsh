@@ -1,5 +1,5 @@
-#include "CwshI.h"
-#include "CwshHistoryParser.h"
+#include <CwshI.h>
+#include <CwshHistoryParser.h>
 
 enum CwshHistoryCommandType {
   CWSH_HISTORY_COMMAND_NONE,
@@ -108,7 +108,7 @@ CwshHistoryParser(Cwsh *cwsh) :
 CwshHistoryParser::
 ~CwshHistoryParser()
 {
-  for_each(operations_.begin(), operations_.end(), CDeletePointer());
+  std::for_each(operations_.begin(), operations_.end(), CDeletePointer());
 }
 
 string
@@ -680,7 +680,7 @@ apply()
     str = operations_[i]->apply(*this, str);
 
   if (print_) {
-    cout << str << endl;
+    std::cout << str << std::endl;
 
     throw CwshHistoryIgnore();
   }
@@ -704,7 +704,7 @@ apply(const vector<string> &words)
     str += " " + CStrUtil::toString(words, 1);
 
   if (print_) {
-    cout << str << endl;
+    std::cout << str << std::endl;
 
     throw CwshHistoryIgnore();
   }
@@ -1197,23 +1197,23 @@ display(const string &str) const
 {
   string command = str.substr(start_pos_, end_pos_ - start_pos_);
 
-  cout << "Command " << command << endl;
+  std::cout << "Command " << command << std::endl;
 
   if      (command_type_ == CWSH_HISTORY_COMMAND_QUICK_SUBSTR)
-    cout << "Replace " << old_str_ << " with " << new_str_ << endl;
+    std::cout << "Replace " << old_str_ << " with " << new_str_ << std::endl;
   else if (command_type_ == CWSH_HISTORY_COMMAND_USE_RESULT)
-    cout << "Result " << new_str_ << endl;
+    std::cout << "Result " << new_str_ << std::endl;
   else {
     if      (command_type_ == CWSH_HISTORY_COMMAND_SEARCH_START)
-      cout << "Last Command with " << new_str_ << " at start" << endl;
+      std::cout << "Last Command with " << new_str_ << " at start" << std::endl;
     else if (command_type_ == CWSH_HISTORY_COMMAND_SEARCH_IN)
-      cout << "Last Command with " << new_str_ << " anywhere" << endl;
+      std::cout << "Last Command with " << new_str_ << " anywhere" << std::endl;
     else if (command_type_ == CWSH_HISTORY_COMMAND_SEARCH_ARG)
-      cout << "Last Arg with " << new_str_ << " anywhere" << endl;
+      std::cout << "Last Arg with " << new_str_ << " anywhere" << std::endl;
     else
-      cout << "Command Num " << command_num_ << endl;
+      std::cout << "Command Num " << command_num_ << std::endl;
 
-    cout << "Args " << start_arg_num_ << " " << end_arg_num_ << endl;
+    std::cout << "Args " << start_arg_num_ << " " << end_arg_num_ << std::endl;
   }
 
   int num_modifiers = modifiers_.size();
@@ -1227,45 +1227,45 @@ CwshHistoryModifier::
 print() const
 {
   if      (type_ == CWSH_HISTORY_MODIFIER_PRINT)
-    cout << "Print" << endl;
+    std::cout << "Print" << std::endl;
   else if (type_ == CWSH_HISTORY_MODIFIER_SUBSTITUTE) {
     if (global_)
-      cout << "Globally ";
+      std::cout << "Globally ";
 
-    cout << "Substitute " << old_str_ << " with " << new_str_ << endl;
+    std::cout << "Substitute " << old_str_ << " with " << new_str_ << std::endl;
   }
   else if (type_ == CWSH_HISTORY_MODIFIER_REPEAT) {
     if (global_)
-      cout << "Globally ";
+      std::cout << "Globally ";
 
-    cout << "Repeat" << endl;
+    std::cout << "Repeat" << std::endl;
   }
   else if (type_ == CWSH_HISTORY_MODIFIER_QUOTE_WORDLIST)
-    cout << "Quote Wordlist";
+    std::cout << "Quote Wordlist";
   else if (type_ == CWSH_HISTORY_MODIFIER_QUOTE_WORDS)
-    cout << "Quote Words";
+    std::cout << "Quote Words";
   else if (type_ == CWSH_HISTORY_MODIFIER_ROOT) {
     if (global_)
-      cout << "Globally ";
+      std::cout << "Globally ";
 
-    cout << "Root" << endl;
+    std::cout << "Root" << std::endl;
   }
   else if (type_ == CWSH_HISTORY_MODIFIER_EXTENSION) {
     if (global_)
-      cout << "Globally ";
+      std::cout << "Globally ";
 
-    cout << "Extension" << endl;
+    std::cout << "Extension" << std::endl;
   }
   else if (type_ == CWSH_HISTORY_MODIFIER_HEADER) {
     if (global_)
-      cout << "Globally ";
+      std::cout << "Globally ";
 
-    cout << "Header" << endl;
+    std::cout << "Header" << std::endl;
   }
   else if (type_ == CWSH_HISTORY_MODIFIER_TAIL) {
     if (global_)
-      cout << "Globally ";
+      std::cout << "Globally ";
 
-    cout << "Tail" << endl;
+    std::cout << "Tail" << std::endl;
   }
 }

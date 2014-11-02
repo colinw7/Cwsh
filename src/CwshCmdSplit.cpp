@@ -1,4 +1,4 @@
-#include "CwshI.h"
+#include <CwshI.h>
 
 bool
 CwshCmdSplit::
@@ -175,14 +175,14 @@ CwshCmdGroup(const CwshCmdArray &commands) :
 CwshCmdGroup::
 ~CwshCmdGroup()
 {
-  for_each(commands_.begin(), commands_.end(), CDeletePointer());
+  std::for_each(commands_.begin(), commands_.end(), CDeletePointer());
 }
 
 void
 CwshCmd::
 displayCmdArray(const CwshCmdArray &cmds)
 {
-  for_each(cmds.begin(), cmds.end(), &CwshCmd::displayCmd);
+  std::for_each(cmds.begin(), cmds.end(), &CwshCmd::displayCmd);
 }
 
 void
@@ -239,7 +239,7 @@ display() const
 {
   string command_str = CwshWord::toString(words_);
 
-  cerr << command_str << " " << separator_.getName() << endl;
+  std::cerr << command_str << " " << separator_.getName() << std::endl;
 }
 
 string

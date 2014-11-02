@@ -1,4 +1,4 @@
-#include "CwshI.h"
+#include <CwshI.h>
 
 string
 CwshDir::
@@ -31,7 +31,7 @@ lookup(Cwsh *cwsh, const string &dirname, bool required)
     string dirname1 = variable->getValue(i) + "/" + dirname;
 
     if (CFile::exists(dirname1) && CFile::isDirectory(dirname1)) {
-      cout << CwshString::replaceHome(dirname1) << endl;
+      std::cout << CwshString::replaceHome(dirname1) << std::endl;
       return dirname1;
     }
   }

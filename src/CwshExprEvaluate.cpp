@@ -1,4 +1,4 @@
-#include "CwshI.h"
+#include <CwshI.h>
 
 CwshExprEvaluate::
 CwshExprEvaluate(Cwsh *cwsh, const string &expression) :
@@ -129,7 +129,7 @@ unstack()
     CWSH_THROW("Null Expression.");
 
   if (cwsh_->getDebug() && ! value_on_stack)
-    cerr << "No value on stack" << endl;
+    std::cerr << "No value on stack" << std::endl;
 
   string value = backUnstack();
 

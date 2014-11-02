@@ -1,4 +1,4 @@
-#include "CwshI.h"
+#include <CwshI.h>
 #include <CFileMatch.h>
 
 #ifdef COS_TERM
@@ -61,7 +61,7 @@ showMatch(const string &line)
 
   CStrUtil::uniq(words, uniq_words);
 
-  cout << endl;
+  std::cout << std::endl;
 
   print(uniq_words);
 
@@ -155,15 +155,15 @@ print(vector<string> &words)
   while (i < num_words && j < num_lines) {
     int len = words[i].size();
 
-    cout << words[i];
+    std::cout << words[i];
 
     for (int k = 0; k <= max_len - len; ++k)
-      cout << " ";
+      std::cout << " ";
 
     i += num_lines;
 
     if (i >= num_words) {
-      cout << endl;
+      std::cout << std::endl;
 
       ++j;
 

@@ -1,4 +1,4 @@
-#include "CwshI.h"
+#include <CwshI.h>
 
 enum CwshGetVariableType {
   CWSH_GET_VARIABLE_VALUES,
@@ -70,7 +70,7 @@ CwshVariableMgr::
 define(const CwshVariableName &name)
 {
   if (cwsh_->getDebug())
-    cout << "define " << name << endl;
+    std::cout << "define " << name << std::endl;
 
   undefine(name);
 
@@ -86,7 +86,7 @@ CwshVariableMgr::
 define(const CwshVariableName &name, const CwshVariableValue &value)
 {
   if (cwsh_->getDebug())
-    cout << "define " << name << "='" << value << "'" << endl;
+    std::cout << "define " << name << "='" << value << "'" << std::endl;
 
   undefine(name);
 
@@ -102,7 +102,7 @@ CwshVariableMgr::
 define(const CwshVariableName &name, int value)
 {
   if (cwsh_->getDebug())
-    cout << "define " << name << "='" << value << "'" << endl;
+    std::cout << "define " << name << "='" << value << "'" << std::endl;
 
   undefine(name);
 
@@ -123,7 +123,7 @@ define(const CwshVariableName &name, const CwshVariableValueArray &values)
   if (cwsh_->getDebug()) {
     string value = CStrUtil::toString(values, " ");
 
-    cout << "define " << name << "='" << value << "'" << endl;
+    std::cout << "define " << name << "='" << value << "'" << std::endl;
   }
 
   undefine(name);
@@ -142,7 +142,7 @@ define(const CwshVariableName &name, const char **values, int num_values)
   if (cwsh_->getDebug()) {
     string value = CStrUtil::toString(values, num_values, " ");
 
-    cout << "define " << name << "='" << value << "'" << endl;
+    std::cout << "define " << name << "='" << value << "'" << std::endl;
   }
 
   undefine(name);
@@ -196,11 +196,11 @@ void
 CwshVariableMgr::
 clear()
 {
-  for_each(variables_.begin(), variables_.end(), CDeletePointer());
+  std::for_each(variables_.begin(), variables_.end(), CDeletePointer());
 
   variables_.clear();
 
-  for_each(stack_.begin(), stack_.end(), CDeletePointer());
+  std::for_each(stack_.begin(), stack_.end(), CDeletePointer());
 
   stack_.clear();
 }
@@ -283,7 +283,7 @@ updateEnvironmentVariable(CwshVariable *variable)
     value += variable->getValue(i);
   }
 
-  COSEnv::setenv(name, value);
+  CEnvInst.set(name, value);
 }
 
 CwshVariable::
@@ -432,24 +432,24 @@ void
 CwshVariable::
 print() const
 {
-  cout << name_ << " ";
+  std::cout << name_ << " ";
 
   int num_values = values_.size();
 
   if (num_values > 1)
-    cout << '(';
+    std::cout << '(';
 
   for (int i = 0; i < num_values; i++) {
     if (i > 0)
-      cout << " ";
+      std::cout << " ";
 
-    cout << values_[i];
+    std::cout << values_[i];
   }
 
   if (num_values > 1)
-    cout << ')';
+    std::cout << ')';
 
-  cout << endl;
+  std::cout << std::endl;
 }
 
 int

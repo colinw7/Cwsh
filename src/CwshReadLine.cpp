@@ -1,4 +1,4 @@
-#include "CwshI.h"
+#include <CwshI.h>
 #include <CReadLine.h>
 #include <cstdio>
 
@@ -25,7 +25,7 @@ readLine()
     line = CReadLine::readLine();
 
     if (eof()) {
-      cout << endl;
+      std::cout << std::endl;
 
       CwshVariable *variable = cwsh_->lookupVariable("ignoreeof");
 
@@ -37,15 +37,15 @@ readLine()
   }
   catch (struct CwshErr *cthrow) {
     if (cwsh_->getDebug())
-      cerr << "[" << cthrow->file << ":" << cthrow->line << "] ";
+      std::cerr << "[" << cthrow->file << ":" << cthrow->line << "] ";
 
     if (cthrow->qualifier != "")
-      cerr << cthrow->qualifier << ": " << cthrow->message << endl;
+      std::cerr << cthrow->qualifier << ": " << cthrow->message << std::endl;
     else
-      cerr << cthrow->message << endl;
+      std::cerr << cthrow->message << std::endl;
   }
   catch (...) {
-    cerr << "Unhandled Exception thrown" << endl;
+    std::cerr << "Unhandled Exception thrown" << std::endl;
   }
 
   return line;

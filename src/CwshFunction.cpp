@@ -1,4 +1,4 @@
-#include "CwshI.h"
+#include <CwshI.h>
 
 CwshFunctionMgr::
 CwshFunctionMgr(Cwsh *cwsh) :
@@ -85,6 +85,6 @@ listAll()
   for ( ; pfunction1 != pfunction2; ++pfunction1) {
     CwshFunction *function = (*pfunction1).second;
 
-    cout << function->getName() << endl;
+    std::cout << function->getName() << std::endl;
   }
 }

@@ -1,4 +1,4 @@
-#include "CwshI.h"
+#include <CwshI.h>
 
 CwshDirStack::
 CwshDirStack()
@@ -79,5 +79,5 @@ print(ostream &os)
     os << CwshString::replaceHome(dir_stack_[i]);
   }
 
-  os << endl;
+  os << std::endl;
 }

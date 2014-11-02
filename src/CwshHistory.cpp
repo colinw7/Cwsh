@@ -1,5 +1,5 @@
-#include "CwshI.h"
-#include "CwshHistoryParser.h"
+#include <CwshI.h>
+#include <CwshHistoryParser.h>
 
 CwshHistory::
 CwshHistory(Cwsh *cwsh) :

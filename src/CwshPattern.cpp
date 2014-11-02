@@ -1,6 +1,7 @@
-#include "CwshI.h"
-#include "CFileMatch.h"
-#include "CPathList.h"
+#include <CwshI.h>
+#include <CFileMatch.h>
+#include <CPathList.h>
+#include <unistd.h>
 
 CwshPattern::
 CwshPattern(Cwsh *cwsh, const string &pattern) :
@@ -101,7 +102,7 @@ expandVar(vector<string> &names)
   vector<string> env_names;
   vector<string> env_values;
 
-  COSEnv::getNameValues(env_names, env_values);
+  CEnvInst.getNameValues(env_names, env_values);
 
   int num_env_names = env_names.size();
 

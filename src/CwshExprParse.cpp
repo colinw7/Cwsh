@@ -1,4 +1,4 @@
-#include "CwshI.h"
+#include <CwshI.h>
 
 string CwshExprParse::unary_operator_chars_  = "+-!~";
 string CwshExprParse::binary_operator_chars_ = "+-*/%<>=!&|^#";

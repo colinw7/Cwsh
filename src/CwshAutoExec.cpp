@@ -1,4 +1,4 @@
-#include "CwshI.h"
+#include <CwshI.h>
 
 template<typename T>
 class CwshAutoExecListValueDisplay {
@@ -85,7 +85,7 @@ void
 CwshAutoExec::
 display() const
 {
-  cout << suffix_ << " " << value_ << endl;
+  std::cout << suffix_ << " " << value_ << std::endl;
 }
 
 bool

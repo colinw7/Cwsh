@@ -1,8 +1,9 @@
-#include "CwshI.h"
-#include "CwshHistoryParser.h"
+#include <CwshI.h>
+#include <CwshHistoryParser.h>
 #include <CRGBName.h>
 #include <CEscape.h>
 #include <cstdio>
+#include <unistd.h>
 
 CwshInput::
 CwshInput(Cwsh *cwsh) :
@@ -320,7 +321,7 @@ processLine(const string &line)
       output = true;
 
     if (output)
-      cout << line1 << endl;
+      std::cout << line1 << std::endl;
 
     //------
 
@@ -366,7 +367,7 @@ processLine(const string &line)
 
     //------
 
-    for_each(groups.begin(), groups.end(), CDeletePointer());
+    std::for_each(groups.begin(), groups.end(), CDeletePointer());
   }
   catch (CwshHistoryIgnore i) {
     ;
@@ -378,15 +379,15 @@ processLine(const string &line)
       qualifier = current_command_->getCommand()->getName();
 
     if (cwsh_->getDebug())
-      cerr << "[" << cthrow->file << ":" << cthrow->line << "] ";
+      std::cerr << "[" << cthrow->file << ":" << cthrow->line << "] ";
 
     if (qualifier != "")
-      cerr << qualifier << ": " << cthrow->message << endl;
+      std::cerr << qualifier << ": " << cthrow->message << std::endl;
     else
-      cerr << cthrow->message << endl;
+      std::cerr << cthrow->message << std::endl;
   }
   catch (...) {
-    cerr << "Unhandled Exception thrown" << endl;
+    std::cerr << "Unhandled Exception thrown" << std::endl;
   }
 }
 
@@ -402,7 +403,7 @@ executeCommands(const CwshCmdArray &cmds)
 
   for (int i = 0; i < num_cmds; i++) {
     if (cwsh_->getDebug()) {
-      cerr << "Execute Command: ";
+      std::cerr << "Execute Command: ";
 
       cmds[i]->display();
     }
@@ -436,7 +437,7 @@ executeCommands(const CwshCmdArray &cmds)
     CwshVariable *variable = cwsh_->lookupVariable("echo");
 
     if (variable != NULL)
-      cout << ccommand->getCommandString() << endl;
+      std::cout << ccommand->getCommandString() << std::endl;
 
     //-----
 
@@ -561,7 +562,7 @@ executeCommands(const CwshCmdArray &cmds)
 
           cwsh_->defineVariable("status", status);
 
-          for_each(pcommands.begin(), pcommands.end(), CDeletePointer());
+          std::for_each(pcommands.begin(), pcommands.end(), CDeletePointer());
 
           cwsh_->removeProcess(process);
 
@@ -574,15 +575,15 @@ executeCommands(const CwshCmdArray &cmds)
             break;
         }
         else {
-          cout << "[" << process->getNum() << "]";
+          std::cout << "[" << process->getNum() << "]";
 
           for (int k = 0; k < num_pcommands; k++) {
             CwshCommand *pccommand = pcommands[k]->getCommand();
 
-            cout << " " << pccommand->getPid();
+            std::cout << " " << pccommand->getPid();
           }
 
-          cout << " " << ccommand->getPid() << endl;
+          std::cout << " " << ccommand->getPid() << std::endl;
         }
 
         pcommands.clear();
@@ -623,13 +624,13 @@ executeCommands(const CwshCmdArray &cmds)
           else {
             int pid = ccommand->getPid();
 
-            cout << "[" << process->getNum() << "] " << pid << endl;
+            std::cout << "[" << process->getNum() << "] " << pid << std::endl;
           }
         }
         else {
           int pid = ccommand->getPid();
 
-          cout << "[" << process->getNum() << "] " << pid << endl;
+          std::cout << "[" << process->getNum() << "] " << pid << std::endl;
         }
       }
     }
@@ -691,7 +692,7 @@ processStdInLine(const string &line)
   CwshWord::toWords(line, words);
 
   if (cwsh_->getDebug()) {
-    cerr << "Std In Line to Words" << endl;
+    std::cerr << "Std In Line to Words" << std::endl;
 
     CwshWord::printWords(words);
   }
@@ -754,7 +755,7 @@ processExprLine(const string &line)
   CwshWord::toWords(line, words);
 
   if (cwsh_->getDebug()) {
-    cerr << "Expr Line to Words" << endl;
+    std::cerr << "Expr Line to Words" << std::endl;
 
     CwshWord::printWords(words);
   }

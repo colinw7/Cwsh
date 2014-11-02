@@ -1,4 +1,4 @@
-#include "CwshI.h"
+#include <CwshI.h>
 #include <CwshShMem.h>
 #include <CArgs.h>
 //#include <COSPty.h>
@@ -105,11 +105,11 @@ stopActiveProcesses()
     CwshProcess *process = (*p1)->getCurrentActiveProcess();
 
     if (process != NULL) {
-      cout << "[" << process->getNum() << "]    Stopped               ";
+      std::cout << "[" << process->getNum() << "]    Stopped               ";
 
       process->print();
 
-      cout << endl;
+      std::cout << std::endl;
 
       process->tstop();
     }
@@ -304,8 +304,8 @@ initEnv()
 
   //------
 
-  if (COSEnv::checkenv("PATH")) {
-    string path = COSEnv::getenv("PATH");
+  if (CEnvInst.exists("PATH")) {
+    string path = CEnvInst.get("PATH");
 
     vector<string> values;
 
@@ -331,15 +331,15 @@ initEnv()
 
   defineVariable("status", 0);
 
-  if (COSEnv::checkenv("TERM")) {
-    string term_env = COSEnv::getenv("TERM");
+  if (CEnvInst.exists("TERM")) {
+    string term_env = CEnvInst.get("TERM");
 
     defineVariable("term", term_env);
   }
 
   //------
 
-  if (COSEnv::checkenv("CWSH_SILENT"))
+  if (CEnvInst.exists("CWSH_SILENT"))
     silentMode_ = true;
 
   //------
@@ -434,7 +434,7 @@ Cwsh::
 term()
 {
   if (getNumActiveProcesses() > 0 && term_tries_ <= 0) {
-    cerr << "There are suspended jobs." << endl;
+    std::cerr << "There are suspended jobs." << std::endl;
     ++term_tries_;
     return;
   }
