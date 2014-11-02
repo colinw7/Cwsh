@@ -1,4 +1,4 @@
-#include "CwshI.h"
+#include <CwshI.h>
 #include <COSLimit.h>
 
 enum CwshResourceType {
@@ -105,15 +105,15 @@ print(CwshResourceLimit *rlimit, bool hard)
   if (! (*rlimit->getProc)(&value, hard))
     CWSH_THROW(rlimit->name + ": Can't get limit.");
 
-  cout << rlimit->name;
+  std::cout << rlimit->name;
 
   int name_len = rlimit->name.size();
 
   for (int i = name_len; i < 16; i++)
-    cout << " ";
+    std::cout << " ";
 
   if (COSLimit::isLimitValueInfinity(value)) {
-    cout << "unlimited" << endl;
+    std::cout << "unlimited" << std::endl;
     return;
   }
 
@@ -123,14 +123,14 @@ print(CwshResourceLimit *rlimit, bool hard)
     int value3 = value - value1*3600 - value2*60;
 
     if (value1 > 0)
-      cout << value1 << value2 << value3 << endl;
+      std::cout << value1 << value2 << value3 << std::endl;
     else
-      cout << value2 << value3 << endl;
+      std::cout << value2 << value3 << std::endl;
   }
   else if (rlimit->type == CWSH_RESOURCE_TYPE_SIZE)
-    cout << (int) (value/1024) << " kbytes" << endl;
+    std::cout << (int) (value/1024) << " kbytes" << std::endl;
   else
-    cout << value << endl;
+    std::cout << value << std::endl;
 }
 
 int

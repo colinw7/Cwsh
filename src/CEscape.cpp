@@ -7,8 +7,6 @@
 using std::string;
 using std::vector;
 using std::ostream;
-using std::cerr;
-using std::endl;
 
 #define CTRL_A_s ""
 #define CTRL_B_s ""
@@ -1717,7 +1715,7 @@ stringToEscape(const string &str)
       return "";
   }
   else {
-    cerr << "Invalid command: " <<  words[0] << endl;
+    std::cerr << "Invalid command: " <<  words[0] << std::endl;
     return "";
   }
 }
@@ -1727,8 +1725,8 @@ CEscape::
 stringWinOpToEscape(const vector<string> &words)
 {
   if (words.size() < 2) {
-    cerr << "Wrong number of arguments: got " <<
-            words.size() << " need at least " << 2 << endl;
+    std::cerr << "Wrong number of arguments: got " <<
+                 words.size() << " need at least " << 2 << std::endl;
     return "";
   }
 
@@ -1806,14 +1804,14 @@ stringWinOpToEscape(const vector<string> &words)
       return "";
 
     if (n < 24) {
-      cerr << "Invalid number of lines: " <<  n << endl;
+      std::cerr << "Invalid number of lines: " <<  n << std::endl;
       return "";
     }
 
     return windowOpResizeNLines(n);
   }
   else {
-    cerr << "Invalid WIN op: " <<  words[1] << endl;
+    std::cerr << "Invalid WIN op: " <<  words[1] << std::endl;
     return "";
   }
 }
@@ -1891,7 +1889,7 @@ stringOSCOpToEscape(const vector<string> &words)
     return oscFont(words[2]);
   }
   else {
-    cerr << "Invalid OSC op: " <<  words[1] << endl;
+    std::cerr << "Invalid OSC op: " <<  words[1] << std::endl;
     return "";
   }
 }
@@ -2135,7 +2133,7 @@ parseInteger(const vector<string> &words, int pos, int *i, bool opt)
 
   if (! CStrUtil::toInteger(words[pos], i)) {
     if (! opt)
-      cerr << "Invalid integer: " <<  words[pos] << endl;
+      std::cerr << "Invalid integer: " <<  words[pos] << std::endl;
     return false;
   }
 
@@ -2147,8 +2145,8 @@ checkNumArgs(const vector<string> &args, int num, bool opt)
 {
   if ((int) args.size() < num) {
     if (! opt)
-      cerr << "Wrong number of arguments: got " <<
-              args.size() << " need at least " << num + 1 << endl;
+      std::cerr << "Wrong number of arguments: got " <<
+                   args.size() << " need at least " << num + 1 << std::endl;
 
     return false;
   }

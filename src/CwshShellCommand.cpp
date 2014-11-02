@@ -1,4 +1,4 @@
-#include "CwshI.h"
+#include <CwshI.h>
 #include <COSProcess.h>
 #include <COSSignal.h>
 #include <CFileMatch.h>
@@ -104,7 +104,7 @@ CwshShellCommandMgr(Cwsh *cwsh) :
 CwshShellCommandMgr::
 ~CwshShellCommandMgr()
 {
-  for_each(commands_.begin(), commands_.end(), CDeletePointer());
+  std::for_each(commands_.begin(), commands_.end(), CDeletePointer());
 }
 
 CwshShellCommand *
@@ -130,14 +130,14 @@ runProc(const CwshArgArray &args, CCommand::CallbackData data)
   CwshShellCommand *shell_command = (CwshShellCommand *) data;
 
   if (shell_command->getCwsh()->getDebug()) {
-    cerr << shell_command->getName();
+    std::cerr << shell_command->getName();
 
     int num_args = args.size();
 
     for (int i = 0; i < num_args; i++)
-      cerr << " " << args[i];
+      std::cerr << " " << args[i];
 
-    cerr << endl;
+    std::cerr << std::endl;
   }
 
   (shell_command->getProc())(shell_command->getCwsh(), args);
@@ -157,9 +157,9 @@ CwshShellCommandMgr::
 aliasCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "alias               ; list all aliases" << endl;
-    cout << "alias <name>        ; list named alias" << endl;
-    cout << "alias <name> <args> ; define alias to args" << endl;
+    std::cout << "alias               ; list all aliases" << std::endl;
+    std::cout << "alias <name>        ; list named alias" << std::endl;
+    std::cout << "alias <name> <args> ; define alias to args" << std::endl;
     return;
   }
 
@@ -171,7 +171,7 @@ aliasCmd(Cwsh *cwsh, const CwshArgArray &args)
     CwshAlias *alias = cwsh->lookupAlias(args[0]);
 
     if (alias != NULL)
-      cout << alias->getValue() << endl;
+      std::cout << alias->getValue() << std::endl;
   }
   else {
     string cmd = CStrUtil::toString(args, 1);
@@ -185,9 +185,9 @@ CwshShellCommandMgr::
 autoExecCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "autoexec                 ; list all auto exec rules" << endl;
-    cout << "autoexec <suffix>        ; list named auto exec" << endl;
-    cout << "autoexec <suffix> <args> ; define auto exec for suffix to args" << endl;
+    std::cout << "autoexec                 ; list all auto exec rules" << std::endl;
+    std::cout << "autoexec <suffix>        ; list named auto exec" << std::endl;
+    std::cout << "autoexec <suffix> <args> ; define auto exec for suffix to args" << std::endl;
     return;
   }
 
@@ -199,7 +199,7 @@ autoExecCmd(Cwsh *cwsh, const CwshArgArray &args)
     CwshAutoExec *autoExec = cwsh->lookupAutoExec(args[0]);
 
     if (autoExec != NULL)
-      cout << autoExec->getValue() << endl;
+      std::cout << autoExec->getValue() << std::endl;
   }
   else {
     string cmd = CStrUtil::toString(args, 1);
@@ -213,8 +213,8 @@ CwshShellCommandMgr::
 bgCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "bg           ; move current process to backgroud" << endl;
-    cout << "bg <job> ... ; move specified jobs to background" << endl;
+    std::cout << "bg           ; move current process to backgroud" << std::endl;
+    std::cout << "bg <job> ... ; move specified jobs to background" << std::endl;
     return;
   }
 
@@ -227,11 +227,11 @@ bgCmd(Cwsh *cwsh, const CwshArgArray &args)
       if (process == NULL)
         CWSH_THROW("No such job.");
 
-      cout << "[" << process->getNum() << "]    ";
+      std::cout << "[" << process->getNum() << "]    ";
 
       process->print();
 
-      cout << " &" << endl;
+      std::cout << " &" << std::endl;
 
       process->resume();
     }
@@ -242,11 +242,11 @@ bgCmd(Cwsh *cwsh, const CwshArgArray &args)
     if (process == NULL)
       CWSH_THROW("No current job.");
 
-    cout << "[" << process->getNum() << "]    ";
+    std::cout << "[" << process->getNum() << "]    ";
 
     process->print();
 
-    cout << " &" << endl;
+    std::cout << " &" << std::endl;
 
     process->resume();
   }
@@ -257,7 +257,7 @@ CwshShellCommandMgr::
 breakCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "break ; break out of while/foreach" << endl;
+    std::cout << "break ; break out of while/foreach" << std::endl;
     return;
   }
 
@@ -282,7 +282,7 @@ CwshShellCommandMgr::
 breakswCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "breaksw ; break out of switch" << endl;
+    std::cout << "breaksw ; break out of switch" << std::endl;
     return;
   }
 
@@ -304,7 +304,7 @@ CwshShellCommandMgr::
 caseCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "case <expr> ; switch case statement" << endl;
+    std::cout << "case <expr> ; switch case statement" << std::endl;
     return;
   }
 
@@ -324,9 +324,9 @@ CwshShellCommandMgr::
 cdCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "cd           ; change to home directory" << endl;
-    cout << "cd <dir>     ; change to specified directory" << endl;
-    cout << "cd <dir> ... ; change to first valid directory" << endl;
+    std::cout << "cd           ; change to home directory" << std::endl;
+    std::cout << "cd <dir>     ; change to specified directory" << std::endl;
+    std::cout << "cd <dir> ... ; change to first valid directory" << std::endl;
 
     return;
   }
@@ -363,7 +363,8 @@ CwshShellCommandMgr::
 completeCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "complete [-all|-best|-command|-file|-var] <pattern> ... ; complete pattern" << endl;
+    std::cout << "complete [-all|-best|-command|-file|-var] <pattern> ... ; "
+                 "complete pattern" << std::endl;
     return;
   }
 
@@ -438,7 +439,7 @@ completeCmd(Cwsh *cwsh, const CwshArgArray &args)
     int num_names = names.size();
 
     for (int i = 0; i < num_names; i++)
-      cout << names[i] << endl;
+      std::cout << names[i] << std::endl;
   }
   else {
     string word;
@@ -457,7 +458,7 @@ completeCmd(Cwsh *cwsh, const CwshArgArray &args)
     if (! flag)
       cwsh->beep();
 
-    cout << word << endl;
+    std::cout << word << std::endl;
   }
 }
 
@@ -466,7 +467,7 @@ CwshShellCommandMgr::
 continueCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "continue ; continue to next iteration of while/foreach" << endl;
+    std::cout << "continue ; continue to next iteration of while/foreach" << std::endl;
     return;
   }
 
@@ -491,7 +492,7 @@ CwshShellCommandMgr::
 defaultCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "default ; switch default statement" << endl;
+    std::cout << "default ; switch default statement" << std::endl;
     return;
   }
 
@@ -511,7 +512,7 @@ CwshShellCommandMgr::
 dirsCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "dirs [-l] ; print directory stack" << endl;
+    std::cout << "dirs [-l] ; print directory stack" << std::endl;
     return;
   }
 
@@ -538,7 +539,7 @@ CwshShellCommandMgr::
 echoCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "echo [-n] args ; print arguments" << endl;
+    std::cout << "echo [-n] args ; print arguments" << std::endl;
     return;
   }
 
@@ -555,18 +556,18 @@ echoCmd(Cwsh *, const CwshArgArray &args)
   }
 
   if (i < num_args) {
-    cout << args[i++];
+    std::cout << args[i++];
 
     for ( ; i < num_args; i++)
-      cout << " " << args[i];
+      std::cout << " " << args[i];
   }
   else
     new_line = false;
 
   if (new_line)
-    cout << endl;
+    std::cout << std::endl;
 
-  cout.flush();
+  std::cout.flush();
 }
 
 void
@@ -574,7 +575,7 @@ CwshShellCommandMgr::
 elseCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "else ; else clause of if" << endl;
+    std::cout << "else ; else clause of if" << std::endl;
     return;
   }
 
@@ -586,7 +587,7 @@ CwshShellCommandMgr::
 endCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "end ; end of while/foreach" << endl;
+    std::cout << "end ; end of while/foreach" << std::endl;
     return;
   }
 
@@ -603,7 +604,7 @@ CwshShellCommandMgr::
 endfuncCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "endfunc ; end of func" << endl;
+    std::cout << "endfunc ; end of func" << std::endl;
     return;
   }
 
@@ -620,7 +621,7 @@ CwshShellCommandMgr::
 endifCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "endif ; end of if" << endl;
+    std::cout << "endif ; end of if" << std::endl;
     return;
   }
 
@@ -637,7 +638,7 @@ CwshShellCommandMgr::
 endswCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "endsw ; end of switch" << endl;
+    std::cout << "endsw ; end of switch" << std::endl;
     return;
   }
 
@@ -654,7 +655,7 @@ CwshShellCommandMgr::
 evalCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "eval <arg> ... ; evaluate arg as if entered as input" << endl;
+    std::cout << "eval <arg> ... ; evaluate arg as if entered as input" << std::endl;
     return;
   }
 
@@ -673,7 +674,7 @@ CwshShellCommandMgr::
 execCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "exec <arg> ... ; execute command to replace shell" << endl;
+    std::cout << "exec <arg> ... ; execute command to replace shell" << std::endl;
     return;
   }
 
@@ -702,8 +703,8 @@ CwshShellCommandMgr::
 exitCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "exit            ; exit shell" << endl;
-    cout << "exit <expr> ... ; exit shell with specified return value" << endl;
+    std::cout << "exit            ; exit shell" << std::endl;
+    std::cout << "exit <expr> ... ; exit shell with specified return value" << std::endl;
     return;
   }
 
@@ -735,7 +736,7 @@ CwshShellCommandMgr::
 exprCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "expr <expr> ... ; evaluate expression" << endl;
+    std::cout << "expr <expr> ... ; evaluate expression" << std::endl;
     return;
   }
 
@@ -743,7 +744,7 @@ exprCmd(Cwsh *cwsh, const CwshArgArray &args)
 
   CwshExprEvaluate expr(cwsh, expr_str);
 
-  cout << expr.process() << endl;
+  std::cout << expr.process() << std::endl;
 }
 
 void
@@ -751,8 +752,8 @@ CwshShellCommandMgr::
 fgCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "fg           ; move current process to foreground" << endl;
-    cout << "fg <job> ... ; move specified jobs to foreground" << endl;
+    std::cout << "fg           ; move current process to foreground" << std::endl;
+    std::cout << "fg <job> ... ; move specified jobs to foreground" << std::endl;
     return;
   }
 
@@ -767,7 +768,7 @@ fgCmd(Cwsh *cwsh, const CwshArgArray &args)
 
       process->print();
 
-      cout << endl;
+      std::cout << std::endl;
 
       process->resume();
 
@@ -782,7 +783,7 @@ fgCmd(Cwsh *cwsh, const CwshArgArray &args)
 
     process->print();
 
-    cout << endl;
+    std::cout << std::endl;
 
     process->resume();
 
@@ -795,7 +796,8 @@ CwshShellCommandMgr::
 foreachCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "foreach <arg> (<expr>) ; loop for each value of <expr> setting <arg> to value" << endl;
+    std::cout << "foreach <arg> (<expr>) ; "
+                 "loop for each value of <expr> setting <arg> to value" << std::endl;
     return;
   }
 
@@ -859,7 +861,7 @@ CwshShellCommandMgr::
 funcCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "func <name> <args> ; define function <name>" << endl;
+    std::cout << "func <name> <args> ; define function <name>" << std::endl;
     return;
   }
 
@@ -891,7 +893,7 @@ CwshShellCommandMgr::
 globCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "glob <arg> ... ; expand supplied arguments" << endl;
+    std::cout << "glob <arg> ... ; expand supplied arguments" << std::endl;
     return;
   }
 
@@ -902,7 +904,7 @@ globCmd(Cwsh *, const CwshArgArray &args)
   for (int i = 0; i < num_args; i++)
     str += args[i];
 
-  cout << str;
+  std::cout << str;
 }
 
 void
@@ -910,7 +912,7 @@ CwshShellCommandMgr::
 gotoCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "goto <label> ; goto specified label" << endl;
+    std::cout << "goto <label> ; goto specified label" << std::endl;
     return;
   }
 
@@ -930,7 +932,7 @@ CwshShellCommandMgr::
 hashstatCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "hashstat ; display command hashing statistics" << endl;
+    std::cout << "hashstat ; display command hashing statistics" << std::endl;
     return;
   }
 
@@ -947,8 +949,8 @@ CwshShellCommandMgr::
 helpCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "help       ; display commands" << endl;
-    cout << "help <cmd> ; display help for specified command" << endl;
+    std::cout << "help       ; display commands" << std::endl;
+    std::cout << "help <cmd> ; display help for specified command" << std::endl;
     return;
   }
 
@@ -998,14 +1000,14 @@ helpCmd(Cwsh *cwsh, const CwshArgArray &args)
         (command->getProc())(cwsh, args);
       }
       else {
-        if (i > 0) cout << " ";
+        if (i > 0) std::cout << " ";
 
-        cout << *p1;
+        std::cout << *p1;
       }
     }
 
     if (! show_all)
-      cout << endl;
+      std::cout << std::endl;
   }
   else {
     for (uint i = 0; i < num_cmds; ++i) {
@@ -1029,8 +1031,8 @@ CwshShellCommandMgr::
 historyCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "history [-h|-r] ; display history" << endl;
-    cout << "history <num>   ; display numbered history event" << endl;
+    std::cout << "history [-h|-r] ; display history" << std::endl;
+    std::cout << "history <num>   ; display numbered history event" << std::endl;
     return;
   }
 
@@ -1067,7 +1069,7 @@ CwshShellCommandMgr::
 ifCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "if (<expr>) then ; start of if statement" << endl;
+    std::cout << "if (<expr>) then ; start of if statement" << std::endl;
     return;
   }
 
@@ -1109,14 +1111,14 @@ ifCmd(Cwsh *cwsh, const CwshArgArray &args)
     cwsh->getInputBlock(command, lines);
 
     if (cwsh->getDebug()) {
-      cerr << "if ( " << expr_str << " ) then" << endl;
+      std::cerr << "if ( " << expr_str << " ) then" << std::endl;
 
       uint num_lines = lines.size();
 
       for (i = 0; i < num_lines; i++)
-        cerr << lines[i] << endl;
+        std::cerr << lines[i] << std::endl;
 
-      cerr << "endif" << endl;
+      std::cerr << "endif" << std::endl;
     }
 
     CwshExprEvaluate expr(cwsh, expr_str);
@@ -1231,7 +1233,7 @@ ifCmd(Cwsh *cwsh, const CwshArgArray &args)
     string line = str.substr(i);
 
     if (cwsh->getDebug())
-      cerr << "if ( " << expr_str << " ) " << line << endl;
+      std::cerr << "if ( " << expr_str << " ) " << line << std::endl;
 
     CwshExprEvaluate expr(cwsh, expr_str);
 
@@ -1247,7 +1249,7 @@ CwshShellCommandMgr::
 jobsCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "jobs [-l] ; display jobs" << endl;
+    std::cout << "jobs [-l] ; display jobs" << std::endl;
     return;
   }
 
@@ -1270,8 +1272,8 @@ CwshShellCommandMgr::
 killCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "kill -l                       ; list signals" << endl;
-    cout << "kill [-<num>|-<signal>] <pid> ; kill process" << endl;
+    std::cout << "kill -l                       ; list signals" << std::endl;
+    std::cout << "kill [-<num>|-<signal>] <pid> ; kill process" << std::endl;
     return;
   }
 
@@ -1319,10 +1321,10 @@ killCmd(Cwsh *cwsh, const CwshArgArray &args)
     for (int j = 0; j < num_signals; j++) {
       CwshSignal *signal = CwshSignal::getSignal(j);
 
-      cout << signal->getName() << " ";
+      std::cout << signal->getName() << " ";
     }
 
-    cout << endl;
+    std::cout << std::endl;
 
     return;
   }
@@ -1361,7 +1363,7 @@ CwshShellCommandMgr::
 limitCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "limit [-h] <name> <value> ; set named limit ti value" << endl;
+    std::cout << "limit [-h] <name> <value> ; set named limit ti value" << std::endl;
     return;
   }
 
@@ -1402,9 +1404,12 @@ CwshShellCommandMgr::
 niceCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "nice                       ; get priority of current process" << endl;
-    cout << "nice [+<num>|-<num>        ; increase/decrease priority of current process" << endl;
-    cout << "nice [+<num>|-<num>] <pid> ; run command as specified priority" << endl;
+    std::cout << "nice                       ; "
+                 "get priority of current process" << std::endl;
+    std::cout << "nice [+<num>|-<num>        ; "
+                 "increase/decrease priority of current process" << std::endl;
+    std::cout << "nice [+<num>|-<num>] <pid> ; "
+                 "run command as specified priority" << std::endl;
     return;
   }
 
@@ -1420,7 +1425,7 @@ niceCmd(Cwsh *cwsh, const CwshArgArray &args)
     CWSH_THROW("getpriority failed.");
 
   if (num_args == 0) {
-    cout << "Current Priority " << priority << endl;
+    std::cout << "Current Priority " << priority << std::endl;
 
     return;
   }
@@ -1473,8 +1478,8 @@ CwshShellCommandMgr::
 nohupCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "nohup           ; set no hangup" << endl;
-    cout << "nohup <command> ; run command with no hangup" << endl;
+    std::cout << "nohup           ; set no hangup" << std::endl;
+    std::cout << "nohup <command> ; run command with no hangup" << std::endl;
     return;
   }
 
@@ -1498,8 +1503,8 @@ CwshShellCommandMgr::
 notifyCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "notify       ; notify current processs" << endl;
-    cout << "notify <pid> ; notify processs" << endl;
+    std::cout << "notify       ; notify current processs" << std::endl;
+    std::cout << "notify <pid> ; notify processs" << std::endl;
     return;
   }
 
@@ -1530,9 +1535,9 @@ CwshShellCommandMgr::
 onintrCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "onintr         ; reset interrupts" << endl;
-    cout << "onintr -       ; ignore interrupts" << endl;
-    cout << "onintr <label> ; goto label on interrupt" << endl;
+    std::cout << "onintr         ; reset interrupts" << std::endl;
+    std::cout << "onintr -       ; ignore interrupts" << std::endl;
+    std::cout << "onintr <label> ; goto label on interrupt" << std::endl;
     return;
   }
 
@@ -1556,8 +1561,8 @@ CwshShellCommandMgr::
 popdCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "popd        ; pop directory stack" << endl;
-    cout << "popd +<num> ; pop directory stack by num" << endl;
+    std::cout << "popd        ; pop directory stack" << std::endl;
+    std::cout << "popd +<num> ; pop directory stack by num" << std::endl;
     return;
   }
 
@@ -1601,8 +1606,8 @@ CwshShellCommandMgr::
 printenvCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "printenv        ; print all environment variables" << endl;
-    cout << "printenv <name> ; print named environment variable" << endl;
+    std::cout << "printenv        ; print all environment variables" << std::endl;
+    std::cout << "printenv <name> ; print named environment variable" << std::endl;
     return;
   }
 
@@ -1612,8 +1617,8 @@ printenvCmd(Cwsh *, const CwshArgArray &args)
     CWSH_THROW("Too many arguments.");
 
   if (num_args == 1) {
-    if (COSEnv::checkenv(args[0]))
-      cout << COSEnv::getenv(args[0]) << endl;
+    if (CEnvInst.exists(args[0]))
+      std::cout << CEnvInst.get(args[0]) << std::endl;
     else
       CWSH_THROW("Undefined variable.");
   }
@@ -1621,12 +1626,12 @@ printenvCmd(Cwsh *, const CwshArgArray &args)
     vector<string> names;
     vector<string> values;
 
-    COSEnv::getSortedNameValues(names, values);
+    CEnvInst.getSortedNameValues(names, values);
 
     int num_names = names.size();
 
     for (int i = 0; i < num_names; i++)
-      cout << names[i] << "=" << values[i] << endl;
+      std::cout << names[i] << "=" << values[i] << std::endl;
   }
 }
 
@@ -1635,9 +1640,9 @@ CwshShellCommandMgr::
 pushdCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "pushd        ; change to directory on top of directory stack" << endl;
-    cout << "pushd <name> ; push specified directory" << endl;
-    cout << "pushd +<num> ; push to numbers directory on stack" << endl;
+    std::cout << "pushd        ; change to directory on top of directory stack" << std::endl;
+    std::cout << "pushd <name> ; push specified directory" << std::endl;
+    std::cout << "pushd +<num> ; push to numbers directory on stack" << std::endl;
     return;
   }
 
@@ -1693,7 +1698,7 @@ CwshShellCommandMgr::
 rehashCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "rehash ; rehash command lookup from path" << endl;
+    std::cout << "rehash ; rehash command lookup from path" << std::endl;
     return;
   }
 
@@ -1712,7 +1717,7 @@ CwshShellCommandMgr::
 repeatCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "repeat <n> <command> ; repeat command <n> times" << endl;
+    std::cout << "repeat <n> <command> ; repeat command <n> times" << std::endl;
     return;
   }
 
@@ -1751,7 +1756,7 @@ CwshShellCommandMgr::
 returnCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "return ; return from function" << endl;
+    std::cout << "return ; return from function" << std::endl;
     return;
   }
 
@@ -1773,9 +1778,9 @@ CwshShellCommandMgr::
 setCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "set                     ; list variables" << endl;
-    cout << "set <var> = <value>     ; set variable to value" << endl;
-    cout << "set <var> = ( <value> ) ; set variable to array value" << endl;
+    std::cout << "set                     ; list variables" << std::endl;
+    std::cout << "set <var> = <value>     ; set variable to value" << std::endl;
+    std::cout << "set <var> = ( <value> ) ; set variable to array value" << std::endl;
     return;
   }
 
@@ -1855,9 +1860,9 @@ CwshShellCommandMgr::
 setenvCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "setenv                ; print all environment variables" << endl;
-    cout << "setenv <name>         ; print environment variable value" << endl;
-    cout << "setenv <name> <value> ; set environment variable to value" << endl;
+    std::cout << "setenv                ; print all environment variables" << std::endl;
+    std::cout << "setenv <name>         ; print environment variable value" << std::endl;
+    std::cout << "setenv <name> <value> ; set environment variable to value" << std::endl;
     return;
   }
 
@@ -1870,12 +1875,12 @@ setenvCmd(Cwsh *cwsh, const CwshArgArray &args)
     vector<string> names;
     vector<string> values;
 
-    COSEnv::getSortedNameValues(names, values);
+    CEnvInst.getSortedNameValues(names, values);
 
     int num_names = names.size();
 
     for (int i = 0; i < num_names; i++)
-      cout << names[i] << "=" << values[i] << endl;
+      std::cout << names[i] << "=" << values[i] << std::endl;
 
     return;
   }
@@ -1906,7 +1911,7 @@ setenvCmd(Cwsh *cwsh, const CwshArgArray &args)
       cwsh->defineVariable(name1, value);
   }
   else
-    COSEnv::setenv(name, value);
+    CEnvInst.set(name, value);
 }
 
 void
@@ -1914,8 +1919,8 @@ CwshShellCommandMgr::
 shiftCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "shift        ; shift out next value from argv" << endl;
-    cout << "shift <name> ; shift out next value from array variable" << endl;
+    std::cout << "shift        ; shift out next value from argv" << std::endl;
+    std::cout << "shift <name> ; shift out next value from array variable" << std::endl;
     return;
   }
 
@@ -1945,7 +1950,7 @@ CwshShellCommandMgr::
 sourceCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "source [-h] <file> ... ; source specified files" << endl;
+    std::cout << "source [-h] <file> ... ; source specified files" << std::endl;
     return;
   }
 
@@ -1983,8 +1988,8 @@ CwshShellCommandMgr::
 stopCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "stop       ; stop current process" << endl;
-    cout << "stop <job> ; stop specified job" << endl;
+    std::cout << "stop       ; stop current process" << std::endl;
+    std::cout << "stop <job> ; stop specified job" << std::endl;
     return;
   }
 
@@ -2015,7 +2020,7 @@ CwshShellCommandMgr::
 suspendCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "suspend ; suspend current process" << endl;
+    std::cout << "suspend ; suspend current process" << std::endl;
     return;
   }
 
@@ -2034,7 +2039,7 @@ CwshShellCommandMgr::
 switchCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "switch ( <expr> ) ; switch on specified expression value" << endl;
+    std::cout << "switch ( <expr> ) ; switch on specified expression value" << std::endl;
     return;
   }
 
@@ -2115,8 +2120,8 @@ CwshShellCommandMgr::
 umaskCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "umask         ; print current umask" << endl;
-    cout << "umask <value> ; set umask to value" << endl;
+    std::cout << "umask         ; print current umask" << std::endl;
+    std::cout << "umask <value> ; set umask to value" << std::endl;
     return;
   }
 
@@ -2132,9 +2137,9 @@ umaskCmd(Cwsh *, const CwshArgArray &args)
     int int2 = (mask - int1*64)/8;
     int int3 = mask - int1*64 - int2*8;
 
-    cout << (char)(int1 + '0') <<
-            (char)(int2 + '0') <<
-            (char)(int3 + '0') << endl;
+    std::cout << (char)(int1 + '0') <<
+                 (char)(int2 + '0') <<
+                 (char)(int3 + '0') << std::endl;
   }
   else {
     int len = args[0].size();
@@ -2172,7 +2177,7 @@ CwshShellCommandMgr::
 timeCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "time <command> ; time command" << endl;
+    std::cout << "time <command> ; time command" << std::endl;
     return;
   }
 
@@ -2201,7 +2206,7 @@ CwshShellCommandMgr::
 unhashCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "unhash ; disable path command hashing" << endl;
+    std::cout << "unhash ; disable path command hashing" << std::endl;
     return;
   }
 
@@ -2220,7 +2225,7 @@ CwshShellCommandMgr::
 unaliasCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "unalias <name> ; undefine specified alias" << endl;
+    std::cout << "unalias <name> ; undefine specified alias" << std::endl;
     return;
   }
 
@@ -2238,8 +2243,8 @@ CwshShellCommandMgr::
 unlimitCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "unlimit                ; unlimit all resources" << endl;
-    cout << "unlimit <resource> ... ; unlimit specified resource" << endl;
+    std::cout << "unlimit                ; unlimit all resources" << std::endl;
+    std::cout << "unlimit <resource> ... ; unlimit specified resource" << std::endl;
     return;
   }
 
@@ -2260,7 +2265,7 @@ CwshShellCommandMgr::
 unsetCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "unset <variable> ... ; unset specified variables" << endl;
+    std::cout << "unset <variable> ... ; unset specified variables" << std::endl;
     return;
   }
 
@@ -2278,7 +2283,7 @@ CwshShellCommandMgr::
 unsetenvCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "unsetenv <variable> ... ; unset specified variables" << endl;
+    std::cout << "unsetenv <variable> ... ; unset specified variables" << std::endl;
     return;
   }
 
@@ -2288,8 +2293,8 @@ unsetenvCmd(Cwsh *, const CwshArgArray &args)
     CWSH_THROW("Too few arguments.");
 
   for (int i = 0; i < num_args; i++)
-    if (COSEnv::checkenv(args[i]))
-      COSEnv::unsetenv(args[i]);
+    if (CEnvInst.exists(args[i]))
+      CEnvInst.unset(args[i]);
 }
 
 void
@@ -2297,7 +2302,7 @@ CwshShellCommandMgr::
 waitCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "wait ; wait on active processes" << endl;
+    std::cout << "wait ; wait on active processes" << std::endl;
     return;
   }
 
@@ -2314,7 +2319,7 @@ CwshShellCommandMgr::
 whichCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "which [-a] <name> ; find alias, function or path of specified name" << endl;
+    std::cout << "which [-a] <name> ; find alias, function or path of specified name" << std::endl;
     return;
   }
 
@@ -2350,7 +2355,7 @@ whichCmd(Cwsh *cwsh, const CwshArgArray &args)
     if (alias != NULL) {
       found = true;
 
-      cout << "alias: " << alias->getValue() << endl;
+      std::cout << "alias: " << alias->getValue() << std::endl;
 
       if (! show_all)
         continue;
@@ -2363,7 +2368,7 @@ whichCmd(Cwsh *cwsh, const CwshArgArray &args)
     if (function != NULL) {
       found = true;
 
-      cout << "function: " << files[i] << endl;
+      std::cout << "function: " << files[i] << std::endl;
 
       if (! show_all)
         continue;
@@ -2376,7 +2381,7 @@ whichCmd(Cwsh *cwsh, const CwshArgArray &args)
     if (command != NULL) {
       found = true;
 
-      cout << "builtin: " << files[i] << endl;
+      std::cout << "builtin: " << files[i] << std::endl;
 
       if (! show_all)
         continue;
@@ -2389,7 +2394,7 @@ whichCmd(Cwsh *cwsh, const CwshArgArray &args)
 
       found = true;
 
-      cout << path << endl;
+      std::cout << path << std::endl;
 
       if (! show_all)
         continue;
@@ -2400,7 +2405,7 @@ whichCmd(Cwsh *cwsh, const CwshArgArray &args)
     //------
 
     if (! found)
-      CWSH_THROW("no " + files[i] + " in (" + COSEnv::getenv("PATH") + ")");
+      CWSH_THROW("no " + files[i] + " in (" + CEnvInst.get("PATH") + ")");
   }
 }
 
@@ -2409,7 +2414,7 @@ CwshShellCommandMgr::
 whileCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "while <expr> ; loop while expression is true" << endl;
+    std::cout << "while <expr> ; loop while expression is true" << std::endl;
     return;
   }
 
@@ -2505,8 +2510,8 @@ CwshShellCommandMgr::
 atCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    cout << "@                ; list all variables" << endl;
-    cout << "@ <name> <value> ; set variable to numeric value" << endl;
+    std::cout << "@                ; list all variables" << std::endl;
+    std::cout << "@ <name> <value> ; set variable to numeric value" << std::endl;
     return;
   }
 
@@ -2541,9 +2546,9 @@ badCmd(Cwsh *, const CwshArgArray &args)
   int num_args = args.size();
 
   for (int i = 0; i < num_args; i++)
-    cerr << " " << args[i];
+    std::cerr << " " << args[i];
 
-  cerr << endl;
+  std::cerr << std::endl;
 
   CWSH_THROW("unimplemented Command.");
 }

@@ -1,4 +1,4 @@
-#include "CwshI.h"
+#include <CwshI.h>
 
 CwshCommandData::
 CwshCommandData(Cwsh *cwsh, const vector<string> &words) :
@@ -115,7 +115,7 @@ CwshCommandData(Cwsh *cwsh, const vector<string> &words) :
     if (process == NULL)
       CWSH_THROW("No such job.");
 
-    cout << process->getCommandString() << endl;
+    std::cout << process->getCommandString() << std::endl;
 
     process->resume();
 
@@ -166,24 +166,24 @@ setState(State state)
     CwshProcess *process = cwsh_->lookupProcess(getPid());
     if (! process) return;
 
-    cout << "[" << process->getNum() << "] ";
+    std::cout << "[" << process->getNum() << "] ";
 
-    cout << getPid() << " ";
+    std::cout << getPid() << " ";
 
     if      (getState() == CCommand::STOPPED_STATE)
-      cout << "Suspended             ";
+      std::cout << "Suspended             ";
     else if (getState() == CCommand::EXITED_STATE)
-      cout << "Exited                ";
+      std::cout << "Exited                ";
     else if (getState() == CCommand::SIGNALLED_STATE)
-      cout << "Signalled             ";
+      std::cout << "Signalled             ";
     else if (getState() == CCommand::RUNNING_STATE)
-      cout << "Running               ";
+      std::cout << "Running               ";
     else
-      cout << "????                  ";
+      std::cout << "????                  ";
 
     process->print();
 
-    cout << endl;
+    std::cout << std::endl;
   }
   else
     stateChanged_ = true;
@@ -202,7 +202,7 @@ parseCommandLines(Cwsh *cwsh, const string &str, CwshCmdLineArray &cmds)
   CwshWord::toWords(str, words);
 
   if (cwsh->getDebug()) {
-    cerr << "Split String Into Words" << endl;
+    std::cerr << "Split String Into Words" << std::endl;
 
     CwshWord::printWords(words);
   }
@@ -221,7 +221,7 @@ parseCommandGroups(Cwsh *cwsh, const string &str, CwshCmdGroupArray &groups)
   CwshWord::toWords(str, words);
 
   if (cwsh->getDebug()) {
-    cerr << "Split String Into Words" << endl;
+    std::cerr << "Split String Into Words" << std::endl;
 
     CwshWord::printWords(words);
   }
@@ -235,7 +235,7 @@ parseCommandGroups(Cwsh *cwsh, const string &str, CwshCmdGroupArray &groups)
   CwshCmdSplit::wordsToCommands(words, cmds);
 
   if (cwsh->getDebug()) {
-    cerr << "Split Words Into Commands" << endl;
+    std::cerr << "Split Words Into Commands" << std::endl;
 
     CwshCmd::displayCmdArray(cmds);
   }
@@ -261,7 +261,7 @@ parseCommandGroups(Cwsh *cwsh, const string &str, CwshCmdGroupArray &groups)
   }
 
   if (cwsh->getDebug()) {
-    cerr << "Replace Aliased Commands" << endl;
+    std::cerr << "Replace Aliased Commands" << std::endl;
 
     CwshCmd::displayCmdArray(cmds1);
   }
@@ -347,7 +347,7 @@ parseCommandGroup(Cwsh *cwsh, CwshCmdGroup *group)
   }
 
   if (cwsh->getDebug()) {
-    cerr << "Replace Variables" << endl;
+    std::cerr << "Replace Variables" << std::endl;
 
     CwshCmd::displayCmdArray(cmds);
   }
@@ -395,7 +395,7 @@ parseCommandGroup(Cwsh *cwsh, CwshCmdGroup *group)
   }
 
   if (cwsh->getDebug()) {
-    cerr << "Replace backquotes" << endl;
+    std::cerr << "Replace backquotes" << std::endl;
 
     CwshCmd::displayCmdArray(cmds);
   }
@@ -425,7 +425,7 @@ parseCommandGroup(Cwsh *cwsh, CwshCmdGroup *group)
   }
 
   if (cwsh->getDebug()) {
-    cerr << "Expand Tildes" << endl;
+    std::cerr << "Expand Tildes" << std::endl;
 
     CwshCmd::displayCmdArray(cmds);
   }
@@ -463,7 +463,7 @@ parseCommandGroup(Cwsh *cwsh, CwshCmdGroup *group)
   }
 
   if (cwsh->getDebug()) {
-    cerr << "Expand Braces" << endl;
+    std::cerr << "Expand Braces" << std::endl;
 
     CwshCmd::displayCmdArray(cmds);
   }
@@ -503,7 +503,7 @@ parseCommandGroup(Cwsh *cwsh, CwshCmdGroup *group)
   }
 
   if (cwsh->getDebug()) {
-    cerr << "Expand Wildcards" << endl;
+    std::cerr << "Expand Wildcards" << std::endl;
 
     CwshCmd::displayCmdArray(cmds);
   }
@@ -534,7 +534,7 @@ parseCommandGroup(Cwsh *cwsh, CwshCmdGroup *group)
   }
 
   if (cwsh->getDebug()) {
-    cerr << "Remove Quotes" << endl;
+    std::cerr << "Remove Quotes" << std::endl;
 
     CwshCmd::displayCmdArray(cmds);
   }

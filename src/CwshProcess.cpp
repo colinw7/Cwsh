@@ -1,4 +1,4 @@
-#include "CwshI.h"
+#include <CwshI.h>
 #include <COSProcess.h>
 #include <cstring>
 #include <cerrno>
@@ -106,26 +106,26 @@ displayActive(bool list_pids)
   for (uint i = 0; i < num_active_processes; i++) {
     CwshProcess *process = active_processes[i];
 
-    cout << "[" << process->getNum() << "]  ";
+    std::cout << "[" << process->getNum() << "]  ";
 
     if      (i == num_active_processes - 1)
-      cout << "+ ";
+      std::cout << "+ ";
     else if (i == num_active_processes - 2)
-      cout << "- ";
+      std::cout << "- ";
     else
-      cout << "  ";
+      std::cout << "  ";
 
     if (list_pids)
-      cout << " " << process->getCommandPid() << " ";
+      std::cout << " " << process->getCommandPid() << " ";
 
     if      (process->getCommandState() == CCommand::STOPPED_STATE)
-      cout << "Suspended             ";
+      std::cout << "Suspended             ";
     else
-      cout << "Running               ";
+      std::cout << "Running               ";
 
     process->print();
 
-    cout << endl;
+    std::cout << std::endl;
   }
 
   deleteExited();
@@ -150,11 +150,11 @@ displayExited()
       count++;
 
     if (state == CCommand::EXITED_STATE) {
-      cout << "[" << process->getNum() << "]    Done                  ";
+      std::cout << "[" << process->getNum() << "]    Done                  ";
 
       process->print();
 
-      cout << endl;
+      std::cout << std::endl;
 
       remove(process);
 
@@ -482,10 +482,10 @@ void
 CwshProcess::
 print() const
 {
-  cout << " " << command_->getCommand()->getCommandString();
+  std::cout << " " << command_->getCommand()->getCommandString();
 
   uint numSubCommands = subCommands_.size();
 
   for (uint i = 0; i < numSubCommands; ++i)
-    cout << " | " << subCommands_[i]->getCommand()->getCommandString();
+    std::cout << " | " << subCommands_[i]->getCommand()->getCommandString();
 }

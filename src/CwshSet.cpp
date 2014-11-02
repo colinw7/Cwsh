@@ -1,4 +1,4 @@
-#include "CwshI.h"
+#include <CwshI.h>
 
 CwshSet::
 CwshSet(Cwsh *cwsh) :

@@ -1,4 +1,4 @@
-#include "CwshI.h"
+#include <CwshI.h>
 #include <COSProcess.h>
 
 CwshVariableParser::
@@ -361,7 +361,7 @@ expandVariable(const string &name, vector<string> &words)
     if (type == CWSH_VARIABLE_VALUE_TYPE_EXISTS) {
       string word = "0";
 
-      if (COSEnv::checkenv(variable_name))
+      if (CEnvInst.exists(variable_name))
         word = "1";
 
       word += subscript_str;
@@ -371,10 +371,10 @@ expandVariable(const string &name, vector<string> &words)
       return true;
     }
 
-    if (! COSEnv::checkenv(variable_name))
+    if (! CEnvInst.exists(variable_name))
       CWSH_THROW(variable_name + ": Undefined variable.");
 
-    string value = COSEnv::getenv(variable_name);
+    string value = CEnvInst.get(variable_name);
 
     vector<string> values;
 

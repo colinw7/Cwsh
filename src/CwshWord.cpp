@@ -1,4 +1,4 @@
-#include "CwshI.h"
+#include <CwshI.h>
 
 void
 CwshWord::
@@ -57,19 +57,19 @@ printWords(const CwshWordArray &words)
 
   for (int i = 0; i < num_words; i++) {
     if (i > 0)
-      cerr << " ";
+      std::cerr << " ";
 
-    cerr << "'" << words[i] << "'";
+    std::cerr << "'" << words[i] << "'";
   }
 
-  cerr << endl;
+  std::cerr << std::endl;
 }
 
 void
 CwshWord::
 printWord(const CwshWord &word)
 {
-  cerr << word << endl;
+  std::cerr << word << std::endl;
 }
 
 CwshWord::

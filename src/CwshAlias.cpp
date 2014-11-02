@@ -1,4 +1,4 @@
-#include "CwshI.h"
+#include <CwshI.h>
 #include <CwshHistoryParser.h>
 
 template<typename T>
@@ -88,7 +88,7 @@ substitute(CwshCmd *cmd, CwshCmdArray &cmds) const
   CwshWord::toWords(line, words1);
 
   if (cwsh_->getDebug()) {
-    cerr << "Split String Into Words" << endl;
+    std::cerr << "Split String Into Words" << std::endl;
 
     CwshWord::printWords(words1);
   }
@@ -107,7 +107,7 @@ substitute(CwshCmd *cmd, CwshCmdArray &cmds) const
     cmds[num_cmds - 1]->setSeparator(cmd->getSeparator());
 
   if (cwsh_->getDebug()) {
-    cerr << "Substitute Alias" << endl;
+    std::cerr << "Substitute Alias" << std::endl;
 
     CwshCmd::displayCmdArray(cmds);
   }
@@ -123,7 +123,7 @@ void
 CwshAliasMgr::
 display() const
 {
-  for_each(aliases_.begin(), aliases_.end(), CwshAliasListValueDisplay<AliasList>());
+  std::for_each(aliases_.begin(), aliases_.end(), CwshAliasListValueDisplay<AliasList>());
 }
 
 string
@@ -161,5 +161,5 @@ void
 CwshAlias::
 display() const
 {
-  cout << name_ << " " << value_ << endl;
+  std::cout << name_ << " " << value_ << std::endl;
 }

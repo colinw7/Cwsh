@@ -1,4 +1,4 @@
-#include "CwshI.h"
+#include <CwshI.h>
 
 CwshInPlaceCommand::
 CwshInPlaceCommand(Cwsh *cwsh, const CwshWord &word) :
@@ -49,7 +49,7 @@ expand(CwshWordArray &words)
     CwshWord::toWords(str1, words);
 
     if (cwsh_->getDebug()) {
-      cerr << "Expand In Place String to Words" << endl;
+      std::cerr << "Expand In Place String to Words" << std::endl;
 
       CwshWord::printWords(words);
     }
@@ -115,12 +115,12 @@ expandCommand(const string &str)
 
   //------
 
-  for_each(groups.begin(), groups.end(), CDeletePointer());
+  std::for_each(groups.begin(), groups.end(), CDeletePointer());
 
   //------
 
   if (cwsh_->getDebug()) {
-    cerr << "Expand Command '" << str << "' to '" << output << "'" << endl;
+    std::cerr << "Expand Command '" << str << "' to '" << output << "'" << std::endl;
   }
 
   return output;
@@ -142,7 +142,7 @@ executeCommands(const CwshCmdArray &cmds)
 
   for (int i = 0; i < num_cmds; i++) {
     if (cwsh_->getDebug()) {
-      cerr << "Execute Command: ";
+      std::cerr << "Execute Command: ";
 
       cmds[i]->display();
     }
@@ -248,7 +248,7 @@ executeCommands(const CwshCmdArray &cmds)
 
           cwsh_->defineVariable("status", status);
 
-          for_each(pcommands.begin(), pcommands.end(), CDeletePointer());
+          std::for_each(pcommands.begin(), pcommands.end(), CDeletePointer());
 
           if (separator == CWSH_COMMAND_SEPARATOR_AND && status != 0)
             break;
@@ -261,7 +261,7 @@ executeCommands(const CwshCmdArray &cmds)
 
           int pid = command1->getPid();
 
-          cout << "[" << process->getNum() << "] " << pid << endl;
+          std::cout << "[" << process->getNum() << "] " << pid << std::endl;
         }
 
         pcommands.clear();
@@ -295,7 +295,7 @@ executeCommands(const CwshCmdArray &cmds)
 
           int pid = command1->getPid();
 
-          cout << "[" << process->getNum() << "] " << pid << endl;
+          std::cout << "[" << process->getNum() << "] " << pid << std::endl;
         }
       }
     }

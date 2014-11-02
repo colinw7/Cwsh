@@ -1,5 +1,5 @@
-#include "CwshI.h"
-#include "CPathList.h"
+#include <CwshI.h>
+#include <CPathList.h>
 
 string
 CwshUnixCommand::

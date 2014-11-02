@@ -1,4 +1,4 @@
-#include "CwshI.h"
+#include <CwshI.h>
 #include <COSSignal.h>
 #include <cerrno>
 
@@ -138,7 +138,7 @@ stopHandler(int)
 
   //printf("Exiting SIGTSTP handler\n");
 #else
-  cerr << "stopHandler" << endl;
+  std::cerr << "stopHandler" << std::endl;
 
   CwshMgrInst.stopActiveProcesses();
 #endif
@@ -153,7 +153,7 @@ genericHandler(int)
 #if 0
   CwshSignal *sig = lookup(num);
 
-  cerr << "Signal " << sig->name_ << "(" << sig->num_ << ") received" << endl;
+  std::cerr << "Signal " << sig->name_ << "(" << sig->num_ << ") received" << std::endl;
 #endif
 }
 

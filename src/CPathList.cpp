@@ -3,7 +3,7 @@
 #include <CFile.h>
 #include <CFileMatch.h>
 
-#include <COSEnv.h>
+#include <CEnv.h>
 #include <CStrUtil.h>
 
 CPathList::
@@ -21,10 +21,10 @@ void
 CPathList::
 addEnvValue(const std::string &name)
 {
-  if (! COSEnv::checkenv(name))
+  if (! CEnvInst.exists(name))
     return;
 
-  std::string path = COSEnv::getenv(name);
+  std::string path = CEnvInst.get(name);
 
   CStrWords words = CStrUtil::toFields(path, ":");
 
