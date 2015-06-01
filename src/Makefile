@@ -71,6 +71,7 @@ CPPFLAGS = \
 -I../../CUtil/include \
 -I../../CReadLine/include \
 -I../../CRGBName/include \
+-I../../CMath/include \
 -I.
 
 LFLAGS = \
@@ -84,6 +85,7 @@ $(LDEBUG) \
 -L../../COS/lib \
 -L../../CReadLine/lib \
 -L../../CRGBName/lib \
+-L../../CMath/lib \
 -lCCommand \
 -lCFile \
 -lCArgs \
