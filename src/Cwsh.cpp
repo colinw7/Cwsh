@@ -1,6 +1,7 @@
 #include <CwshI.h>
 #include <CwshShMem.h>
 #include <CArgs.h>
+#include <CCommandMgr.h>
 //#include <COSPty.h>
 #include <cstdio>
 
@@ -305,11 +306,7 @@ initEnv()
   //------
 
   if (CEnvInst.exists("PATH")) {
-    string path = CEnvInst.get("PATH");
-
-    vector<string> values;
-
-    CStrUtil::addFields(path, values, ":");
+    vector<string> values = CEnvInst.getValues("PATH");
 
     defineVariable("path", values);
   }
