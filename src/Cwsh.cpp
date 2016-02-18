@@ -161,7 +161,7 @@ Cwsh() :
   sh_mem_->purge();
 #endif
 
-  //read_line_->enableTimoutHook();
+  //read_line_->enableTimeoutHook();
 
   CwshMgrInst.add(this);
 }
