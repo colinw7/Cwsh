@@ -6,8 +6,10 @@ class CwshBlockMgr {
   CwshBlockMgr(Cwsh *cwsh);
  ~CwshBlockMgr();
 
-  void startBlock(CwshBlockType type, const CwshLineArray &lines);
-  void endBlock();
+  CwshBlock *currentBlock() { return current_block_; }
+
+  CwshBlock *startBlock(CwshBlockType type, const CwshLineArray &lines);
+  void       endBlock();
 
   bool     inBlock () const;
   bool     eof     () const;
@@ -33,17 +35,32 @@ class CwshBlockMgr {
   CPtr<Cwsh>          cwsh_;
   CAutoPtr<CwshBlock> current_block_;
   CwshBlockArray      block_stack_;
-  bool                break_flag_;
-  bool                breaksw_flag_;
-  bool                continue_flag_;
-  bool                return_flag_;
-  int                 goto_depth_;
+  bool                break_flag_    { false };
+  bool                breaksw_flag_  { false };
+  bool                continue_flag_ { false };
+  bool                return_flag_   { false };
+  int                 goto_depth_    { 0 };
 };
+
+//---
 
 class CwshBlock {
  public:
   CwshBlock(CwshBlockType type, const CwshLineArray &lines);
  ~CwshBlock();
+
+  CwshBlockType getType() const { return type_; }
+
+  const CwshLineArray &getLines() const { return lines_; }
+
+  int getNumLines() const { return lines_.size(); }
+  const CwshLine &getLine(int i) const { return lines_[i]; }
+
+  const std::string &getFilename() const { return filename_; }
+  void setFilename(const std::string &v) { filename_ = v; }
+
+  int getLineNum() const { return line_num_; }
+  void setLineNum(int line_num) { line_num_ = line_num; }
 
   CwshLine readLine();
 
@@ -51,17 +68,11 @@ class CwshBlock {
 
   int getLabelLineNum(const std::string &label) const;
 
-  CwshBlockType   getType() const { return type_; }
-  int             getNumLines() const { return lines_.size(); }
-  const CwshLine &getLine(int i) const { return lines_[i]; }
-  int             getLineNum() const { return line_num_; }
-
-  void setLineNum(int line_num) { line_num_ = line_num; }
-
  private:
   CwshBlockType type_;
   CwshLineArray lines_;
-  int           line_num_;
+  std::string   filename_;
+  int           line_num_ { 0 };
 };
 
 #endif

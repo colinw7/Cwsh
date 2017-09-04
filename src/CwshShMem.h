@@ -12,9 +12,6 @@ struct CwshShMemData {
 };
 
 class CwshShMem : public CShMem {
- private:
-  CwshShMemData data_;
-
  public:
   CwshShMem() :
    CShMem("Cwsh") {
@@ -36,6 +33,9 @@ class CwshShMem : public CShMem {
   }
 
   uint getDataSize() const { return sizeof(data_); }
+
+ private:
+  CwshShMemData data_;
 };
 
 #endif

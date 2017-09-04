@@ -3,6 +3,7 @@
 
 #define CwshMgrInst CwshMgr::getInstance()
 
+#include <CConfig.h>
 #include <CAutoPtr.h>
 #include <CAutoPtrMap.h>
 #include <CAutoPtrVector.h>
@@ -15,21 +16,41 @@ class CMessage;
 class CwshShMem;
 #endif
 
-enum CwshPromptType {
-  CWSH_PROMPT_TYPE_NORMAL,
-  CWSH_PROMPT_TYPE_EXTRA,
+enum class CwshPromptType {
+  NORMAL,
+  EXTRA
 };
+
+//---
 
 class CwshMgr {
  private:
   typedef std::list<Cwsh *> CwshList;
 
-  CwshList cwsh_list_;
-
  public:
   static CwshMgr &getInstance();
 
  ~CwshMgr();
+
+  const std::string &locationColorStr() const { return locationColor_; }
+
+  const std::string &aliasNameColorStr () const { return aliasNameColor_ ; }
+  const std::string &aliasValueColorStr() const { return aliasValueColor_; }
+
+  const std::string &envNameColorStr () const { return envNameColor_ ; }
+  const std::string &envValueColorStr() const { return envValueColor_; }
+
+  const std::string &funcNameColorStr () const { return funcNameColor_ ; }
+  const std::string &funcValueColorStr() const { return funcValueColor_; }
+
+  const std::string &helpNameColorStr() const { return helpNameColor_; }
+  const std::string &helpArgsColorStr() const { return helpArgsColor_; }
+  const std::string &helpDescColorStr() const { return helpDescColor_; }
+
+  const std::string &varNameColorStr () const { return varNameColor_ ; }
+  const std::string &varValueColorStr() const { return varValueColor_; }
+
+  const std::string &resetColorStr() const { return resetColor_; }
 
   void add   (Cwsh *cwsh);
   void remove(Cwsh *cwsh);
@@ -46,54 +67,28 @@ class CwshMgr {
 
  private:
   CwshMgr();
+
+ private:
+  CConfig     config_;
+  CwshList    cwshList_;
+  std::string locationColor_;
+  std::string aliasNameColor_;
+  std::string aliasValueColor_;
+  std::string envNameColor_;
+  std::string envValueColor_;
+  std::string funcNameColor_;
+  std::string funcValueColor_;
+  std::string helpNameColor_;
+  std::string helpArgsColor_;
+  std::string helpDescColor_;
+  std::string varNameColor_;
+  std::string varValueColor_;
+  std::string resetColor_;
 };
 
-class Cwsh {
- private:
-  std::string                   command_string_;
-  bool                          exit_on_error_;
-  bool                          fast_startup_;
-  bool                          interactive_;
-  bool                          no_execute_;
-  bool                          exit_after_cmd_;
-  bool                          login_shell_;
-  std::string                   name_;
-  std::string                   filename_;
-  CwshPromptType                prompt_type_;
-  std::string                   prompt_command_;
-  bool                          compatible_;
-  bool                          silentMode_;
-  bool                          debug_;
-  bool                          interrupt_;
-  bool                          verbose1_;
-  bool                          verbose2_;
-  bool                          echo1_;
-  bool                          echo2_;
-  std::string                   argv0_;
-  std::string                   init_filename_;
-  CAutoPtr<CFile>               input_file_;
-  int                           term_tries_;
-  int                           exit_;
-  int                           exit_status_;
-  CAutoPtr<CwshFunctionMgr>     function_mgr_;
-  CAutoPtr<CwshVariableMgr>     variable_mgr_;
-  CAutoPtr<CwshProcessMgr>      process_mgr_;
-  CAutoPtr<CwshStateMgr>        state_mgr_;
-  CAutoPtr<CwshBlockMgr>        block_mgr_;
-  CAutoPtr<CwshAliasMgr>        alias_mgr_;
-  CAutoPtr<CwshAutoExecMgr>     auto_exec_mgr_;
-  CAutoPtr<CwshHistory>         history_;
-  CAutoPtr<CwshShellCommandMgr> shell_cmd_mgr_;
-  CAutoPtr<CwshInput>           input_;
-  CAutoPtr<CwshReadLine>        read_line_;
-  CAutoPtr<CwshDirStack>        dir_stack_;
-  CAutoPtr<CwshHash>            hash_;
-  CAutoPtr<CwshResource>        resource_;
-  CAutoPtr<CwshServer>          server_;
-#ifdef USE_SHM
-  CAutoPtr<CwshShMem>           sh_mem_;
-#endif
+//---
 
+class Cwsh {
  public:
   Cwsh();
  ~Cwsh();
@@ -112,58 +107,68 @@ class Cwsh {
   void mainLoop();
   void processLine(const std::string &str);
 
+  //---
+
   const std::string &getName         () const { return name_; }
-  CwshPromptType     getPromptType   () const { return prompt_type_; }
-  std::string        getPromptCommand() const { return prompt_command_; }
   bool               getCompatible   () const { return compatible_; }
   bool               getSilentMode   () const { return silentMode_; }
-  bool               getDebug        () const { return debug_; }
-  bool               getInterrupt    () const { return interrupt_; }
   std::string        getArgv0        () const { return argv0_; }
 
-  CwshShellCommandMgr *getShellCommandMgr() const { return shell_cmd_mgr_; }
+  CwshShellCommandMgr *getShellCommandMgr() const { return shellCmdMgr_; }
 
   bool changeDir(const std::string &dirname);
 
-  void setFastStartup(bool flag=true) { fast_startup_ = flag; }
+  void setFastStartup(bool flag=true) { fastStartup_ = flag; }
 
-  void setPromptType(CwshPromptType prompt_type) {
-    prompt_type_ = prompt_type;
-  }
+  // get/set filename
+  void setFilename(const std::string &name) { filename_ = name; }
+  const std::string &getFilename() const { return filename_; }
 
-  void setPromptCommand(const std::string &prompt_command) {
-    prompt_command_ = prompt_command;
-  }
+  // get/set line number
+  void setLineNum(int num) { lineNum_ = num; }
+  int getLineNum() const { return lineNum_; }
 
+  // get/set prompt type
+  CwshPromptType getPromptType() const { return promptType_; }
+  void setPromptType(CwshPromptType type) { promptType_ = type; }
+
+  // get/set prompt command
+  const std::string &getPromptCommand() const { return promptCommand_; }
+  void setPromptCommand(const std::string &command) { promptCommand_ = command; }
+
+  // get/set interrupt
+  bool getInterrupt() const { return interrupt_; }
   void setInterrupt(bool flag) { interrupt_ = flag; }
 
+  // get/set debug
+  bool getDebug() const { return debug_; }
   void setDebug(bool flag);
 
-  void setExit(bool flag, int status=0) {
-    exit_ = flag; exit_status_ = status;
-  }
-
+  // get/set exit
   bool getExit() const { return exit_; }
+  void setExit(bool flag, int status=0) { exit_ = flag; exitStatus_ = status; }
+
+  //---
 
   // Function
 
-  void defineFunction(const CwshFunctionName &name, const CwshLineArray &lines);
+  CwshFunction *defineFunction(const CwshFunctionName &name, const CwshLineArray &lines);
+
   void undefineFunction(const CwshFunctionName &name);
 
   CwshFunction *lookupFunction(const CwshFunctionName &name);
 
   void listAllFunctions();
 
+  //---
+
   // Variable
 
-  void defineVariable(const CwshVariableName &name);
-  void defineVariable(const CwshVariableName &name,
-                      const CwshVariableValue &value);
-  void defineVariable(const CwshVariableName &name, int value);
-  void defineVariable(const CwshVariableName &name,
-                      const CwshVariableValueArray &values);
-  void defineVariable(const CwshVariableName &name,
-                      const char **values, int num_values);
+  CwshVariable *defineVariable(const CwshVariableName &name);
+  CwshVariable *defineVariable(const CwshVariableName &name, const CwshVariableValue &value);
+  CwshVariable *defineVariable(const CwshVariableName &name, int value);
+  CwshVariable *defineVariable(const CwshVariableName &name, const CwshVariableValueArray &values);
+  CwshVariable *defineVariable(const CwshVariableName &name, const char **values, int num_values);
 
   void undefineVariable(const CwshVariableName &name);
 
@@ -172,7 +177,7 @@ class Cwsh {
   CwshVariableList::iterator variablesBegin();
   CwshVariableList::iterator variablesEnd();
 
-  void listVariables() const;
+  void listVariables(bool all) const;
 
   void saveVariables();
   void restoreVariables();
@@ -181,6 +186,8 @@ class Cwsh {
   bool isEnvironmentVariableUpper(const std::string &name);
 
   void updateEnvironmentVariable(CwshVariable *variable);
+
+  //---
 
   // Process
 
@@ -204,15 +211,17 @@ class Cwsh {
 
   CwshProcess *lookupProcess(pid_t pid);
 
-  // State
+  //---
 
+  // State
   void saveState();
   void restoreState();
 
-  // Block
+  //---
 
-  void startBlock(CwshBlockType type, const CwshLineArray &lines);
-  void endBlock();
+  // Block
+  CwshBlock *startBlock(CwshBlockType type, const CwshLineArray &lines);
+  void       endBlock();
 
   bool     inBlock      () const;
   bool     blockEof     () const;
@@ -234,9 +243,10 @@ class Cwsh {
   void setBlockContinue   (bool flag);
   void setBlockReturn     (bool flag);
 
-  // Alias
+  //---
 
-  void defineAlias(const CwshAliasName &name, const CwshAliasValue &value);
+  // Alias
+  CwshAlias *defineAlias(const CwshAliasName &name, const CwshAliasValue &value);
 
   void undefineAlias(const CwshAliasName &name);
 
@@ -244,7 +254,9 @@ class Cwsh {
 
   bool substituteAlias(CwshCmd *cmd, CwshCmdArray &cmds) const;
 
-  void displayAlias() const;
+  void displayAliases(bool alias) const;
+
+  //---
 
   // AutoExec
 
@@ -255,6 +267,8 @@ class Cwsh {
   CwshAutoExec *lookupAutoExec(const CwshAutoExecName &name) const;
 
   void displayAutoExec() const;
+
+  //---
 
   // History
 
@@ -283,9 +297,13 @@ class Cwsh {
   std::string getPrevHistoryCommand();
   std::string getNextHistoryCommand();
 
+  //---
+
   // Shell Command
 
   CwshShellCommand *lookupShellCommand(const std::string &name) const;
+
+  //---
 
   // Input
 
@@ -303,11 +321,15 @@ class Cwsh {
 
   std::string processInputExprLine(const CwshLine &line);
 
+  //---
+
   // Read Line
 
   std::string readLine();
   void        beep();
   void        readInterrupt();
+
+  //---
 
   // Dir Stack
 
@@ -321,6 +343,8 @@ class Cwsh {
 
   void printDirStack(bool expand_home=false);
 
+  //---
+
   // Hash
 
   void        addFilePath(const std::string &filename, const std::string &path);
@@ -328,6 +352,8 @@ class Cwsh {
   void        clearFilePath();
   void        printFilePathStats();
   void        setFilePathActive(bool flag);
+
+  //---
 
   // Resource
 
@@ -337,6 +363,8 @@ class Cwsh {
   void unlimitResource(const std::string &name);
   void printAllResources(bool hard=false);
   void printResource(const std::string &name, bool hard=false);
+
+  //---
 
   void readTimeout();
 
@@ -349,6 +377,52 @@ class Cwsh {
   void cleanup();
 
   void startup();
+
+ private:
+  std::string                   command_string_;
+  bool                          exitOnError_    { false };
+  bool                          fastStartup_    { false };
+  bool                          interactive_    { false };
+  bool                          noExecute_      { false };
+  bool                          exitAfterCmd_   { false };
+  bool                          loginShell_     { false };
+  std::string                   name_;
+  std::string                   filename_;
+  int                           lineNum_        { -1 };
+  CwshPromptType                promptType_     { CwshPromptType::NORMAL };
+  std::string                   promptCommand_;
+  bool                          compatible_     { false };
+  bool                          silentMode_     { false };
+  bool                          debug_          { false };
+  bool                          interrupt_      { false };
+  bool                          verbose1_       { false };
+  bool                          verbose2_       { false };
+  bool                          echo1_          { false };
+  bool                          echo2_          { false };
+  std::string                   argv0_;
+  std::string                   initFilename_;
+  CAutoPtr<CFile>               inputFile_;
+  int                           termTries_      { 0 };
+  int                           exit_           { 0 };
+  int                           exitStatus_     { 0 };
+  CAutoPtr<CwshFunctionMgr>     functionMgr_;
+  CAutoPtr<CwshVariableMgr>     variableMgr_;
+  CAutoPtr<CwshProcessMgr>      processMgr_;
+  CAutoPtr<CwshStateMgr>        stateMgr_;
+  CAutoPtr<CwshBlockMgr>        blockMgr_;
+  CAutoPtr<CwshAliasMgr>        aliasMgr_;
+  CAutoPtr<CwshAutoExecMgr>     autoExecMgr_;
+  CAutoPtr<CwshHistory>         history_;
+  CAutoPtr<CwshShellCommandMgr> shellCmdMgr_;
+  CAutoPtr<CwshInput>           input_;
+  CAutoPtr<CwshReadLine>        readLine_;
+  CAutoPtr<CwshDirStack>        dirStack_;
+  CAutoPtr<CwshHash>            hash_;
+  CAutoPtr<CwshResource>        resource_;
+  CAutoPtr<CwshServer>          server_;
+#ifdef USE_SHM
+  CAutoPtr<CwshShMem>           shMem_;
+#endif
 };
 
 #endif

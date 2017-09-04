@@ -37,7 +37,7 @@ undefine(const CwshAutoExecName &suffix)
 
 CwshAutoExec *
 CwshAutoExecMgr::
-lookup(const string &suffix) const
+lookup(const std::string &suffix) const
 {
   return auto_execs_.getValue(suffix);
 }
@@ -46,23 +46,21 @@ void
 CwshAutoExecMgr::
 display() const
 {
-  std::for_each(auto_execs_.begin(), auto_execs_.end(),
-                CwshAutoExecListValueDisplay<AutoExecList>());
+  for (auto &auto_exec : auto_execs_)
+    CwshAutoExecListValueDisplay<AutoExecList>()(auto_exec);
 }
 
-string
+std::string
 CwshAutoExecMgr::
 getAutoExecsMsg() const
 {
-  string msg;
+  std::string msg;
 
-  AutoExecList::const_iterator palias1 = auto_execs_.begin();
-  AutoExecList::const_iterator palias2 = auto_execs_.end  ();
+  for (const auto &auto_exec : auto_execs_) {
+    if (! msg.empty())
+      msg += "#";
 
-  for ( ; palias1 != palias2; ++palias1) {
-    if (! msg.empty()) msg += "#";
-
-    msg += (*palias1).second->getName () + "#" + (*palias1).second->getValue();
+    msg += auto_exec.second->getName () + "#" + auto_exec.second->getValue();
   }
 
   return msg;
@@ -71,7 +69,7 @@ getAutoExecsMsg() const
 //-------------------
 
 CwshAutoExec::
-CwshAutoExec(const string &suffix, const string &value) :
+CwshAutoExec(const std::string &suffix, const std::string &value) :
  suffix_(suffix), value_(value)
 {
 }
@@ -90,7 +88,7 @@ display() const
 
 bool
 CwshAutoExec::
-substitute(const string &name, string &cmd, vector<string> &args)
+substitute(const std::string &name, std::string &cmd, std::vector<std::string> &args)
 {
   cmd = value_;
 

@@ -7,14 +7,37 @@
 #include <sys/resource.h>
 #include <sys/times.h>
 
+namespace {
+
+auto nSpace = [&](int n) -> std::string {
+  std::string str;
+
+  for (int i = 0; i < n; ++i)
+    str += " ";
+
+  return str;
+};
+
+auto helpStr = [&](const std::string &cmd, const std::string &args, int len,
+                   const std::string &desc) -> void {
+  std::cout << CwshMgrInst.helpNameColorStr() + cmd  + CwshMgrInst.resetColorStr() + " " +
+               CwshMgrInst.helpArgsColorStr() + args + CwshMgrInst.resetColorStr() +
+               nSpace(len - args.size()) + " ; " +
+               CwshMgrInst.helpDescColorStr() + desc + CwshMgrInst.resetColorStr() + "\n";
+};
+
+}
+
+//---
+
 #define CWSH_SHELL_CMD_DATA1(n,p) \
-  { n , NULL, &CwshShellCommandMgr::p, CWSH_SHELL_COMMAND_FLAGS_NONE }
+  { n , nullptr, &CwshShellCommandMgr::p, CWSH_SHELL_COMMAND_FLAGS_NONE }
 #define CWSH_SHELL_CMD_DATA2(ns,ne,p) \
-  { ns, ne, &CwshShellCommandMgr::p, CWSH_SHELL_COMMAND_FLAGS_NONE }
+  { ns, ne     , &CwshShellCommandMgr::p, CWSH_SHELL_COMMAND_FLAGS_NONE }
 #define CWSH_SHELL_CMD_DATA1_NW(n,p) \
-  { n , NULL, &CwshShellCommandMgr::p, CWSH_SHELL_COMMAND_FLAGS_NO_WILDCARDS }
+  { n , nullptr, &CwshShellCommandMgr::p, CWSH_SHELL_COMMAND_FLAGS_NO_WILDCARDS }
 #define CWSH_SHELL_CMD_DATA2_NE(ns,ne,p) \
-  { ns, ne, &CwshShellCommandMgr::p, CWSH_SHELL_COMMAND_FLAGS_NO_EXPAND }
+  { ns, ne     , &CwshShellCommandMgr::p, CWSH_SHELL_COMMAND_FLAGS_NO_EXPAND }
 
 CwshShellCommandData
 CwshShellCommandMgr::
@@ -24,7 +47,7 @@ commands_data_[] = {
  CWSH_SHELL_CMD_DATA2("if"     , "endif"  , ifCmd     ),
  CWSH_SHELL_CMD_DATA2("switch" , "endsw"  , switchCmd ),
 
- CWSH_SHELL_CMD_DATA2_NE("while"  , "end"    , whileCmd  ),
+ CWSH_SHELL_CMD_DATA2_NE("while", "end", whileCmd  ),
 
  CWSH_SHELL_CMD_DATA1(":"       , colonCmd   ),
  CWSH_SHELL_CMD_DATA1("bg"      , bgCmd      ),
@@ -104,12 +127,13 @@ CwshShellCommandMgr(Cwsh *cwsh) :
 CwshShellCommandMgr::
 ~CwshShellCommandMgr()
 {
-  std::for_each(commands_.begin(), commands_.end(), CDeletePointer());
+  for (auto &command : commands_)
+    delete command;
 }
 
 CwshShellCommand *
 CwshShellCommandMgr::
-lookup(const string &name) const
+lookup(const std::string &name) const
 {
   if (name.size() > 0 && name[0] == '\\')
     return lookup(name.substr(1));
@@ -120,7 +144,7 @@ lookup(const string &name) const
     if (commands_[i]->getName() == name)
       return commands_[i];
 
-  return NULL;
+  return nullptr;
 }
 
 void
@@ -157,26 +181,42 @@ CwshShellCommandMgr::
 aliasCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "alias               ; list all aliases" << std::endl;
-    std::cout << "alias <name>        ; list named alias" << std::endl;
-    std::cout << "alias <name> <args> ; define alias to args" << std::endl;
+    helpStr("alias", "[-a]              ", 18, "list all aliases");
+    helpStr("alias", "[-a] <name>       ", 18, "list named alias");
+    helpStr("alias", "[-a] <name> <args>", 18, "define alias to args");
     return;
   }
 
-  int num_args = args.size();
+  bool all = false;
 
-  if      (num_args == 0)
-    cwsh->displayAlias();
+  std::vector<std::string> args1;
+
+  for (const auto &arg : args) {
+    if (args1.empty() && arg[0] == '-') {
+      if (arg == "-a")
+        all = true;
+      else
+        std::cerr << "Invalid option: " << arg << std::endl;
+    }
+    else
+      args1.push_back(arg);
+  }
+
+  int num_args = args1.size();
+
+  if      (num_args == 0) {
+    cwsh->displayAliases(all);
+  }
   else if (num_args == 1) {
-    CwshAlias *alias = cwsh->lookupAlias(args[0]);
+    CwshAlias *alias = cwsh->lookupAlias(args1[0]);
 
-    if (alias != NULL)
-      std::cout << alias->getValue() << std::endl;
+    if (alias)
+      alias->displayValue(all);
   }
   else {
-    string cmd = CStrUtil::toString(args, 1);
+    std::string cmd = CStrUtil::toString(args1, 1);
 
-    cwsh->defineAlias(args[0], cmd);
+    cwsh->defineAlias(args1[0], cmd);
   }
 }
 
@@ -185,9 +225,9 @@ CwshShellCommandMgr::
 autoExecCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "autoexec                 ; list all auto exec rules" << std::endl;
-    std::cout << "autoexec <suffix>        ; list named auto exec" << std::endl;
-    std::cout << "autoexec <suffix> <args> ; define auto exec for suffix to args" << std::endl;
+    helpStr("autoexec", ""               , 16, "list all auto exec rules");
+    helpStr("autoexec", "<suffix>"       , 16, "list named auto exec");
+    helpStr("autoexec", "<suffix> <args>", 16, "define auto exec for suffix to args");
     return;
   }
 
@@ -198,11 +238,11 @@ autoExecCmd(Cwsh *cwsh, const CwshArgArray &args)
   else if (num_args == 1) {
     CwshAutoExec *autoExec = cwsh->lookupAutoExec(args[0]);
 
-    if (autoExec != NULL)
+    if (autoExec)
       std::cout << autoExec->getValue() << std::endl;
   }
   else {
-    string cmd = CStrUtil::toString(args, 1);
+    std::string cmd = CStrUtil::toString(args, 1);
 
     cwsh->defineAutoExec(args[0], cmd);
   }
@@ -213,8 +253,8 @@ CwshShellCommandMgr::
 bgCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "bg           ; move current process to backgroud" << std::endl;
-    std::cout << "bg <job> ... ; move specified jobs to background" << std::endl;
+    helpStr("bg", ""         , 9, "move current process to background");
+    helpStr("bg", "<job> ...", 9, "move specified jobs to background");
     return;
   }
 
@@ -224,7 +264,7 @@ bgCmd(Cwsh *cwsh, const CwshArgArray &args)
     for (int i = 0; i < num_args; i++) {
       CwshProcess *process = cwsh->getActiveProcess(args[i]);
 
-      if (process == NULL)
+      if (! process)
         CWSH_THROW("No such job.");
 
       std::cout << "[" << process->getNum() << "]    ";
@@ -239,7 +279,7 @@ bgCmd(Cwsh *cwsh, const CwshArgArray &args)
   else {
     CwshProcess *process = cwsh->getCurrentActiveProcess();
 
-    if (process == NULL)
+    if (! process)
       CWSH_THROW("No current job.");
 
     std::cout << "[" << process->getNum() << "]    ";
@@ -257,7 +297,7 @@ CwshShellCommandMgr::
 breakCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "break ; break out of while/foreach" << std::endl;
+    helpStr("break", "", 0, "break out of while/foreach");
     return;
   }
 
@@ -266,12 +306,12 @@ breakCmd(Cwsh *cwsh, const CwshArgArray &args)
   if (num_args > 0)
     CWSH_THROW("Too many arguments.");
 
-  CwshBlock *block = cwsh->findBlock(CWSH_BLOCK_TYPE_WHILE);
+  CwshBlock *block = cwsh->findBlock(CwshBlockType::WHILE);
 
-  if (block == NULL)
-    block = cwsh->findBlock(CWSH_BLOCK_TYPE_FOREACH);
+  if (! block)
+    block = cwsh->findBlock(CwshBlockType::FOREACH);
 
-  if (block == NULL)
+  if (! block)
     CWSH_THROW("Not in while/foreach.");
 
   cwsh->setBlockBreak(true);
@@ -282,7 +322,7 @@ CwshShellCommandMgr::
 breakswCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "breaksw ; break out of switch" << std::endl;
+    helpStr("breaksw", "", 0, "break out of switch");
     return;
   }
 
@@ -291,9 +331,9 @@ breakswCmd(Cwsh *cwsh, const CwshArgArray &args)
   if (num_args > 0)
     CWSH_THROW("Too many arguments.");
 
-  CwshBlock *block = cwsh->findBlock(CWSH_BLOCK_TYPE_SWITCH);
+  CwshBlock *block = cwsh->findBlock(CwshBlockType::SWITCH);
 
-  if (block == NULL)
+  if (! block)
     CWSH_THROW("Not in switch.");
 
   cwsh->setBlockBreakSwitch(true);
@@ -304,7 +344,7 @@ CwshShellCommandMgr::
 caseCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "case <expr> ; switch case statement" << std::endl;
+    helpStr("case", "<expr>", 6, "switch case statement");
     return;
   }
 
@@ -324,23 +364,22 @@ CwshShellCommandMgr::
 cdCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "cd           ; change to home directory" << std::endl;
-    std::cout << "cd <dir>     ; change to specified directory" << std::endl;
-    std::cout << "cd <dir> ... ; change to first valid directory" << std::endl;
-
+    helpStr("cd", ""         , 9, "change to home directory");
+    helpStr("cd", "<dir>"    , 9, "change to specified directory");
+    helpStr("cd", "<dir> ...", 9, "change to first valid directory");
     return;
   }
 
   int num_args = args.size();
 
   if (num_args == 0) {
-    string dirname = COSUser::getUserHome();
+    std::string dirname = COSUser::getUserHome();
 
     cwsh->changeDir(dirname);
   }
   else {
     for (int i = 0; i < num_args; ++i) {
-      string dirname = CStrUtil::stripSpaces(args[i]);
+      std::string dirname = CStrUtil::stripSpaces(args[i]);
 
       if (dirname == "")
         dirname = COSUser::getUserHome();
@@ -363,43 +402,42 @@ CwshShellCommandMgr::
 completeCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "complete [-all|-best|-command|-file|-var] <pattern> ... ; "
-                 "complete pattern" << std::endl;
+    helpStr("complete", "[-all|-best|-command|-file|-var] <pattern> ...", 0, "complete pattern");
     return;
   }
 
-  enum CwshCompleteShow {
-    COMPLETE_SHOW_ALL,
-    COMPLETE_SHOW_BEST
+  enum class CwshCompleteShow {
+    ALL,
+    BEST
   };
 
-  enum CwshCompleteType {
-    COMPLETE_TYPE_COMMAND,
-    COMPLETE_TYPE_FILE,
-    COMPLETE_TYPE_VAR
+  enum class CwshCompleteType {
+    COMMAND,
+    FILE,
+    VAR
   };
 
-  vector<string> args1;
+  std::vector<std::string> args1;
 
-  CwshCompleteShow show = COMPLETE_SHOW_ALL;
-  CwshCompleteType type = COMPLETE_TYPE_COMMAND;
+  CwshCompleteShow show = CwshCompleteShow::ALL;
+  CwshCompleteType type = CwshCompleteType::COMMAND;
 
   int num_args = args.size();
 
   for (int i = 0; i < num_args; i++) {
     if (args[i][0] == '-') {
-      string name = args[i].substr(1);
+      std::string name = args[i].substr(1);
 
       if      (name == "all")
-        show = COMPLETE_SHOW_ALL;
+        show = CwshCompleteShow::ALL;
       else if (name == "best")
-        show = COMPLETE_SHOW_BEST;
+        show = CwshCompleteShow::BEST;
       else if (name == "command")
-        type = COMPLETE_TYPE_COMMAND;
+        type = CwshCompleteType::COMMAND;
       else if (name == "file")
-        type = COMPLETE_TYPE_FILE;
+        type = CwshCompleteType::FILE;
       else if (name == "var")
-        type = COMPLETE_TYPE_VAR;
+        type = CwshCompleteType::VAR;
       else
         CWSH_THROW("Invalid argument.");
     }
@@ -415,17 +453,17 @@ completeCmd(Cwsh *cwsh, const CwshArgArray &args)
   if (num_args1 > 1)
     CWSH_THROW("Too many arguments.");
 
-  if (show == COMPLETE_SHOW_ALL) {
-    string pattern_str = args1[0] + "*";
+  if (show == CwshCompleteShow::ALL) {
+    std::string pattern_str = args1[0] + "*";
 
-    vector<string> names;
+    std::vector<std::string> names;
 
-    if      (type == COMPLETE_TYPE_COMMAND) {
+    if      (type == CwshCompleteType::COMMAND) {
       CwshPattern pattern(cwsh, pattern_str);
 
       pattern.expandPath(names);
     }
-    else if (type == COMPLETE_TYPE_FILE) {
+    else if (type == CwshCompleteType::FILE) {
       CFileMatch fileMatch;
 
       fileMatch.matchPattern(pattern_str, names);
@@ -442,15 +480,15 @@ completeCmd(Cwsh *cwsh, const CwshArgArray &args)
       std::cout << names[i] << std::endl;
   }
   else {
-    string word;
+    std::string word, word1;
 
     CwshComplete complete(cwsh, args1[0]);
 
     bool flag;
 
-    if      (type == COMPLETE_TYPE_COMMAND)
-      flag = complete.completeCommand (word);
-    else if (type == COMPLETE_TYPE_FILE)
+    if      (type == CwshCompleteType::COMMAND)
+      flag = complete.completeCommand (word, word1);
+    else if (type == CwshCompleteType::FILE)
       flag = complete.completeFile    (word);
     else
       flag = complete.completeVariable(word);
@@ -458,7 +496,10 @@ completeCmd(Cwsh *cwsh, const CwshArgArray &args)
     if (! flag)
       cwsh->beep();
 
-    std::cout << word << std::endl;
+    if (word1 != "")
+      std::cout << word << " : " << word1 << std::endl;
+    else
+      std::cout << word << std::endl;
   }
 }
 
@@ -467,7 +508,7 @@ CwshShellCommandMgr::
 continueCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "continue ; continue to next iteration of while/foreach" << std::endl;
+    helpStr("continue", "", 0, "continue to next iteration of while/foreach");
     return;
   }
 
@@ -476,12 +517,12 @@ continueCmd(Cwsh *cwsh, const CwshArgArray &args)
   if (num_args > 0)
     CWSH_THROW("Too many arguments.");
 
-  CwshBlock *block = cwsh->findBlock(CWSH_BLOCK_TYPE_WHILE);
+  CwshBlock *block = cwsh->findBlock(CwshBlockType::WHILE);
 
-  if (block == NULL)
-    block = cwsh->findBlock(CWSH_BLOCK_TYPE_FOREACH);
+  if (! block)
+    block = cwsh->findBlock(CwshBlockType::FOREACH);
 
-  if (block == NULL)
+  if (! block)
     CWSH_THROW("Not in while/foreach.");
 
   cwsh->setBlockContinue(true);
@@ -492,7 +533,7 @@ CwshShellCommandMgr::
 defaultCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "default ; switch default statement" << std::endl;
+    helpStr("default", "", 0, "switch default statement");
     return;
   }
 
@@ -512,7 +553,7 @@ CwshShellCommandMgr::
 dirsCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "dirs [-l] ; print directory stack" << std::endl;
+    helpStr("dirs", "[-l]", 0, "print directory stack");
     return;
   }
 
@@ -539,7 +580,7 @@ CwshShellCommandMgr::
 echoCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "echo [-n] args ; print arguments" << std::endl;
+    helpStr("echo", "[-n] args", 0, "print arguments");
     return;
   }
 
@@ -575,7 +616,7 @@ CwshShellCommandMgr::
 elseCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "else ; else clause of if" << std::endl;
+    helpStr("else", "", 0, "else clause of if");
     return;
   }
 
@@ -587,7 +628,7 @@ CwshShellCommandMgr::
 endCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "end ; end of while/foreach" << std::endl;
+    helpStr("end", "", 0, "end of while/foreach");
     return;
   }
 
@@ -604,7 +645,7 @@ CwshShellCommandMgr::
 endfuncCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "endfunc ; end of func" << std::endl;
+    helpStr("endfunc", "", 0, "end of func");
     return;
   }
 
@@ -621,7 +662,7 @@ CwshShellCommandMgr::
 endifCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "endif ; end of if" << std::endl;
+    helpStr("endif", "", 0, "end of if");
     return;
   }
 
@@ -638,7 +679,7 @@ CwshShellCommandMgr::
 endswCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "endsw ; end of switch" << std::endl;
+    helpStr("endsw", "", 0, "end of switch");
     return;
   }
 
@@ -655,7 +696,7 @@ CwshShellCommandMgr::
 evalCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "eval <arg> ... ; evaluate arg as if entered as input" << std::endl;
+    helpStr("eval", "<arg> ...", 0, "evaluate arg as if entered as input");
     return;
   }
 
@@ -664,7 +705,7 @@ evalCmd(Cwsh *cwsh, const CwshArgArray &args)
   if (num_args == 0)
     CWSH_THROW("Too few arguments.");
 
-  string line = CStrUtil::toString(args, " ");
+  std::string line = CStrUtil::toString(args, " ");
 
   cwsh->processInputLine(line);
 }
@@ -674,7 +715,7 @@ CwshShellCommandMgr::
 execCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "exec <arg> ... ; execute command to replace shell" << std::endl;
+    helpStr("exec", "<arg> ...", 0, "execute command to replace shell");
     return;
   }
 
@@ -683,7 +724,7 @@ execCmd(Cwsh *, const CwshArgArray &args)
   if (num_args == 0)
     CWSH_THROW("Too few arguments.");
 
-  vector<char *> cargs;
+  std::vector<char *> cargs;
 
   cargs.resize(num_args + 1);
 
@@ -691,7 +732,7 @@ execCmd(Cwsh *, const CwshArgArray &args)
 
   for ( ; i < num_args; i++)
     cargs[i] = (char *) args[i].c_str();
-  cargs[i] = NULL;
+  cargs[i] = nullptr;
 
   execvp(cargs[0], &cargs[0]);
 
@@ -703,8 +744,8 @@ CwshShellCommandMgr::
 exitCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "exit            ; exit shell" << std::endl;
-    std::cout << "exit <expr> ... ; exit shell with specified return value" << std::endl;
+    helpStr("exit", ""          , 10, "exit shell");
+    helpStr("exit", "<expr> ...", 10, "exit shell with specified return value");
     return;
   }
 
@@ -713,7 +754,7 @@ exitCmd(Cwsh *cwsh, const CwshArgArray &args)
   int status = 1;
 
   if (num_args > 0) {
-    string expr_str = CStrUtil::toString(args, " ");
+    std::string expr_str = CStrUtil::toString(args, " ");
 
     CwshExprEvaluate expr(cwsh, expr_str);
 
@@ -722,7 +763,7 @@ exitCmd(Cwsh *cwsh, const CwshArgArray &args)
   else {
     CwshVariable *variable = cwsh->lookupVariable("status");
 
-    if (variable != NULL && variable->getNumValues() == 1) {
+    if (variable && variable->getNumValues() == 1) {
       if (CStrUtil::isInteger(variable->getValue(0)))
         status = CStrUtil::toInteger(variable->getValue(0));
     }
@@ -736,11 +777,11 @@ CwshShellCommandMgr::
 exprCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "expr <expr> ... ; evaluate expression" << std::endl;
+    helpStr("expr", "<expr> ...", 0, "evaluate expression");
     return;
   }
 
-  string expr_str = CStrUtil::toString(args, " ");
+  std::string expr_str = CStrUtil::toString(args, " ");
 
   CwshExprEvaluate expr(cwsh, expr_str);
 
@@ -752,8 +793,8 @@ CwshShellCommandMgr::
 fgCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "fg           ; move current process to foreground" << std::endl;
-    std::cout << "fg <job> ... ; move specified jobs to foreground" << std::endl;
+    helpStr("fg", ""         , 9, "move current process to foreground");
+    helpStr("fg", "<job> ...", 9, "move specified jobs to foreground");
     return;
   }
 
@@ -763,7 +804,7 @@ fgCmd(Cwsh *cwsh, const CwshArgArray &args)
     for (uint i = 0; i < num_args; ++i) {
       CwshProcess *process = cwsh->getActiveProcess(args[i]);
 
-      if (process == NULL)
+      if (! process)
         CWSH_THROW("No such job.");
 
       process->print();
@@ -778,7 +819,7 @@ fgCmd(Cwsh *cwsh, const CwshArgArray &args)
   else {
     CwshProcess *process = cwsh->getCurrentActiveProcess();
 
-    if (process == NULL)
+    if (! process)
       CWSH_THROW("No current job.");
 
     process->print();
@@ -796,8 +837,7 @@ CwshShellCommandMgr::
 foreachCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "foreach <arg> (<expr>) ; "
-                 "loop for each value of <expr> setting <arg> to value" << std::endl;
+    helpStr("foreach", "<arg> (<expr>)", 0, "loop for each value of <expr> setting <arg> to value");
     return;
   }
 
@@ -806,12 +846,12 @@ foreachCmd(Cwsh *cwsh, const CwshArgArray &args)
   if (num_args < 3)
     CWSH_THROW("Too few arguments.");
 
-  string varname = args[0];
+  std::string varname = args[0];
 
   if (args[1] != "(" || args[num_args - 1] != ")")
     CWSH_THROW("Words not parenthesized.");
 
-  vector<string> values;
+  std::vector<std::string> values;
 
   for (int i = 2; i < num_args - 1; i++)
     values.push_back(args[i]);
@@ -827,12 +867,12 @@ foreachCmd(Cwsh *cwsh, const CwshArgArray &args)
   for (int i = 0; i < num_values; i++) {
     cwsh->defineVariable(varname, values[i]);
 
-    cwsh->startBlock(CWSH_BLOCK_TYPE_FOREACH, lines);
+    cwsh->startBlock(CwshBlockType::FOREACH, lines);
 
     while (! cwsh->inputEof()) {
-      string line = cwsh->getInputLine();
+      CwshLine line = cwsh->getInputLine();
 
-      cwsh->processInputLine(line);
+      cwsh->processInputLine(line.line);
 
       if (cwsh->isBlockBreak   () ||
           cwsh->isBlockContinue() ||
@@ -861,7 +901,7 @@ CwshShellCommandMgr::
 funcCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "func <name> <args> ; define function <name>" << std::endl;
+    helpStr("func", "<name> <args>", 0, "define function <name>");
     return;
   }
 
@@ -893,13 +933,13 @@ CwshShellCommandMgr::
 globCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "glob <arg> ... ; expand supplied arguments" << std::endl;
+    helpStr("glob", "<arg> ...", 0, "expand supplied arguments");
     return;
   }
 
   int num_args = args.size();
 
-  string str;
+  std::string str;
 
   for (int i = 0; i < num_args; i++)
     str += args[i];
@@ -912,7 +952,7 @@ CwshShellCommandMgr::
 gotoCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "goto <label> ; goto specified label" << std::endl;
+    helpStr("goto", "<label>", 0, "goto specified label");
     return;
   }
 
@@ -932,7 +972,7 @@ CwshShellCommandMgr::
 hashstatCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "hashstat ; display command hashing statistics" << std::endl;
+    helpStr("hashstat", "", 0, "display command hashing statistics");
     return;
   }
 
@@ -949,20 +989,20 @@ CwshShellCommandMgr::
 helpCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "help       ; display commands" << std::endl;
-    std::cout << "help <cmd> ; display help for specified command" << std::endl;
+    helpStr("help", ""     , 0, "display commands");
+    helpStr("help", "<cmd>", 0, "display help for specified command");
     return;
   }
 
   bool show_all = false;
 
-  vector<string> cmds;
+  std::vector<std::string> cmds;
 
   uint num_args = args.size();
 
   for (uint i = 0; i < num_args; ++i) {
     if (args[i][0] == '-') {
-      string name = args[i].substr(1);
+      std::string name = args[i].substr(1);
 
       if      (name == "a")
         show_all = true;
@@ -978,7 +1018,7 @@ helpCmd(Cwsh *cwsh, const CwshArgArray &args)
   uint num_cmds = cmds.size();
 
   if (num_cmds == 0) {
-    set<string> cmds;
+    std::set<std::string> cmds;
 
     uint num_commands = mgr->commands_.size();
 
@@ -987,7 +1027,7 @@ helpCmd(Cwsh *cwsh, const CwshArgArray &args)
     for ( ; i < num_commands; ++i)
       cmds.insert(mgr->commands_[i]->getName());
 
-    set<string>::const_iterator p1, p2;
+    std::set<std::string>::const_iterator p1, p2;
 
     for (i = 0, p1 = cmds.begin(), p2 = cmds.end(); p1 != p2; ++i, ++p1) {
       if (show_all) {
@@ -1013,7 +1053,7 @@ helpCmd(Cwsh *cwsh, const CwshArgArray &args)
     for (uint i = 0; i < num_cmds; ++i) {
       CwshShellCommand *command = mgr->lookup(args[i]);
 
-      if (command != NULL) {
+      if (command) {
         CwshArgArray args;
 
         args.push_back("--help");
@@ -1031,8 +1071,8 @@ CwshShellCommandMgr::
 historyCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "history [-h|-r] ; display history" << std::endl;
-    std::cout << "history <num>   ; display numbered history event" << std::endl;
+    helpStr("history", "[-h|-r]", 7, "display history");
+    helpStr("history", "<num>"  , 7, "display numbered history event");
     return;
   }
 
@@ -1069,7 +1109,7 @@ CwshShellCommandMgr::
 ifCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "if (<expr>) then ; start of if statement" << std::endl;
+    helpStr("if", "(<expr>) then", 0, "start of if statement");
     return;
   }
 
@@ -1078,13 +1118,13 @@ ifCmd(Cwsh *cwsh, const CwshArgArray &args)
   if (num_args == 0)
     CWSH_THROW("Too few arguments.");
 
-  string str = CStrUtil::toString(args, " ");
+  std::string str = CStrUtil::toString(args, " ");
 
   uint i = 0;
 
   CwshExprParse parse(cwsh);
 
-  string expr_str = parse.parse(str, &i);
+  std::string expr_str = parse.parse(str, &i);
 
   CStrUtil::skipSpace(str, &i);
 
@@ -1092,7 +1132,7 @@ ifCmd(Cwsh *cwsh, const CwshArgArray &args)
 
   CStrUtil::skipNonSpace(str, &j);
 
-  string word = str.substr(i, j - i);
+  std::string word = str.substr(i, j - i);
 
   if (word == "then") {
     i = j;
@@ -1113,10 +1153,8 @@ ifCmd(Cwsh *cwsh, const CwshArgArray &args)
     if (cwsh->getDebug()) {
       std::cerr << "if ( " << expr_str << " ) then" << std::endl;
 
-      uint num_lines = lines.size();
-
-      for (i = 0; i < num_lines; i++)
-        std::cerr << lines[i] << std::endl;
+      for (const auto &line : lines)
+        std::cerr << line.line << std::endl;
 
       std::cerr << "endif" << std::endl;
     }
@@ -1127,24 +1165,24 @@ ifCmd(Cwsh *cwsh, const CwshArgArray &args)
 
     bool if_processed = processing;
 
-    cwsh->startBlock(CWSH_BLOCK_TYPE_IF, lines);
+    cwsh->startBlock(CwshBlockType::IF, lines);
 
     while (! cwsh->inputEof()) {
-      string line = cwsh->getInputLine();
+      CwshLine line = cwsh->getInputLine();
 
-      vector<string> words;
+      std::vector<std::string> words;
 
-      CwshString::addWords(line, words);
+      CwshString::addWords(line.line, words);
 
       if (words.size() > 0 && words[0] == "else") {
         if (words.size() > 1 && words[1] == "if") {
-          string str = CStrUtil::toString(words, 2, -1);
+          std::string str = CStrUtil::toString(words, 2, -1);
 
           uint i = 0;
 
           CwshExprParse parse(cwsh);
 
-          string expr_str = parse.parse(str, &i);
+          std::string expr_str = parse.parse(str, &i);
 
           CStrUtil::skipSpace(str, &i);
 
@@ -1152,7 +1190,7 @@ ifCmd(Cwsh *cwsh, const CwshArgArray &args)
 
           CStrUtil::skipNonSpace(str, &j);
 
-          string word = str.substr(i, j - i);
+          std::string word = str.substr(i, j - i);
 
           if (word == "then") {
             i = j;
@@ -1175,7 +1213,7 @@ ifCmd(Cwsh *cwsh, const CwshArgArray &args)
               if_processed = true;
           }
           else {
-            string line = str.substr(i);
+            std::string line = str.substr(i);
 
             CwshExprEvaluate expr(cwsh, expr_str);
 
@@ -1203,7 +1241,7 @@ ifCmd(Cwsh *cwsh, const CwshArgArray &args)
             if_processed = true;
 
           if (words.size() > 1) {
-            string line = CStrUtil::toString(words, 1, -1);
+            std::string line = CStrUtil::toString(words, 1, -1);
 
             cwsh->processInputLine(line);
 
@@ -1230,7 +1268,7 @@ ifCmd(Cwsh *cwsh, const CwshArgArray &args)
     cwsh->endBlock();
   }
   else {
-    string line = str.substr(i);
+    std::string line = str.substr(i);
 
     if (cwsh->getDebug())
       std::cerr << "if ( " << expr_str << " ) " << line << std::endl;
@@ -1249,7 +1287,7 @@ CwshShellCommandMgr::
 jobsCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "jobs [-l] ; display jobs" << std::endl;
+    helpStr("jobs", "[-l]", 0, "display jobs");
     return;
   }
 
@@ -1272,8 +1310,8 @@ CwshShellCommandMgr::
 killCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "kill -l                       ; list signals" << std::endl;
-    std::cout << "kill [-<num>|-<signal>] <pid> ; kill process" << std::endl;
+    helpStr("kill", "-l"                      , 24, "list signals");
+    helpStr("kill", "[-<num>|-<signal>] <pid>", 24, "kill process");
     return;
   }
 
@@ -1289,7 +1327,7 @@ killCmd(Cwsh *cwsh, const CwshArgArray &args)
     if      (args[i] == "-l")
       list_signals = true;
     else if (args[i].size() > 0 && args[i][0] == '-') {
-      string arg = args[i].substr(1);
+      std::string arg = args[i].substr(1);
 
       if (args[i].size() > 1 && isdigit(args[i][1])) {
         if (! CStrUtil::isInteger(arg))
@@ -1299,13 +1337,13 @@ killCmd(Cwsh *cwsh, const CwshArgArray &args)
 
         CwshSignal *signal = CwshSignal::lookup(signal_num);
 
-        if (signal == NULL)
+        if (! signal)
           CWSH_THROW("Bad signal number.");
       }
       else {
         CwshSignal *signal = CwshSignal::lookup(arg);
 
-        if (signal == NULL)
+        if (! signal)
           CWSH_THROW("Unknown signal name.");
 
         signal_num = signal->getNum();
@@ -1335,7 +1373,7 @@ killCmd(Cwsh *cwsh, const CwshArgArray &args)
   if (i >= num_args)
     CWSH_THROW("Too few arguments.");
 
-  vector<int> pids;
+  std::vector<int> pids;
 
   for ( ; i < num_args; i++) {
     int pid;
@@ -1363,15 +1401,15 @@ CwshShellCommandMgr::
 limitCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "limit [-h] <name> <value> ; set named limit ti value" << std::endl;
+    helpStr("limit", "[-h] <name> <value>", 0, "set named limit ti value");
     return;
   }
 
   int num_args = args.size();
 
-  bool   hard  = false;
-  string name  = "";
-  string value = "";
+  bool        hard  = false;
+  std::string name  = "";
+  std::string value = "";
 
   for (int i = 0; i < num_args; i++) {
     if      (args[i] == "-h")
@@ -1404,12 +1442,9 @@ CwshShellCommandMgr::
 niceCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "nice                       ; "
-                 "get priority of current process" << std::endl;
-    std::cout << "nice [+<num>|-<num>        ; "
-                 "increase/decrease priority of current process" << std::endl;
-    std::cout << "nice [+<num>|-<num>] <pid> ; "
-                 "run command as specified priority" << std::endl;
+    helpStr("nice", ""                     , 22, "get priority of current process");
+    helpStr("nice", "[+<num>|-<num>"       , 22, "increase/decrease priority of current process");
+    helpStr("nice", "[+<num>|-<num>] <pid>", 22, "run command as specified priority");
     return;
   }
 
@@ -1435,7 +1470,7 @@ niceCmd(Cwsh *cwsh, const CwshArgArray &args)
   int i = 0;
 
   if (num_args > 0 && (args[i][0] == '+' || args[i][0] == '-')) {
-    string istr = args[i].substr(1);
+    std::string istr = args[i].substr(1);
 
     if (! CStrUtil::isInteger(istr))
       CWSH_THROW("Invalid argument.");
@@ -1461,7 +1496,7 @@ niceCmd(Cwsh *cwsh, const CwshArgArray &args)
     if (error < 0)
       CWSH_THROW("nice failed.");
 
-    string command = CStrUtil::toString(args, i);
+    std::string command = CStrUtil::toString(args, i);
 
     cwsh->processInputLine(command);
   }
@@ -1478,8 +1513,8 @@ CwshShellCommandMgr::
 nohupCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "nohup           ; set no hangup" << std::endl;
-    std::cout << "nohup <command> ; run command with no hangup" << std::endl;
+    helpStr("nohup", ""         , 9, "set no hangup");
+    helpStr("nohup", "<command>", 9, "run command with no hangup");
     return;
   }
 
@@ -1492,7 +1527,7 @@ nohupCmd(Cwsh *cwsh, const CwshArgArray &args)
 
     CWSH_THROW("Not implemented.");
 
-    string command = CStrUtil::toString(args, " ");
+    std::string command = CStrUtil::toString(args, " ");
 
     cwsh->processInputLine(command);
   }
@@ -1503,8 +1538,8 @@ CwshShellCommandMgr::
 notifyCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "notify       ; notify current processs" << std::endl;
-    std::cout << "notify <pid> ; notify processs" << std::endl;
+    helpStr("notify", ""     , 5, "notify current processs");
+    helpStr("notify", "<pid>", 5, "notify processs");
     return;
   }
 
@@ -1514,7 +1549,7 @@ notifyCmd(Cwsh *cwsh, const CwshArgArray &args)
     for (int i = 0; i < num_args; i++) {
       CwshProcess *process = cwsh->getActiveProcess(args[i]);
 
-      if (process == NULL)
+      if (! process)
         CWSH_THROW("No such job.");
 
       process->setNotify(true);
@@ -1523,7 +1558,7 @@ notifyCmd(Cwsh *cwsh, const CwshArgArray &args)
   else {
     CwshProcess *process = cwsh->getCurrentActiveProcess();
 
-    if (process == NULL)
+    if (! process)
       CWSH_THROW("No current job.");
 
     process->setNotify(true);
@@ -1535,9 +1570,9 @@ CwshShellCommandMgr::
 onintrCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "onintr         ; reset interrupts" << std::endl;
-    std::cout << "onintr -       ; ignore interrupts" << std::endl;
-    std::cout << "onintr <label> ; goto label on interrupt" << std::endl;
+    helpStr("onintr", ""       , 7, "reset interrupts");
+    helpStr("onintr", "-"      , 7, "ignore interrupts");
+    helpStr("onintr", "<label>", 7, "goto label on interrupt");
     return;
   }
 
@@ -1561,8 +1596,8 @@ CwshShellCommandMgr::
 popdCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "popd        ; pop directory stack" << std::endl;
-    std::cout << "popd +<num> ; pop directory stack by num" << std::endl;
+    helpStr("popd", ""      , 6, "pop directory stack");
+    helpStr("popd", "+<num>", 6, "pop directory stack by num");
     return;
   }
 
@@ -1572,7 +1607,7 @@ popdCmd(Cwsh *cwsh, const CwshArgArray &args)
     if (num_args > 1)
       CWSH_THROW("Too many arguments.");
 
-    string arg = args[0].substr(1);
+    std::string arg = args[0].substr(1);
 
     if (! CStrUtil::isInteger(arg))
       CWSH_THROW("Invalid argument.");
@@ -1582,7 +1617,7 @@ popdCmd(Cwsh *cwsh, const CwshArgArray &args)
     if (num > cwsh->sizeDirStack())
       CWSH_THROW("Directory stack not that deep.");
 
-    string dirname = cwsh->popDirStack(num);
+    std::string dirname = cwsh->popDirStack(num);
 
     cwsh->changeDir(dirname);
   }
@@ -1593,7 +1628,7 @@ popdCmd(Cwsh *cwsh, const CwshArgArray &args)
     if (cwsh->sizeDirStack() == 0)
       CWSH_THROW("Directory stack empty.");
 
-    string dirname = cwsh->popDirStack();
+    std::string dirname = cwsh->popDirStack();
 
     cwsh->changeDir(dirname);
   }
@@ -1606,8 +1641,8 @@ CwshShellCommandMgr::
 printenvCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "printenv        ; print all environment variables" << std::endl;
-    std::cout << "printenv <name> ; print named environment variable" << std::endl;
+    helpStr("printenv", ""      , 6, "print all environment variables");
+    helpStr("printenv", "<name>", 6, "print named environment variable");
     return;
   }
 
@@ -1623,15 +1658,18 @@ printenvCmd(Cwsh *, const CwshArgArray &args)
       CWSH_THROW("Undefined variable.");
   }
   else {
-    vector<string> names;
-    vector<string> values;
+    std::vector<std::string> names;
+    std::vector<std::string> values;
 
     CEnvInst.getSortedNameValues(names, values);
 
     int num_names = names.size();
 
-    for (int i = 0; i < num_names; i++)
-      std::cout << names[i] << "=" << values[i] << std::endl;
+    for (int i = 0; i < num_names; i++) {
+      std::cout <<
+        CwshMgrInst.envNameColorStr () << names [i] << CwshMgrInst.resetColorStr() << "=" <<
+        CwshMgrInst.envValueColorStr() << values[i] << CwshMgrInst.resetColorStr() << std::endl;
+    }
   }
 }
 
@@ -1640,9 +1678,9 @@ CwshShellCommandMgr::
 pushdCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "pushd        ; change to directory on top of directory stack" << std::endl;
-    std::cout << "pushd <name> ; push specified directory" << std::endl;
-    std::cout << "pushd +<num> ; push to numbers directory on stack" << std::endl;
+    helpStr("pushd", ""      , 6, "change to directory on top of directory stack");
+    helpStr("pushd", "<name>", 6, "push specified directory");
+    helpStr("pushd", "+<num>", 6, "push to numbers directory on stack");
     return;
   }
 
@@ -1653,7 +1691,7 @@ pushdCmd(Cwsh *cwsh, const CwshArgArray &args)
 
   if (num_args > 0) {
     if (args[0][0] == '+') {
-      string arg = args[0].substr(1);
+      std::string arg = args[0].substr(1);
 
       if (! CStrUtil::isInteger(arg))
         CWSH_THROW("Invalid argument.");
@@ -1663,14 +1701,14 @@ pushdCmd(Cwsh *cwsh, const CwshArgArray &args)
       if (cwsh->sizeDirStack() < num)
         CWSH_THROW("Directory stack not that deep.");
 
-      string dirname = cwsh->popDirStack(num);
+      std::string dirname = cwsh->popDirStack(num);
 
       cwsh->pushDirStack();
 
       cwsh->changeDir(dirname);
     }
     else {
-      string dirname = args[0];
+      std::string dirname = args[0];
 
       dirname = CwshDir::lookup(cwsh, dirname);
 
@@ -1683,7 +1721,7 @@ pushdCmd(Cwsh *cwsh, const CwshArgArray &args)
     if (cwsh->sizeDirStack() < 1)
       CWSH_THROW("No other directory.");
 
-    string dirname = cwsh->popDirStack();
+    std::string dirname = cwsh->popDirStack();
 
     cwsh->pushDirStack();
 
@@ -1698,7 +1736,7 @@ CwshShellCommandMgr::
 rehashCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "rehash ; rehash command lookup from path" << std::endl;
+    helpStr("rehash", "", 0, "rehash command lookup from path");
     return;
   }
 
@@ -1717,7 +1755,7 @@ CwshShellCommandMgr::
 repeatCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "repeat <n> <command> ; repeat command <n> times" << std::endl;
+    helpStr("repeat", "<n> <command>", 0, "repeat command <n> times");
     return;
   }
 
@@ -1731,7 +1769,7 @@ repeatCmd(Cwsh *cwsh, const CwshArgArray &args)
 
   int count = CStrUtil::toInteger(args[0]);
 
-  vector<string> words;
+  std::vector<std::string> words;
 
   for (int i = 1; i < num_args; i++)
     words.push_back(args[i]);
@@ -1743,7 +1781,7 @@ repeatCmd(Cwsh *cwsh, const CwshArgArray &args)
 
     CwshCommand *command1 = command->getCommand();
 
-    if (command1 != NULL) {
+    if (command1) {
       command1->start();
 
       command1->wait();
@@ -1756,7 +1794,7 @@ CwshShellCommandMgr::
 returnCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "return ; return from function" << std::endl;
+    helpStr("return", "", 0, "return from function");
     return;
   }
 
@@ -1765,9 +1803,9 @@ returnCmd(Cwsh *cwsh, const CwshArgArray &args)
   if (num_args > 0)
     CWSH_THROW("Too many arguments.");
 
-  CwshBlock *block = cwsh->findBlock(CWSH_BLOCK_TYPE_FUNCTION);
+  CwshBlock *block = cwsh->findBlock(CwshBlockType::FUNCTION);
 
-  if (block == NULL)
+  if (! block)
     CWSH_THROW("Not in function.");
 
   cwsh->setBlockReturn(true);
@@ -1778,28 +1816,28 @@ CwshShellCommandMgr::
 setCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "set                     ; list variables" << std::endl;
-    std::cout << "set <var> = <value>     ; set variable to value" << std::endl;
-    std::cout << "set <var> = ( <value> ) ; set variable to array value" << std::endl;
+    helpStr("set", ""                   , 19, "list variables");
+    helpStr("set", "<var> = <value>"    , 19, "set variable to value");
+    helpStr("set", "<var> = ( <value> )", 19, "set variable to array value");
     return;
   }
 
   int num_args = args.size();
 
   if (num_args == 0) {
-    cwsh->listVariables();
+    cwsh->listVariables(/*all*/ true);
 
     return;
   }
 
-  vector<string> args1;
+  std::vector<std::string> args1;
 
   for (int i = 0; i < num_args; i++) {
-    const string &arg = args[i];
+    const std::string &arg = args[i];
 
-    string::size_type pos = arg.find('=');
+    std::string::size_type pos = arg.find('=');
 
-    if (pos != string::npos) {
+    if (pos != std::string::npos) {
       if (pos > 0)
         args1.push_back(arg.substr(0, pos));
 
@@ -1817,7 +1855,7 @@ setCmd(Cwsh *cwsh, const CwshArgArray &args)
   int i1 = 0;
 
   while (i1 < num_args1) {
-    string name = args1[i1];
+    std::string name = args1[i1];
 
     i1++;
 
@@ -1828,7 +1866,7 @@ setCmd(Cwsh *cwsh, const CwshArgArray &args)
         if (args1[i1] == "(") {
           i1++;
 
-          vector<string> values;
+          std::vector<std::string> values;
 
           while (i1 < num_args1 && args1[i1] != ")") {
             values.push_back(args1[i1]);
@@ -1860,11 +1898,13 @@ CwshShellCommandMgr::
 setenvCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "setenv                ; print all environment variables" << std::endl;
-    std::cout << "setenv <name>         ; print environment variable value" << std::endl;
-    std::cout << "setenv <name> <value> ; set environment variable to value" << std::endl;
+    helpStr("setenv", ""              , 14, "print all environment variables"  );
+    helpStr("setenv", "<name>"        , 14, "print environment variable value" );
+    helpStr("setenv", "<name> <value>", 14, "set environment variable to value");
     return;
   }
+
+  //---
 
   int num_args = args.size();
 
@@ -1872,33 +1912,36 @@ setenvCmd(Cwsh *cwsh, const CwshArgArray &args)
     CWSH_THROW("Too many arguments.");
 
   if (num_args == 0) {
-    vector<string> names;
-    vector<string> values;
+    std::vector<std::string> names;
+    std::vector<std::string> values;
 
     CEnvInst.getSortedNameValues(names, values);
 
     int num_names = names.size();
 
-    for (int i = 0; i < num_names; i++)
-      std::cout << names[i] << "=" << values[i] << std::endl;
+    for (int i = 0; i < num_names; i++) {
+      std::cout <<
+        CwshMgrInst.envNameColorStr () << names [i] << CwshMgrInst.resetColorStr() << "=" <<
+        CwshMgrInst.envValueColorStr() << values[i] << CwshMgrInst.resetColorStr() << std::endl;
+    }
 
     return;
   }
 
-  const string &name = args[0];
+  const std::string &name = args[0];
 
-  string value = "";
+  std::string value = "";
 
   if (num_args == 2)
     value = args[1];
 
   if (cwsh->isEnvironmentVariableUpper(name)) {
-    string name1 = CStrUtil::toLower(name);
+    std::string name1 = CStrUtil::toLower(name);
 
     CStrWords words = CStrUtil::toFields(value, ":");
 
     if (words.size() > 1) {
-      vector<string> values;
+      std::vector<std::string> values;
 
       int num_words = words.size();
 
@@ -1910,8 +1953,9 @@ setenvCmd(Cwsh *cwsh, const CwshArgArray &args)
     else
       cwsh->defineVariable(name1, value);
   }
-  else
+  else {
     CEnvInst.set(name, value);
+  }
 }
 
 void
@@ -1919,8 +1963,8 @@ CwshShellCommandMgr::
 shiftCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "shift        ; shift out next value from argv" << std::endl;
-    std::cout << "shift <name> ; shift out next value from array variable" << std::endl;
+    helpStr("shift", ""      , 6, "shift out next value from argv");
+    helpStr("shift", "<name>", 6, "shift out next value from array variable");
     return;
   }
 
@@ -1929,14 +1973,14 @@ shiftCmd(Cwsh *cwsh, const CwshArgArray &args)
   if (num_args > 1)
     CWSH_THROW("Too many arguments.");
 
-  string name = "argv";
+  std::string name = "argv";
 
   if (num_args == 1)
     name = args[0];
 
   CwshVariable *variable = cwsh->lookupVariable(name);
 
-  if (variable == NULL)
+  if (! variable)
     CWSH_THROW("Undefined variable.");
 
   if (variable->getNumValues() <= 0)
@@ -1950,14 +1994,14 @@ CwshShellCommandMgr::
 sourceCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "source [-h] <file> ... ; source specified files" << std::endl;
+    helpStr("source", "[-h] <file> ...", 0, "source specified files");
     return;
   }
 
   int num_args = args.size();
 
-  bool   history  = false;
-  string filename = "";
+  bool        history  = false;
+  std::string filename = "";
 
   for (int i = 0; i < num_args; i++) {
     if (args[i][0] == '-') {
@@ -1988,8 +2032,8 @@ CwshShellCommandMgr::
 stopCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "stop       ; stop current process" << std::endl;
-    std::cout << "stop <job> ; stop specified job" << std::endl;
+    helpStr("stop", ""     , 5, "stop current process");
+    helpStr("stop", "<job>", 5, "stop specified job");
     return;
   }
 
@@ -1999,7 +2043,7 @@ stopCmd(Cwsh *cwsh, const CwshArgArray &args)
     for (int i = 0; i < num_args; i++) {
       CwshProcess *process = cwsh->getActiveProcess(args[i]);
 
-      if (process == NULL)
+      if (! process)
         CWSH_THROW("No such job.");
 
       process->stop();
@@ -2008,7 +2052,7 @@ stopCmd(Cwsh *cwsh, const CwshArgArray &args)
   else {
     CwshProcess *process = cwsh->getCurrentActiveProcess();
 
-    if (process == NULL)
+    if (! process)
       CWSH_THROW("No current job.");
 
     process->stop();
@@ -2020,7 +2064,7 @@ CwshShellCommandMgr::
 suspendCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "suspend ; suspend current process" << std::endl;
+    helpStr("suspend", "", 0, "suspend current process");
     return;
   }
 
@@ -2039,7 +2083,7 @@ CwshShellCommandMgr::
 switchCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "switch ( <expr> ) ; switch on specified expression value" << std::endl;
+    helpStr("switch", "( <expr> )", 0, "switch on specified expression value");
     return;
   }
 
@@ -2059,16 +2103,16 @@ switchCmd(Cwsh *cwsh, const CwshArgArray &args)
 
   bool case_processed = false;
 
-  cwsh->startBlock(CWSH_BLOCK_TYPE_SWITCH, lines);
+  cwsh->startBlock(CwshBlockType::SWITCH, lines);
 
   bool processing = false;
 
   while (! cwsh->inputEof()) {
-    string line = cwsh->getInputLine();
+    CwshLine line = cwsh->getInputLine();
 
-    vector<string> words;
+    std::vector<std::string> words;
 
-    CwshString::addWords(line, words);
+    CwshString::addWords(line.line, words);
 
     if      (words.size() > 0 && words[0] == "case") {
       if (words.size() != 3 || words[2] != ":")
@@ -2120,8 +2164,8 @@ CwshShellCommandMgr::
 umaskCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "umask         ; print current umask" << std::endl;
-    std::cout << "umask <value> ; set umask to value" << std::endl;
+    helpStr("umask", ""       , 7, "print current umask");
+    helpStr("umask", "<value>", 7, "set umask to value");
     return;
   }
 
@@ -2177,7 +2221,7 @@ CwshShellCommandMgr::
 timeCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "time <command> ; time command" << std::endl;
+    helpStr("time", "<command>", 0, "time command");
     return;
   }
 
@@ -2185,7 +2229,7 @@ timeCmd(Cwsh *cwsh, const CwshArgArray &args)
 
   clock_t c1 = times(&tms_data1);
 
-  string command = CStrUtil::toString(args, " ");
+  std::string command = CStrUtil::toString(args, " ");
 
   cwsh->processInputLine(command);
 
@@ -2206,7 +2250,7 @@ CwshShellCommandMgr::
 unhashCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "unhash ; disable path command hashing" << std::endl;
+    helpStr("unhash", "", 0, "disable path command hashing");
     return;
   }
 
@@ -2225,7 +2269,7 @@ CwshShellCommandMgr::
 unaliasCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "unalias <name> ; undefine specified alias" << std::endl;
+    helpStr("unalias", "<name>", 0, "undefine specified alias");
     return;
   }
 
@@ -2243,8 +2287,8 @@ CwshShellCommandMgr::
 unlimitCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "unlimit                ; unlimit all resources" << std::endl;
-    std::cout << "unlimit <resource> ... ; unlimit specified resource" << std::endl;
+    helpStr("unlimit", ""              , 13, "unlimit all resources");
+    helpStr("unlimit", "<resource> ...", 13, "unlimit specified resource");
     return;
   }
 
@@ -2265,7 +2309,7 @@ CwshShellCommandMgr::
 unsetCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "unset <variable> ... ; unset specified variables" << std::endl;
+    helpStr("unset", "<variable> ...", 0, "unset specified variables");
     return;
   }
 
@@ -2283,7 +2327,7 @@ CwshShellCommandMgr::
 unsetenvCmd(Cwsh *, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "unsetenv <variable> ... ; unset specified variables" << std::endl;
+    helpStr("unsetenv", "<variable> ...", 0, "unset specified variables");
     return;
   }
 
@@ -2292,9 +2336,10 @@ unsetenvCmd(Cwsh *, const CwshArgArray &args)
   if (num_args < 1)
     CWSH_THROW("Too few arguments.");
 
-  for (int i = 0; i < num_args; i++)
+  for (int i = 0; i < num_args; i++) {
     if (CEnvInst.exists(args[i]))
       CEnvInst.unset(args[i]);
+  }
 }
 
 void
@@ -2302,7 +2347,7 @@ CwshShellCommandMgr::
 waitCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "wait ; wait on active processes" << std::endl;
+    helpStr("wait", "", 0, "wait on active processes");
     return;
   }
 
@@ -2319,7 +2364,7 @@ CwshShellCommandMgr::
 whichCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "which [-a] <name> ; find alias, function or path of specified name" << std::endl;
+    helpStr("which", "[-a] <name>", 0, "find alias, function or path of specified name");
     return;
   }
 
@@ -2327,7 +2372,7 @@ whichCmd(Cwsh *cwsh, const CwshArgArray &args)
 
   bool show_all = false;
 
-  vector<string> files;
+  std::vector<std::string> files;
 
   for (int i = 0; i < num_args; i++) {
     if (args[i][0] == '-') {
@@ -2352,10 +2397,12 @@ whichCmd(Cwsh *cwsh, const CwshArgArray &args)
 
     CwshAlias *alias = cwsh->lookupAlias(files[i]);
 
-    if (alias != NULL) {
+    if (alias) {
       found = true;
 
-      std::cout << "alias: " << alias->getValue() << std::endl;
+      std::cout << "alias: ";
+
+      alias->displayValue(/*all*/ true);
 
       if (! show_all)
         continue;
@@ -2365,7 +2412,7 @@ whichCmd(Cwsh *cwsh, const CwshArgArray &args)
 
     CwshFunction *function = cwsh->lookupFunction(files[i]);
 
-    if (function != NULL) {
+    if (function) {
       found = true;
 
       std::cout << "function: " << files[i] << std::endl;
@@ -2378,7 +2425,7 @@ whichCmd(Cwsh *cwsh, const CwshArgArray &args)
 
     CwshShellCommand *command = cwsh->lookupShellCommand(files[i]);
 
-    if (command != NULL) {
+    if (command) {
       found = true;
 
       std::cout << "builtin: " << files[i] << std::endl;
@@ -2390,7 +2437,7 @@ whichCmd(Cwsh *cwsh, const CwshArgArray &args)
     //------
 
     try {
-      string path = CwshUnixCommand::search(cwsh, files[i]);
+      std::string path = CwshUnixCommand::search(cwsh, files[i]);
 
       found = true;
 
@@ -2414,7 +2461,7 @@ CwshShellCommandMgr::
 whileCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "while <expr> ; loop while expression is true" << std::endl;
+    helpStr("while", "<expr>", 0, "loop while expression is true");
     return;
   }
 
@@ -2423,15 +2470,15 @@ whileCmd(Cwsh *cwsh, const CwshArgArray &args)
   if (num_args == 0)
     CWSH_THROW("Too few arguments.");
 
-  string str = CStrUtil::toString(args, " ");
+  std::string str = CStrUtil::toString(args, " ");
 
-  string str1 = cwsh->processInputExprLine(str);
+  std::string str1 = cwsh->processInputExprLine(str);
 
   uint i = 0;
 
   CwshExprParse parse(cwsh);
 
-  string expr_str = parse.parse(str1, &i);
+  std::string expr_str = parse.parse(str1, &i);
 
   CStrUtil::skipSpace(str1, &i);
 
@@ -2451,10 +2498,10 @@ whileCmd(Cwsh *cwsh, const CwshArgArray &args)
   int processing = expr.process();
 
   while (processing) {
-    cwsh->startBlock(CWSH_BLOCK_TYPE_WHILE, lines);
+    cwsh->startBlock(CwshBlockType::WHILE, lines);
 
     while (! cwsh->inputEof()) {
-      string line = cwsh->getInputLine();
+      CwshLine line = cwsh->getInputLine();
 
       cwsh->processInputLine(line);
 
@@ -2510,24 +2557,24 @@ CwshShellCommandMgr::
 atCmd(Cwsh *cwsh, const CwshArgArray &args)
 {
   if (isHelpArg(args)) {
-    std::cout << "@                ; list all variables" << std::endl;
-    std::cout << "@ <name> <value> ; set variable to numeric value" << std::endl;
+    helpStr("@", ""              , 14, "list all variables");
+    helpStr("@", "<name> <value>", 14, "set variable to numeric value");
     return;
   }
 
   int num_args = args.size();
 
   if (num_args == 0) {
-    cwsh->listVariables();
+    cwsh->listVariables(/*all*/ true);
 
     return;
   }
 
-  string str = CStrUtil::toString(args, " ");
+  std::string str = CStrUtil::toString(args, " ");
 
-  string            name;
+  std::string       name;
   int               index;
-  string            expr_str;
+  std::string       expr_str;
   CwshSetAssignType assign_type;
 
   CwshSet set(cwsh);

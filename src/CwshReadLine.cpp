@@ -8,18 +8,18 @@ CwshReadLine(Cwsh *cwsh) :
 {
 }
 
-string
+std::string
 CwshReadLine::
 readLine()
 {
-  string prompt = cwsh_->getInputPrompt();
+  std::string prompt = cwsh_->getInputPrompt();
 
   setPrompt(prompt);
 
   fflush(stdout);
   fflush(stderr);
 
-  string line;
+  std::string line;
 
   try {
     line = CReadLine::readLine();
@@ -29,7 +29,7 @@ readLine()
 
       CwshVariable *variable = cwsh_->lookupVariable("ignoreeof");
 
-      if (variable == NULL)
+      if (! variable)
         cwsh_->setExit(true, 0);
       else
         CWSH_THROW("Use \"exit\" to leave shell.");
@@ -53,7 +53,7 @@ readLine()
 
 bool
 CwshReadLine::
-completeLine(const string &line, string &line1)
+completeLine(const std::string &line, std::string &line1)
 {
   CwshComplete complete(cwsh_, line);
 
@@ -65,7 +65,7 @@ completeLine(const string &line, string &line1)
 
 bool
 CwshReadLine::
-showComplete(const string &line)
+showComplete(const std::string &line)
 {
   CwshMatch match(cwsh_);
 
@@ -74,7 +74,7 @@ showComplete(const string &line)
 
 bool
 CwshReadLine::
-getPrevCommand(string &line)
+getPrevCommand(std::string &line)
 {
   if (! cwsh_->hasPrevHistoryCommand())
     return false;
@@ -86,7 +86,7 @@ getPrevCommand(string &line)
 
 bool
 CwshReadLine::
-getNextCommand(string &line)
+getNextCommand(std::string &line)
 {
   if (! cwsh_->hasNextHistoryCommand())
     return false;
@@ -102,7 +102,7 @@ beep()
 {
   CwshVariable *nobeep = cwsh_->lookupVariable("nobeep");
 
-  if (nobeep == NULL)
+  if (! nobeep)
     CReadLine::beep();
 }
 

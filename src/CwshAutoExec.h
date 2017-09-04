@@ -28,6 +28,8 @@ class CwshAutoExecMgr {
   AutoExecList auto_execs_;
 };
 
+//---
+
 class CwshAutoExec {
   CINST_COUNT_MEMBER(CwshAutoExec);
 
@@ -48,6 +50,8 @@ class CwshAutoExec {
   CwshAutoExecName  suffix_;
   CwshAutoExecValue value_;
 };
+
+//---
 
 class CwshAutoExecEq {
  public:

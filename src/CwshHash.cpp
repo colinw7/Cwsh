@@ -2,13 +2,13 @@
 
 CwshHash::
 CwshHash(Cwsh *cwsh) :
- cwsh_(cwsh), file_path_active_(false)
+ cwsh_(cwsh)
 {
 }
 
 void
 CwshHash::
-addFilePath(const string &filename, const string &path)
+addFilePath(const std::string &filename, const std::string &path)
 {
   if (file_path_active_) {
     file_path_map_[filename] = path;
@@ -18,12 +18,12 @@ addFilePath(const string &filename, const string &path)
   }
 }
 
-string
+std::string
 CwshHash::
-getFilePath(const string &filename)
+getFilePath(const std::string &filename)
 {
   if (file_path_active_) {
-    CwshHashFilePathMap::iterator p = file_path_map_.find(filename);
+    auto p = file_path_map_.find(filename);
 
     if (p != file_path_map_.end()) {
       if (cwsh_->getDebug())

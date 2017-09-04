@@ -30,10 +30,10 @@ class CwshHistoryParser {
  private:
   CPtr<Cwsh>                 cwsh_;
   std::string                str_;
-  uint                       pos_;
-  CwshHistoryOperation      *operation_;
+  uint                       pos_       { 0 };
+  CwshHistoryOperation      *operation_ { nullptr };
   CwshHistoryOperationArray  operations_;
-  bool                       print_;
+  bool                       print_     { false };
 };
 
 #endif

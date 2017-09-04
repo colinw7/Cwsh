@@ -1,9 +1,9 @@
 #ifndef CWSH_PROCESS_H
 #define CWSH_PROCESS_H
 
-enum CwshProcessMatchType {
-  CWSH_PROCESS_MATCH_START,
-  CWSH_PROCESS_MATCH_ANY,
+enum class CwshProcessMatchType {
+  START,
+  ANY,
 };
 
 class CwshProcessMgr {
@@ -39,6 +39,8 @@ class CwshProcessMgr {
   CPtr<Cwsh>  cwsh_;
   ProcessList processes_;
 };
+
+//---
 
 class CwshProcess {
   CINST_COUNT_MEMBER(CwshProcess);

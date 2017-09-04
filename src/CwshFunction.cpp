@@ -6,13 +6,15 @@ CwshFunctionMgr(Cwsh *cwsh) :
 {
 }
 
-void
+CwshFunction *
 CwshFunctionMgr::
 define(const CwshFunctionName &name, const CwshLineArray &lines)
 {
   CwshFunction *function = new CwshFunction(cwsh_, name, lines);
 
   function_list_.setValue(name, function);
+
+  return function;
 }
 
 void
@@ -29,6 +31,18 @@ lookup(const CwshFunctionName &name)
   return function_list_.getValue(name);
 }
 
+void
+CwshFunctionMgr::
+listAll(bool all)
+{
+  for (const auto &pfunction : function_list_) {
+    CwshFunction *function = pfunction.second;
+
+    function->list(all);
+  }
+}
+
+//------
 
 CwshFunction::
 CwshFunction(Cwsh *cwsh, const CwshFunctionName &name, const CwshLineArray &lines) :
@@ -55,7 +69,7 @@ run(const CwshArgArray &args)
 {
   cwsh_->saveState();
 
-  cwsh_->startBlock(CWSH_BLOCK_TYPE_FUNCTION, lines_);
+  cwsh_->startBlock(CwshBlockType::FUNCTION, lines_);
 
   cwsh_->defineVariable("argv", args);
 
@@ -76,15 +90,20 @@ run(const CwshArgArray &args)
 }
 
 void
-CwshFunctionMgr::
-listAll()
+CwshFunction::
+list(bool all)
 {
-  FunctionList::iterator pfunction1 = function_list_.begin();
-  FunctionList::iterator pfunction2 = function_list_.end  ();
+  std::cout << CwshMgrInst.funcNameColorStr() << getName() << CwshMgrInst.resetColorStr();
 
-  for ( ; pfunction1 != pfunction2; ++pfunction1) {
-    CwshFunction *function = (*pfunction1).second;
+  if (all) {
+    std::cout << " [";
 
-    std::cout << function->getName() << std::endl;
+    std::cout << CwshMgrInst.locationColorStr() << getFilename() << ":" << getLineNum() <<
+                 CwshMgrInst.resetColorStr();
+
+    std::cout << "]";
   }
+
+  std::cout << std::endl;
 }
+

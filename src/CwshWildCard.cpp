@@ -2,7 +2,7 @@
 #include <CGlob.h>
 
 CwshWildCard::
-CwshWildCard(const string &pattern)
+CwshWildCard(const std::string &pattern)
 {
   glob_ = new CGlob(pattern);
 
@@ -24,7 +24,7 @@ isValid() const
 
 bool
 CwshWildCard::
-checkMatch(const string &str) const
+checkMatch(const std::string &str) const
 {
   return glob_->compare(str);
 }

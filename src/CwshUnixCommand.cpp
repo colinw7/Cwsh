@@ -1,15 +1,15 @@
 #include <CwshI.h>
 #include <CPathList.h>
 
-string
+std::string
 CwshUnixCommand::
-search(Cwsh *cwsh, const string &name)
+search(Cwsh *cwsh, const std::string &name)
 {
   CPathList pathList;
 
   pathList.addEnvValue("PATH");
 
-  string path;
+  std::string path;
 
   if (! pathList.search(name, path))
     CWSH_THROW(name + ": Command not found.");

@@ -1,13 +1,13 @@
 #ifndef CWSH_COMMAND_H
 #define CWSH_COMMAND_H
 
-enum CwshCommandType {
-  CWSH_COMMAND_TYPE_SUBSHELL,
-  CWSH_COMMAND_TYPE_PROCESS,
-  CWSH_COMMAND_TYPE_LABEL,
-  CWSH_COMMAND_TYPE_FUNCTION,
-  CWSH_COMMAND_TYPE_SHELL,
-  CWSH_COMMAND_TYPE_UNIX
+enum class CwshCommandType {
+  SUBSHELL,
+  PROCESS,
+  LABEL,
+  FUNCTION,
+  SHELL,
+  UNIX
 };
 
 #include <CCommand.h>
@@ -25,6 +25,8 @@ namespace CwshCommandUtil {
   void processLineProc(const CwshArgArray &args, CCommand::CallbackData data);
 }
 
+//---
+
 class CwshCommand : public CCommand {
  public:
   CwshCommand(Cwsh *cwsh, const std::string &name, const std::string &path,
@@ -40,9 +42,11 @@ class CwshCommand : public CCommand {
 
  private:
   CPtr<Cwsh> cwsh_;
-  bool       notify_;
-  bool       stateChanged_;
+  bool       notify_       { false };
+  bool       stateChanged_ { false };
 };
+
+//---
 
 class CwshCommandData {
  public:

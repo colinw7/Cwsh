@@ -14,7 +14,7 @@ class CwshHash {
  private:
   CPtr<Cwsh>          cwsh_;
   CwshHashFilePathMap file_path_map_;
-  bool                file_path_active_;
+  bool                file_path_active_ { false };
 };
 
 #endif

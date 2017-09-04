@@ -1,12 +1,12 @@
 #ifndef CWSH_COMPLETE_H
 #define CWSH_COMPLETE_H
 
-enum CwshCompletionType {
-  CWSH_COMPLETION_TYPE_NONE,
-  CWSH_COMPLETION_TYPE_COMMAND,
-  CWSH_COMPLETION_TYPE_FILE,
-  CWSH_COMPLETION_TYPE_VAR,
-  CWSH_COMPLETION_TYPE_USERS,
+enum class CwshCompletionType {
+  NONE,
+  COMMAND,
+  FILE,
+  VAR,
+  USERS,
 };
 
 class CwshComplete {
@@ -17,13 +17,13 @@ class CwshComplete {
 
   CwshCompletionType getCompletionType(std::string *word);
 
-  bool completeCommand (std::string &path);
+  bool completeCommand (std::string &file, std::string &filePath);
   bool completeFile    (std::string &file);
   bool completeVariable(std::string &name);
   bool completeUsers   (std::string &name);
 
  private:
-  bool completeCommand (const std::string &path, std::string &path1);
+  bool completeCommand (const std::string &path, std::string &file, std::string &filePath);
   bool completeFile    (const std::string &file, std::string &file1);
   bool completeExecFile(const std::string &file, std::string &file1);
   bool completeVariable(const std::string &name, std::string &name1);

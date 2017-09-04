@@ -3,34 +3,34 @@
 #include <CPathList.h>
 
 CwshComplete::
-CwshComplete(Cwsh *cwsh, const string &line) :
+CwshComplete(Cwsh *cwsh, const std::string &line) :
  cwsh_(cwsh), line_(line) {
 }
 
 bool
 CwshComplete::
-complete(string &line1)
+complete(std::string &line1)
 {
   line1 = "";
 
-  string word;
+  std::string word;
 
   CwshCompletionType type = getCompletionType(&word);
 
-  if (type == CWSH_COMPLETION_TYPE_NONE)
+  if (type == CwshCompletionType::NONE)
     return false;
 
-  string word1;
+  std::string word1, word2;
 
   bool flag;
 
-  if      (type == CWSH_COMPLETION_TYPE_COMMAND)
-    flag = completeCommand(word, word1);
-  else if (type == CWSH_COMPLETION_TYPE_FILE)
+  if      (type == CwshCompletionType::COMMAND)
+    flag = completeCommand(word, word1, word2);
+  else if (type == CwshCompletionType::FILE)
     flag = completeFile(word, word1);
-  else if (type == CWSH_COMPLETION_TYPE_VAR)
+  else if (type == CwshCompletionType::VAR)
     flag = completeVariable(word, word1);
-  else if (type == CWSH_COMPLETION_TYPE_USERS)
+  else if (type == CwshCompletionType::USERS)
     flag = completeUsers(word, word1);
   else
     flag = false;
@@ -48,26 +48,28 @@ complete(string &line1)
 
 bool
 CwshComplete::
-completeCommand(string &path)
+completeCommand(std::string &file, std::string &filePath)
 {
-  return completeCommand(line_, path);
+  return completeCommand(line_, file, filePath);
 }
 
 bool
 CwshComplete::
-completeCommand(const string &path, string &path1)
+completeCommand(const std::string &path, std::string &file, std::string &filePath)
 {
-  string::size_type pos = path.rfind('/');
+  filePath = "";
 
-  if (pos == string::npos) {
+  auto pos = path.rfind('/');
+
+  if (pos == std::string::npos) {
     CPathList pathList;
 
     pathList.addEnvValue("PATH");
 
-    path1 = pathList.mostMatchPrefix(path);
+    file = pathList.mostMatchPrefix(path, filePath);
   }
   else {
-    if (! completeExecFile(path, path1))
+    if (! completeExecFile(path, file))
       return false;
   }
 
@@ -76,18 +78,18 @@ completeCommand(const string &path, string &path1)
 
 bool
 CwshComplete::
-completeFile(string &file)
+completeFile(std::string &file)
 {
   return completeFile(line_, file);
 }
 
 bool
 CwshComplete::
-completeFile(const string &file, string &file1)
+completeFile(const std::string &file, std::string &file1)
 {
   CwshVariable *fignore = cwsh_->lookupVariable("fignore");
 
-  if (fignore != NULL) {
+  if (fignore) {
     int num_values = fignore->getNumValues();
 
     for (int i = 0; i < num_values; ++i)
@@ -104,7 +106,7 @@ completeFile(const string &file, string &file1)
   file1 = fileMatch.mostMatchPrefix(file);
 
   if (file1.find(' ')) {
-    string file2;
+    std::string file2;
 
     uint len = file1.size();
 
@@ -123,7 +125,7 @@ completeFile(const string &file, string &file1)
 
 bool
 CwshComplete::
-completeExecFile(const string &file, string &file1)
+completeExecFile(const std::string &file, std::string &file1)
 {
   CFileMatch fileMatch;
 
@@ -132,7 +134,7 @@ completeExecFile(const string &file, string &file1)
   file1 = fileMatch.mostMatchPrefix(file);
 
   if (file1.find(' ')) {
-    string file2;
+    std::string file2;
 
     uint len = file1.size();
 
@@ -151,18 +153,18 @@ completeExecFile(const string &file, string &file1)
 
 bool
 CwshComplete::
-completeVariable(string &name)
+completeVariable(std::string &name)
 {
   return completeVariable(line_, name);
 }
 
 bool
 CwshComplete::
-completeVariable(const string &name, string &name1)
+completeVariable(const std::string &name, std::string &name1)
 {
-  string pattern_str = name + "*";
+  std::string pattern_str = name + "*";
 
-  vector<string> names;
+  std::vector<std::string> names;
 
   CwshPattern pattern(cwsh_, pattern_str);
 
@@ -176,18 +178,18 @@ completeVariable(const string &name, string &name1)
 
 bool
 CwshComplete::
-completeUsers(string &name)
+completeUsers(std::string &name)
 {
   return completeUsers(line_, name);
 }
 
 bool
 CwshComplete::
-completeUsers(const string &name, string &name1)
+completeUsers(const std::string &name, std::string &name1)
 {
-  string pattern_str = name + "*";
+  std::string pattern_str = name + "*";
 
-  vector<string> names;
+  std::vector<std::string> names;
 
   if (! CwshString::matchUsers(pattern_str, names))
     return false;
@@ -199,14 +201,14 @@ completeUsers(const string &name, string &name1)
 
 CwshCompletionType
 CwshComplete::
-getCompletionType(string *word)
+getCompletionType(std::string *word)
 {
   CwshVariable *filec = cwsh_->lookupVariable("filec");
 
-  if (filec == NULL)
-    return CWSH_COMPLETION_TYPE_NONE;
+  if (! filec)
+    return CwshCompletionType::NONE;
 
-  vector<string> words;
+  std::vector<std::string> words;
 
   CwshString::addWords(line_, words);
 
@@ -218,30 +220,30 @@ getCompletionType(string *word)
   len = words.size();
 
   if (len == 0)
-    return CWSH_COMPLETION_TYPE_NONE;
+    return CwshCompletionType::NONE;
 
-  const string &word1 = words[len - 1];
+  const std::string &word1 = words[len - 1];
 
   uint len1 = word1.size();
 
   if      (len1 > 0 && word1[0] == '$') {
     *word = word1.substr(1);
 
-    return CWSH_COMPLETION_TYPE_VAR;
+    return CwshCompletionType::VAR;
   }
-  else if (word1[0] == '~' && word1.find('/') == string::npos) {
+  else if (word1[0] == '~' && word1.find('/') == std::string::npos) {
     *word = word1.substr(1);
 
-    return CWSH_COMPLETION_TYPE_USERS;
+    return CwshCompletionType::USERS;
   }
   else if (len == 1) {
     *word = word1;
 
-    return CWSH_COMPLETION_TYPE_COMMAND;
+    return CwshCompletionType::COMMAND;
   }
   else {
     *word = word1;
 
-    return CWSH_COMPLETION_TYPE_FILE;
+    return CwshCompletionType::FILE;
   }
 }

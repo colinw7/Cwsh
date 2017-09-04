@@ -3,9 +3,9 @@
 
 CwshHistory::
 CwshHistory(Cwsh *cwsh) :
- cwsh_(cwsh), command_num_(0)
+ cwsh_(cwsh)
 {
-  string filename = getPath();
+  std::string filename = getPath();
 
   addFile(filename);
 }
@@ -21,7 +21,7 @@ CwshHistory::
     history_.resize(save_size);
 
   if (save_size > 0) {
-    string filename = getPath();
+    std::string filename = getPath();
 
     history_.save(filename);
   }
@@ -29,9 +29,9 @@ CwshHistory::
 
 bool
 CwshHistory::
-findCommandStart(const string &str, int &command_num)
+findCommandStart(const std::string &str, int &command_num)
 {
-  string command;
+  std::string command;
 
   if (history1_.findCommandStart(str, command, command_num)) {
     command_num = history_.getCommandNum() + 1;
@@ -45,9 +45,9 @@ findCommandStart(const string &str, int &command_num)
 
 bool
 CwshHistory::
-findCommandIn(const string &str, int &command_num)
+findCommandIn(const std::string &str, int &command_num)
 {
-  string command;
+  std::string command;
 
   if (history1_.findCommandIn(str, command, command_num)) {
     command_num = history_.getCommandNum() + 1;
@@ -61,7 +61,7 @@ findCommandIn(const string &str, int &command_num)
 
 bool
 CwshHistory::
-findCommandArg(const string &str, int &command_num, int &arg_num)
+findCommandArg(const std::string &str, int &command_num, int &arg_num)
 {
   if (history1_.findCommandArg(str, command_num, arg_num)) {
     command_num = history_.getCommandNum() + 1;
@@ -73,13 +73,13 @@ findCommandArg(const string &str, int &command_num, int &arg_num)
   return history_.findCommandArg(str, command_num, arg_num);
 }
 
-string
+std::string
 CwshHistory::
 getCommand(int num)
 {
   updateSize();
 
-  string command;
+  std::string command;
 
   if (! history_.getCommand(num, command))
     CWSH_THROW("Invalid history command num");
@@ -87,13 +87,13 @@ getCommand(int num)
   return command;
 }
 
-string
+std::string
 CwshHistory::
 getCommandArg(int num, int arg_num)
 {
   updateSize();
 
-  string command, arg;
+  std::string command, arg;
 
   if (! history_.getCommandArg(num, arg_num, command, arg))
     CWSH_THROW("Invalid history command/arg num");
@@ -103,7 +103,7 @@ getCommandArg(int num, int arg_num)
 
 void
 CwshHistory::
-addFile(const string &filename)
+addFile(const std::string &filename)
 {
   history_.addFile(filename);
 
@@ -114,9 +114,9 @@ addFile(const string &filename)
 
 void
 CwshHistory::
-addCommand(const string &line)
+addCommand(const std::string &line)
 {
-  string line1 = CStrUtil::stripSpaces(line);
+  std::string line1 = CStrUtil::stripSpaces(line);
 
   if (line1 == "")
     return;
@@ -132,9 +132,9 @@ addCommand(const string &line)
 
 void
 CwshHistory::
-setCurrent(const string &line)
+setCurrent(const std::string &line)
 {
-  string line1 = CStrUtil::stripSpaces(line);
+  std::string line1 = CStrUtil::stripSpaces(line);
 
   if (line1 == "")
     return;
@@ -171,13 +171,13 @@ getSize() const
 {
   CwshVariable *variable = cwsh_->lookupVariable("history");
 
-  if (variable == NULL)
+  if (! variable)
     return 1;
 
   if (variable->getNumValues() != 1)
     return 1;
 
-  string value = variable->getValue(0);
+  std::string value = variable->getValue(0);
 
   if (! CStrUtil::isInteger(value))
     return 1;
@@ -196,13 +196,13 @@ getSaveSize() const
 {
   CwshVariable *variable = cwsh_->lookupVariable("savehist");
 
-  if (variable == NULL)
+  if (! variable)
     return 0;
 
   if (variable->getNumValues() != 1)
     CWSH_THROW("Badly formed number.");
 
-  string value = variable->getValue(0);
+  std::string value = variable->getValue(0);
 
   if (! CStrUtil::isInteger(value))
     CWSH_THROW("Badly formed number.");
@@ -214,7 +214,7 @@ bool
 CwshHistory::
 hasPrevCommand()
 {
-  string command;
+  std::string command;
 
   if (command_num_ <= 0 || ! history_.getCommand(command_num_ - 1, command))
     return false;
@@ -229,11 +229,11 @@ hasNextCommand()
   return true;
 }
 
-string
+std::string
 CwshHistory::
 getPrevCommand()
 {
-  string command;
+  std::string command;
 
   if      (  history_.getCommand(command_num_ - 1, command))
     --command_num_;
@@ -243,11 +243,11 @@ getPrevCommand()
   return command;
 }
 
-string
+std::string
 CwshHistory::
 getNextCommand()
 {
-  string command;
+  std::string command;
 
   if (! history_.getCommand(command_num_ + 1, command))
     return "";
@@ -257,32 +257,31 @@ getNextCommand()
   return command;
 }
 
-string
+std::string
 CwshHistory::
 getPath()
 {
   return CStrUtil::concatFileNames(COSUser::getUserHome(), getFilename());
 }
 
-string
+std::string
 CwshHistory::
 getFilename()
 {
-  string filename = ".history";
+  std::string filename = ".history";
 
   return filename;
 }
 
-string
+std::string
 CwshHistory::
 getHistoryMsg() const
 {
-  string msg;
+  std::string msg;
 
   CHistory::CommandList::const_iterator p1, p2;
 
-  for (p1 = history_.beginCommand(),
-        p2 = history_.endCommand(); p1 != p2; ++p1) {
+  for (p1 = history_.beginCommand(), p2 = history_.endCommand(); p1 != p2; ++p1) {
     if (! msg.empty()) msg += "#";
 
     msg += CStrUtil::toString((*p1)->getNumber()) + "#";

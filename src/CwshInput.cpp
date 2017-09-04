@@ -1,17 +1,14 @@
 #include <CwshI.h>
 #include <CwshHistoryParser.h>
 #include <CRGBName.h>
+#include <CEscapeColors.h>
 #include <CEscape.h>
-#include <cstdio>
 #include <unistd.h>
 
 CwshInput::
 CwshInput(Cwsh *cwsh) :
  cwsh_(cwsh)
 {
-  history_active_  = false;
-  input_file_      = NULL;
-  current_command_ = NULL;
 }
 
 CwshInput::
@@ -19,50 +16,69 @@ CwshInput::
 {
 }
 
-void
+bool
 CwshInput::
-execute(const string &filename)
+execute(const std::string &filename)
 {
   CFile file(filename);
 
-  execute(&file);
+  if (! file.exists())
+    return false;
+
+  return executeFile(&file);
 }
 
-void
+bool
 CwshInput::
 execute(CFile *file)
 {
-  bool save_history_active = history_active_;
-
-  CFile *save_file = input_file_;
-
-  input_file_ = file;
-
-  if (! file->isStdIn())
-    executeFile();
-  else
-    executeStdIn();
-
-  input_file_ = save_file;
-
-  history_active_ = save_history_active;
+  return executeFile(file);
 }
 
-void
+bool
 CwshInput::
-executeFile()
+executeFile(CFile *file)
 {
-  history_active_ = false;
+  bool rc = true;
 
+  bool        saveHistoryActive = historyActive_;
+  CFile*      saveFile          = inputFile_;
+
+  historyActive_ = false;
+  inputFile_     = file;
+
+  if (! file->isStdIn()) {
+    if (! executeCurrentFile())
+      rc = false;
+  }
+  else {
+    if (! executeStdIn())
+      rc = false;
+  }
+
+  inputFile_     = saveFile;
+  historyActive_ = saveHistoryActive;
+
+  return rc;
+}
+
+bool
+CwshInput::
+executeCurrentFile()
+{
   CwshLineArray lines;
 
-  string line, line1;
+  std::string line, line1;
 
-  while (input_file_->readLine(line)) {
+  int lineNum = 1;
+
+  while (inputFile_->readLine(line)) {
     uint len = line.size();
 
-    if (len == 0)
+    if (len == 0) {
+      ++lineNum;
       continue;
+    }
 
     if (line[len - 1] == '\\') {
       if (line1 != "")
@@ -70,13 +86,15 @@ executeFile()
       else
         line1 = line.substr(0, len - 1);
 
+      ++lineNum;
+
       continue;
     }
 
     if (line1 != "")
       line = line1 + " " + line;
 
-    lines.push_back(line);
+    lines.push_back(CwshLine(line, lineNum));
 
     line1 = "";
   }
@@ -84,61 +102,65 @@ executeFile()
   if (line1 != "")
     lines.push_back(line1);
 
-  if (lines.empty())
-    return;
+  if (! lines.empty())
+    executeLines(lines);
 
-  executeLines(lines);
+  return true;
 }
 
-void
+bool
 CwshInput::
 executeStdIn()
 {
-  history_active_ = true;
+  historyActive_ = true;
 
-  executeLines(true);
+  executeBlockLines(true);
+
+  return true;
 }
 
 void
 CwshInput::
-executeLine(string &line)
+executeLine(std::string &line)
 {
-  vector<string> lines;
+  CwshLineArray lines;
 
-  lines.push_back(line);
+  lines.push_back(CwshLine(line));
 
   executeLines(lines);
 }
 
 void
 CwshInput::
-executeLines(vector<string> &lines)
+executeLines(const CwshLineArray &lines)
 {
-  cwsh_->startBlock(CWSH_BLOCK_TYPE_FILE, lines);
+  CwshBlock *block = cwsh_->startBlock(CwshBlockType::FILE, lines);
 
-  executeLines(false);
+  block->setFilename(inputFile_->getPath());
+
+  executeBlockLines(false);
 
   cwsh_->endBlock();
 }
 
 void
 CwshInput::
-executeLines(bool interactive)
+executeBlockLines(bool interactive)
 {
-  string line;
+  std::string line;
 
   while (! eof()) {
-    line = getLine();
+    CwshLine line = getLine();
 
     if (interactive && cwsh_->getSilentMode()) {
-      printf("%s", CEscape::commandToEscape(line, COSFile::getCurrentDir(), true).c_str());
+      printf("%s", CEscape::commandToEscape(line.line, COSFile::getCurrentDir(), true).c_str());
       fflush(stdout);
     }
 
     processLine(line);
 
     if (interactive && cwsh_->getSilentMode()) {
-      printf("%s", CEscape::commandToEscape(line, COSFile::getCurrentDir(), false).c_str());
+      printf("%s", CEscape::commandToEscape(line.line, COSFile::getCurrentDir(), false).c_str());
       fflush(stdout);
     }
 
@@ -162,20 +184,20 @@ CwshInput::
 getBlock(CwshShellCommand *shell_command, CwshLineArray &lines)
 {
   CwshPromptType prompt_type    = cwsh_->getPromptType();
-  string         prompt_command = cwsh_->getPromptCommand();
+  std::string    prompt_command = cwsh_->getPromptCommand();
 
-  cwsh_->setPromptType   (CWSH_PROMPT_TYPE_EXTRA);
+  cwsh_->setPromptType   (CwshPromptType::EXTRA);
   cwsh_->setPromptCommand(shell_command->getName());
 
   while (! eof()) {
-    string line = getLine();
+    CwshLine line = getLine();
 
-    vector<string> words;
+    std::vector<std::string> words;
 
-    CwshString::addWords(line, words);
+    CwshString::addWords(line.line, words);
 
     if (words.size() > 0) {
-      string name = words[0];
+      std::string name = words[0];
 
       if (name == shell_command->getEndName())
         break;
@@ -184,14 +206,14 @@ getBlock(CwshShellCommand *shell_command, CwshLineArray &lines)
 
       CwshShellCommand *shell_command1 = cwsh_->lookupShellCommand(name);
 
-      if (shell_command1 != NULL && shell_command1->isBlockCommand()) {
+      if (shell_command1 && shell_command1->isBlockCommand()) {
         CwshLineArray lines1;
 
         getBlock(shell_command1, lines1);
 
         copy(lines1.begin(), lines1.end(), back_inserter(lines));
 
-        lines.push_back(shell_command1->getEndName());
+        lines.push_back(CwshLine(shell_command1->getEndName()));
       }
     }
     else
@@ -204,18 +226,18 @@ getBlock(CwshShellCommand *shell_command, CwshLineArray &lines)
 
 void
 CwshInput::
-skipBlock(const string &line)
+skipBlock(const CwshLine &line)
 {
-  vector<string> words;
+  std::vector<std::string> words;
 
-  CwshString::addWords(line, words);
+  CwshString::addWords(line.line, words);
 
   if (words.size() == 0)
     return;
 
   CwshShellCommand *shell_command = cwsh_->lookupShellCommand(words[0]);
 
-  if (shell_command == NULL || ! shell_command->isBlockCommand())
+  if (! shell_command || ! shell_command->isBlockCommand())
     return;
 
   CwshLineArray lines;
@@ -223,27 +245,27 @@ skipBlock(const string &line)
   getBlock(shell_command, lines);
 }
 
-string
+CwshLine
 CwshInput::
 getLine()
 {
   if (cwsh_->inBlock())
     return cwsh_->blockReadLine();
 
-  string line;
+  std::string line;
 
-  if (input_file_->isStdIn()) {
+  if (inputFile_->isStdIn()) {
     line = cwsh_->readLine();
 
     if (line.size() > 0 && line[line.size() - 1] == '\\') {
       CwshPromptType prompt_type    = cwsh_->getPromptType();
-      string         prompt_command = cwsh_->getPromptCommand();
+      std::string    prompt_command = cwsh_->getPromptCommand();
 
-      cwsh_->setPromptType   (CWSH_PROMPT_TYPE_EXTRA);
+      cwsh_->setPromptType   (CwshPromptType::EXTRA);
       cwsh_->setPromptCommand("");
 
       while (line.size() > 0 && line[line.size() - 1] == '\\') {
-        string line1 = cwsh_->readLine();
+        std::string line1 = cwsh_->readLine();
 
         line = line.substr(0, line.size() - 1) + "\n" + line1;
       }
@@ -255,10 +277,10 @@ getLine()
     cwsh_->displayExitedProcesses();
   }
   else {
-    line = CwshString::readLineFromFile(input_file_);
+    line = CwshString::readLineFromFile(inputFile_);
 
     while (line.size() > 0 && line[line.size() - 1] == '\\') {
-      string line1 = CwshString::readLineFromFile(input_file_);
+      std::string line1 = CwshString::readLineFromFile(inputFile_);
 
       line = line.substr(0, line.size() - 1) + "\n" + line1;
     }
@@ -267,23 +289,38 @@ getLine()
   return line;
 }
 
+std::string
+CwshInput::
+getFilename() const
+{
+  if (! inputFile_)
+    return "";
+
+  return inputFile_->getPath();
+}
+
 void
 CwshInput::
-processLine(const string &line)
+processLine(const CwshLine &line)
 {
+  cwsh_->setFilename(getFilename());
+  cwsh_->setLineNum (line.num);
+
   try {
-    string line1;
+    std::string line1;
 
     //------
 
+    // Check for comment as first character
+
     uint i = 0;
 
-    CStrUtil::skipSpace(line, &i);
+    CStrUtil::skipSpace(line.line, &i);
 
-    uint len = line.size();
+    uint len = line.line.size();
 
-    if (i < len && line[i] != '#')
-      line1 = line;
+    if (i < len && line.line[i] != '#')
+      line1 = line.line;
 
     //------
 
@@ -293,7 +330,7 @@ processLine(const string &line)
 
     CwshHistoryParser parser(cwsh_);
 
-    string line2 = parser.parseLine(line1);
+    std::string line2 = parser.parseLine(line1);
 
     if (line2 != line1) {
       output = true;
@@ -305,7 +342,7 @@ processLine(const string &line)
 
     // Remove Extra Spaces
 
-    vector<string> words1;
+    std::vector<std::string> words1;
 
     CwshString::addWords(line1, words1);
 
@@ -317,7 +354,7 @@ processLine(const string &line)
 
     CwshVariable *variable = cwsh_->lookupVariable("verbose");
 
-    if (variable != NULL)
+    if (variable)
       output = true;
 
     if (output)
@@ -340,7 +377,7 @@ processLine(const string &line)
 
     // Add Command To History
 
-    if (history_active_)
+    if (historyActive_)
       cwsh_->addHistoryCommand(line1);
 
     //------
@@ -367,16 +404,17 @@ processLine(const string &line)
 
     //------
 
-    std::for_each(groups.begin(), groups.end(), CDeletePointer());
+    for (auto &group : groups)
+      delete group;
   }
   catch (CwshHistoryIgnore i) {
     ;
   }
   catch (struct CwshErr *cthrow) {
-    string qualifier = cthrow->qualifier;
+    std::string qualifier = cthrow->qualifier;
 
-    if (qualifier == "" && current_command_ != NULL)
-      qualifier = current_command_->getCommand()->getName();
+    if (qualifier == "" && currentCommand_)
+      qualifier = currentCommand_->getCommand()->getName();
 
     if (cwsh_->getDebug())
       std::cerr << "[" << cthrow->file << ":" << cthrow->line << "] ";
@@ -395,9 +433,9 @@ void
 CwshInput::
 executeCommands(const CwshCmdArray &cmds)
 {
-  vector<CwshCommandData *>  pcommands;
-  vector<string>             delete_files;
-  CwshCommandData           *first_command = NULL;
+  std::vector<CwshCommandData *> pcommands;
+  std::vector<std::string>       delete_files;
+  CwshCommandData*               first_command = nullptr;
 
   int num_cmds = cmds.size();
 
@@ -412,7 +450,7 @@ executeCommands(const CwshCmdArray &cmds)
 
     // Get Command
 
-    vector<string> words;
+    std::vector<std::string> words;
 
     int num_words = cmds[i]->getNumWords();
 
@@ -423,12 +461,12 @@ executeCommands(const CwshCmdArray &cmds)
 
     CwshCommand *ccommand = command->getCommand();
 
-    if (ccommand == NULL) {
+    if (! ccommand) {
       delete command;
       continue;
     }
 
-    current_command_ = command;
+    currentCommand_ = command;
 
     //-----
 
@@ -436,7 +474,7 @@ executeCommands(const CwshCmdArray &cmds)
 
     CwshVariable *variable = cwsh_->lookupVariable("echo");
 
-    if (variable != NULL)
+    if (variable)
       std::cout << ccommand->getCommandString() << std::endl;
 
     //-----
@@ -444,7 +482,7 @@ executeCommands(const CwshCmdArray &cmds)
     // Set Redirection
 
     if      (cmds[i]->hasStdInToken()) {
-      const string &filename = readStdInToken(cmds[i]->getStdInToken());
+      const std::string &filename = readStdInToken(cmds[i]->getStdInToken());
 
       ccommand->addFileSrc(filename);
 
@@ -458,7 +496,7 @@ executeCommands(const CwshCmdArray &cmds)
 
       CwshVariable *variable = cwsh_->lookupVariable("noclobber");
 
-      if (cmds[i]->getStdOutClobber() || variable == NULL)
+      if (cmds[i]->getStdOutClobber() || ! variable)
         ccommand->setFileDestOverwrite(true, 1);
       else
         ccommand->setFileDestOverwrite(false, 1);
@@ -473,7 +511,7 @@ executeCommands(const CwshCmdArray &cmds)
 
         CwshVariable *variable = cwsh_->lookupVariable("noclobber");
 
-        if (cmds[i]->getStdErrClobber() || variable == NULL)
+        if (cmds[i]->getStdErrClobber() || ! variable)
           ccommand->setFileDestOverwrite(true, 1);
         else
           ccommand->setFileDestOverwrite(false, 1);
@@ -486,7 +524,7 @@ executeCommands(const CwshCmdArray &cmds)
 
       CwshVariable *variable = cwsh_->lookupVariable("noclobber");
 
-      if (cmds[i]->getStdErrClobber() || variable == NULL)
+      if (cmds[i]->getStdErrClobber() || ! variable)
         ccommand->setFileDestOverwrite(true, 2);
       else
         ccommand->setFileDestOverwrite(false, 2);
@@ -499,8 +537,8 @@ executeCommands(const CwshCmdArray &cmds)
 
     CwshCmdSeparatorType separator = cmds[i]->getSeparator().getType();
 
-    if (separator != CWSH_COMMAND_SEPARATOR_PIPE &&
-        separator != CWSH_COMMAND_SEPARATOR_PIPE_ERR) {
+    if (separator != CwshCmdSeparatorType::PIPE &&
+        separator != CwshCmdSeparatorType::PIPE_ERR) {
       int num_pcommands = pcommands.size();
 
       if (num_pcommands > 0) {
@@ -509,7 +547,7 @@ executeCommands(const CwshCmdArray &cmds)
         for (int k = 0; k < num_pcommands - 1; k++) {
           CwshCommand *pccommand = pcommands[k]->getCommand();
 
-          if (first_command == NULL) {
+          if (! first_command) {
             first_command = pcommands[k];
 
             pccommand->setProcessGroupLeader();
@@ -522,7 +560,7 @@ executeCommands(const CwshCmdArray &cmds)
 
         CwshCommand *pccommand = pcommands[num_pcommands - 1]->getCommand();
 
-        if (first_command == NULL) {
+        if (! first_command) {
           first_command = pcommands[num_pcommands - 1];
 
           pccommand->setProcessGroupLeader();
@@ -549,7 +587,7 @@ executeCommands(const CwshCmdArray &cmds)
 
         //------
 
-        if (separator != CWSH_COMMAND_SEPARATOR_BACKGROUND) {
+        if (separator != CwshCmdSeparatorType::BACKGROUND) {
           for (int k = 0; k < num_pcommands; k++) {
             CwshCommand *pccommand = pcommands[k]->getCommand();
 
@@ -562,16 +600,17 @@ executeCommands(const CwshCmdArray &cmds)
 
           cwsh_->defineVariable("status", status);
 
-          std::for_each(pcommands.begin(), pcommands.end(), CDeletePointer());
+          for (auto &pcommand : pcommands)
+            delete pcommand;
 
           cwsh_->removeProcess(process);
 
-          current_command_ = NULL;
+          currentCommand_ = nullptr;
 
-          if (separator == CWSH_COMMAND_SEPARATOR_AND && status != 0)
+          if (separator == CwshCmdSeparatorType::AND && status != 0)
             break;
 
-          if (separator == CWSH_COMMAND_SEPARATOR_OR && status == 0)
+          if (separator == CwshCmdSeparatorType::OR && status == 0)
             break;
         }
         else {
@@ -590,7 +629,7 @@ executeCommands(const CwshCmdArray &cmds)
       }
       else {
         if (ccommand->getDoFork()) {
-          if (first_command == NULL) {
+          if (! first_command) {
             first_command = command;
 
             ccommand->setProcessGroupLeader();
@@ -603,22 +642,22 @@ executeCommands(const CwshCmdArray &cmds)
 
         CwshProcess *process = cwsh_->addProcess(first_command);
 
-        if (separator != CWSH_COMMAND_SEPARATOR_BACKGROUND) {
+        if (separator != CwshCmdSeparatorType::BACKGROUND) {
           ccommand->wait();
 
-          if (ccommand->getState() == CCommand::EXITED_STATE) {
+          if (ccommand->getState() == CCommand::State::EXITED) {
             int status = ccommand->getReturnCode();
 
             cwsh_->defineVariable("status", status);
 
             cwsh_->removeProcess(process);
 
-            current_command_ = NULL;
+            currentCommand_ = nullptr;
 
-            if (separator == CWSH_COMMAND_SEPARATOR_AND && status != 0)
+            if (separator == CwshCmdSeparatorType::AND && status != 0)
               break;
 
-            if (separator == CWSH_COMMAND_SEPARATOR_OR && status == 0)
+            if (separator == CwshCmdSeparatorType::OR && status == 0)
               break;
           }
           else {
@@ -640,7 +679,7 @@ executeCommands(const CwshCmdArray &cmds)
 
       ccommand->addPipeDest(1);
 
-      if (separator == CWSH_COMMAND_SEPARATOR_PIPE_ERR)
+      if (separator == CwshCmdSeparatorType::PIPE_ERR)
         ccommand->addPipeDest(2);
 
       pcommands.push_back(command);
@@ -653,22 +692,22 @@ executeCommands(const CwshCmdArray &cmds)
     unlink(delete_files[i].c_str());
 }
 
-string
+std::string
 CwshInput::
-readStdInToken(const string &token)
+readStdInToken(const std::string &token)
 {
   CTempFile temp_file;
 
-  cwsh_->setPromptType(CWSH_PROMPT_TYPE_EXTRA);
+  cwsh_->setPromptType(CwshPromptType::EXTRA);
 
   while (1) {
-    string line = cwsh_->readLine();
+    std::string line = cwsh_->readLine();
 
     if (line == token)
       break;
 
     if (token[0] != '"') {
-      string line1 = processStdInLine(line);
+      std::string line1 = processStdInLine(line);
 
       temp_file.getFile()->write(line1 + "\n");
     }
@@ -678,18 +717,18 @@ readStdInToken(const string &token)
 
   temp_file.getFile()->close();
 
-  cwsh_->setPromptType(CWSH_PROMPT_TYPE_NORMAL);
+  cwsh_->setPromptType(CwshPromptType::NORMAL);
 
   return temp_file.getFile()->getPath();
 }
 
-string
+std::string
 CwshInput::
-processStdInLine(const string &line)
+processStdInLine(const CwshLine &line)
 {
   CwshWordArray words;
 
-  CwshWord::toWords(line, words);
+  CwshWord::toWords(line.line, words);
 
   if (cwsh_->getDebug()) {
     std::cerr << "Std In Line to Words" << std::endl;
@@ -746,13 +785,13 @@ processStdInLine(const string &line)
   return CwshWord::toString(cmd_words);
 }
 
-string
+std::string
 CwshInput::
-processExprLine(const string &line)
+processExprLine(const CwshLine &line)
 {
   CwshWordArray words;
 
-  CwshWord::toWords(line, words);
+  CwshWord::toWords(line.line, words);
 
   if (cwsh_->getDebug()) {
     std::cerr << "Expr Line to Words" << std::endl;
@@ -807,7 +846,7 @@ processExprLine(const string &line)
   // Expand Tildes
 
   for (int i = 0; i < num_cmd_words; i++) {
-    string str;
+    std::string str;
 
     if (CFile::expandTilde(cmd_words[i].getWord(), str))
       cmd_words[i] = CwshWord(str);
@@ -856,40 +895,40 @@ processExprLine(const string &line)
   return CwshWord::toString(wildcard_words);
 }
 
-string
+std::string
 CwshInput::
 getPrompt()
 {
   CwshVariable *prompt_var;
 
-  if (cwsh_->getPromptType() == CWSH_PROMPT_TYPE_NORMAL)
+  if (cwsh_->getPromptType() == CwshPromptType::NORMAL)
     prompt_var = cwsh_->lookupVariable("prompt");
   else
     prompt_var = cwsh_->lookupVariable("prompt1");
 
   CwshVariable *color_var = cwsh_->lookupVariable("prompt_color");
 
-  string prompt_string;
+  std::string prompt_string;
 
-  if (cwsh_->getPromptType() != CWSH_PROMPT_TYPE_NORMAL)
+  if (cwsh_->getPromptType() != CwshPromptType::NORMAL)
     prompt_string += cwsh_->getPromptCommand();
 
   if (prompt_var)
     prompt_string += prompt_var->getValue(0);
   else {
-    if (cwsh_->getPromptType() == CWSH_PROMPT_TYPE_NORMAL)
+    if (cwsh_->getPromptType() == CwshPromptType::NORMAL)
       prompt_string += "> ";
     else
       prompt_string += "? ";
   }
 
   if (color_var) {
-    double r, g, b;
+    CRGBA c;
 
-    if (CRGBName::lookup(color_var->getValue(0), &r, &g, &b)) {
-      int fg = (b >= 0.5 ? 4 : 0) | (g >= 0.5 ? 2 : 0) | (r >= 0.5 ? 1 : 0);
+    if (CRGBName::toRGBA(color_var->getValue(0), c)) {
+      std::string colorStr = CEscapeColorsInst->colorFgStr(c);
 
-      prompt_string = CStrUtil::strprintf("[%dm", 30 + fg) + prompt_string + "[0m";
+      prompt_string = colorStr + prompt_string + "[0m";
     }
   }
 

@@ -1,14 +1,14 @@
 #ifndef CWSH_CMD_SPLIT_H
 #define CWSH_CMD_SPLIT_H
 
-enum CwshCmdSeparatorType {
-  CWSH_COMMAND_SEPARATOR_NONE,
-  CWSH_COMMAND_SEPARATOR_BACKGROUND,
-  CWSH_COMMAND_SEPARATOR_PIPE,
-  CWSH_COMMAND_SEPARATOR_PIPE_ERR,
-  CWSH_COMMAND_SEPARATOR_AND,
-  CWSH_COMMAND_SEPARATOR_OR,
-  CWSH_COMMAND_SEPARATOR_NORMAL
+enum class CwshCmdSeparatorType {
+  NONE,
+  BACKGROUND,
+  PIPE,
+  PIPE_ERR,
+  AND,
+  OR,
+  NORMAL
 };
 
 class CwshCmdSeparator {
@@ -21,6 +21,8 @@ class CwshCmdSeparator {
  private:
   CwshCmdSeparatorType type_;
 };
+
+//---
 
 class CwshCmdLine {
   CINST_COUNT_MEMBER(CwshCmdLine);
@@ -40,6 +42,8 @@ class CwshCmdLine {
   CwshWordArray words_;
 };
 
+//---
+
 class CwshCmdGroup {
   CINST_COUNT_MEMBER(CwshCmdGroup);
 
@@ -56,9 +60,11 @@ class CwshCmdGroup {
   CwshCmdArray commands_;
 };
 
+//---
+
 class CwshCmdStdIn {
  public:
-  CwshCmdStdIn() : has_token_(false), filename_("") { }
+  CwshCmdStdIn() { }
 
   void setFile (const std::string &file ) { has_token_ = false; filename_ = file ; }
   void setToken(const std::string &token) { has_token_ = true ; filename_ = token; }
@@ -70,13 +76,15 @@ class CwshCmdStdIn {
   const std::string &getToken() const { return filename_; }
 
  private:
-  bool        has_token_;
+  bool        has_token_ { false };
   std::string filename_;
 };
 
+//---
+
 class CwshCmdStdOut {
  public:
-  CwshCmdStdOut() : filename_(""), clobber_(false), append_(false) { }
+  CwshCmdStdOut() { }
 
   void setFile   (const std::string &file) { filename_    = file; }
   void setClobber(bool flag=true    ) { clobber_  = flag; }
@@ -90,9 +98,11 @@ class CwshCmdStdOut {
 
  private:
   std::string filename_;
-  bool        clobber_;
-  bool        append_;
+  bool        clobber_ { false };
+  bool        append_  { false };
 };
+
+//---
 
 class CwshCmd {
   CINST_COUNT_MEMBER(CwshCmd);
@@ -109,10 +119,12 @@ class CwshCmd {
 
   const CwshCmdSeparator &getSeparator() const { return separator_; }
 
-  void addWord(const CwshWord &word);
-
-  void setWord(int i, const CwshWord &word);
+  const CwshWordArray &getWords() const { return words_; }
   void setWords(const CwshWordArray &words);
+
+  void addWord(const CwshWord &word);
+  void setWord(int i, const CwshWord &word);
+
   void setSeparator(const CwshCmdSeparator &separator);
 
   void setStdInFile (const std::string &file ) { stdin_.setFile (file ); }
@@ -153,6 +165,8 @@ class CwshCmd {
   CwshCmdStdOut    stdout_;
   CwshCmdStdOut    stderr_;
 };
+
+//---
 
 class CwshCmdSplit {
  public:

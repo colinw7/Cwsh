@@ -14,9 +14,7 @@ class CwshServer {
 
  private:
   CPtr<Cwsh>         cwsh_;
-#ifdef USE_MESSAGES
   CAutoPtr<CMessage> message_;
-#endif
 };
 
 #endif

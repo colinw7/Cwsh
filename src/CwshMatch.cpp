@@ -1,9 +1,6 @@
 #include <CwshI.h>
 #include <CFileMatch.h>
-
-#ifdef COS_TERM
 #include <COSTerm.h>
-#endif
 
 CwshMatch::
 CwshMatch(Cwsh *cwsh) :
@@ -12,15 +9,15 @@ CwshMatch(Cwsh *cwsh) :
 
 bool
 CwshMatch::
-showMatch(const string &line)
+showMatch(const std::string &line)
 {
-  string word;
+  std::string word;
 
   CwshComplete complete(cwsh_, line);
 
   CwshCompletionType type = complete.getCompletionType(&word);
 
-  if (type == CWSH_COMPLETION_TYPE_NONE) {
+  if (type == CwshCompletionType::NONE) {
     cwsh_->beep();
 
     return false;
@@ -28,16 +25,16 @@ showMatch(const string &line)
 
   word += "*";
 
-  vector<string> words;
+  std::vector<std::string> words;
 
-  if      (type == CWSH_COMPLETION_TYPE_COMMAND)
+  if      (type == CwshCompletionType::COMMAND)
     getPathMatch(word, words);
-  else if (type == CWSH_COMPLETION_TYPE_FILE) {
-    string::size_type pos = word.rfind('/');
+  else if (type == CwshCompletionType::FILE) {
+    std::string::size_type pos = word.rfind('/');
 
-    if (pos != string::npos) {
-      string lhs = word.substr(0, pos);
-      string rhs = word.substr(pos + 1);
+    if (pos != std::string::npos) {
+      std::string lhs = word.substr(0, pos);
+      std::string rhs = word.substr(pos + 1);
 
       CDir::enter(lhs);
 
@@ -48,16 +45,16 @@ showMatch(const string &line)
     else
       getFileMatch(word, words);
   }
-  else if (type == CWSH_COMPLETION_TYPE_VAR)
+  else if (type == CwshCompletionType::VAR)
     getVarMatch(word, words);
-  else if (type == CWSH_COMPLETION_TYPE_USERS)
+  else if (type == CwshCompletionType::USERS)
     getUsersMatch(word, words);
   else
     return false;
 
   CStrUtil::sort(words);
 
-  vector<string> uniq_words;
+  std::vector<std::string> uniq_words;
 
   CStrUtil::uniq(words, uniq_words);
 
@@ -70,7 +67,7 @@ showMatch(const string &line)
 
 bool
 CwshMatch::
-getPathMatch(const string &pattern_str, vector<string> &words)
+getPathMatch(const std::string &pattern_str, std::vector<std::string> &words)
 {
   CwshPattern pattern(cwsh_, pattern_str);
 
@@ -85,7 +82,7 @@ getPathMatch(const string &pattern_str, vector<string> &words)
 
 bool
 CwshMatch::
-getFileMatch(const string &pattern_str, vector<string> &words)
+getFileMatch(const std::string &pattern_str, std::vector<std::string> &words)
 {
   CFileMatch fileMatch;
 
@@ -100,7 +97,7 @@ getFileMatch(const string &pattern_str, vector<string> &words)
 
 bool
 CwshMatch::
-getVarMatch(const string &pattern_str, vector<string> &words)
+getVarMatch(const std::string &pattern_str, std::vector<std::string> &words)
 {
   CwshPattern pattern(cwsh_, pattern_str);
 
@@ -115,7 +112,7 @@ getVarMatch(const string &pattern_str, vector<string> &words)
 
 bool
 CwshMatch::
-getUsersMatch(const string &pattern_str, vector<string> &words)
+getUsersMatch(const std::string &pattern_str, std::vector<std::string> &words)
 {
   if (! CwshString::matchUsers(pattern_str, words)) {
     cwsh_->beep();
@@ -128,17 +125,13 @@ getUsersMatch(const string &pattern_str, vector<string> &words)
 
 void
 CwshMatch::
-print(vector<string> &words)
+print(std::vector<std::string> &words)
 {
   int max_len = CStrUtil::maxLen(words);
 
-  int screen_width = 80;
-
-#ifdef COS_TERM
-  int screen_height;
+  int screen_width, screen_height;
 
   COSTerm::getCharSize(&screen_width, &screen_height);
-#endif
 
   int num_words = words.size();
 

@@ -1,17 +1,9 @@
 #include <CwshI.h>
 #include <CwshHistoryParser.h>
 
-template<typename T>
-class CwshAliasListValueDisplay {
- public:
-  void operator()(const typename T::value_type &alias) {
-    alias.second->display();
-  }
-};
-
 CwshAliasMgr::
 CwshAliasMgr(Cwsh *cwsh) :
- cwsh_(cwsh), last_alias_(NULL)
+ cwsh_(cwsh)
 {
 }
 
@@ -20,13 +12,15 @@ CwshAliasMgr::
 {
 }
 
-void
+CwshAlias *
 CwshAliasMgr::
 define(const CwshAliasName &name, const CwshAliasValue &value)
 {
   CwshAlias *alias = new CwshAlias(name, value);
 
   aliases_.setValue(name, alias);
+
+  return alias;
 }
 
 void
@@ -38,7 +32,7 @@ undefine(const CwshAliasName &name)
 
 CwshAlias *
 CwshAliasMgr::
-lookup(const string &name) const
+lookup(const std::string &name) const
 {
   return aliases_.getValue(name);
 }
@@ -51,7 +45,7 @@ substitute(CwshCmd *cmd, CwshCmdArray &cmds) const
 
   //------
 
-  const string &str = word.getWord();
+  const std::string &str = word.getWord();
 
   if (str.empty() || str[0] == '"' || str[0] == '\'' || str[0] == '`' || str[0] == '\\')
     return false;
@@ -60,7 +54,7 @@ substitute(CwshCmd *cmd, CwshCmdArray &cmds) const
 
   CwshAlias *alias = lookup(str);
 
-  if (alias == NULL || alias == last_alias_)
+  if (! alias || alias == last_alias_)
     return false;
 
   //------
@@ -72,14 +66,12 @@ substitute(CwshCmd *cmd, CwshCmdArray &cmds) const
   if (cwsh_->getDebug())
     parser.display();
 
-  vector<string> words;
+  std::vector<std::string> words;
 
-  int num_words = cmd->getNumWords();
+  for (const auto &word : cmd->getWords())
+    words.push_back(word.getWord());
 
-  for (int i = 0; i < num_words; i++)
-    words.push_back(cmd->getWord(i).getWord());
-
-  string line = parser.apply(words);
+  std::string line = parser.apply(words);
 
   //------
 
@@ -112,7 +104,7 @@ substitute(CwshCmd *cmd, CwshCmdArray &cmds) const
     CwshCmd::displayCmdArray(cmds);
   }
 
-  th->last_alias_ = NULL;
+  th->last_alias_ = nullptr;
 
   //------
 
@@ -121,24 +113,23 @@ substitute(CwshCmd *cmd, CwshCmdArray &cmds) const
 
 void
 CwshAliasMgr::
-display() const
+display(bool all) const
 {
-  std::for_each(aliases_.begin(), aliases_.end(), CwshAliasListValueDisplay<AliasList>());
+  for (auto &alias : aliases_)
+    alias.second->display(all);
 }
 
-string
+std::string
 CwshAliasMgr::
 getAliasesMsg() const
 {
-  string msg;
+  std::string msg;
 
-  AliasList::const_iterator palias1 = aliases_.begin();
-  AliasList::const_iterator palias2 = aliases_.end  ();
+  for (const auto &alias : aliases_) {
+    if (! msg.empty())
+      msg += "#";
 
-  for ( ; palias1 != palias2; ++palias1) {
-    if (! msg.empty()) msg += "#";
-
-    msg += (*palias1).second->getName () + "#" + (*palias1).second->getValue();
+    msg += alias.second->getName() + "#" + alias.second->getValue();
   }
 
   return msg;
@@ -147,7 +138,7 @@ getAliasesMsg() const
 //-------------------
 
 CwshAlias::
-CwshAlias(const string &name, const string &value) :
+CwshAlias(const std::string &name, const std::string &value) :
  name_(name), value_(value)
 {
 }
@@ -159,7 +150,29 @@ CwshAlias::
 
 void
 CwshAlias::
-display() const
+display(bool all) const
 {
-  std::cout << name_ << " " << value_ << std::endl;
+  std::cout << CwshMgrInst.aliasNameColorStr() << getName() <<
+               CwshMgrInst.resetColorStr() << " ";
+
+  displayValue(all);
+}
+
+void
+CwshAlias::
+displayValue(bool all) const
+{
+  std::cout << CwshMgrInst.aliasValueColorStr() << getValue() <<
+               CwshMgrInst.resetColorStr();
+
+  if (all) {
+    std::cout << " [";
+
+    std::cout << CwshMgrInst.locationColorStr() << getFilename() << ":" << getLineNum() <<
+                 CwshMgrInst.resetColorStr();
+
+    std::cout << "]";
+  }
+
+  std::cout << std::endl;
 }

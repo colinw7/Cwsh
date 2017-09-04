@@ -4,8 +4,10 @@
 #include <CHistory.h>
 
 struct CwshHistoryIgnore {
-  void *dummy;
+  void *dummy { nullptr };
 };
+
+//---
 
 class CwshHistory {
  public:
@@ -51,7 +53,7 @@ class CwshHistory {
   CPtr<Cwsh> cwsh_;
   CHistory   history1_;
   CHistory   history_;
-  int        command_num_;
+  int        command_num_ { 0 };
 };
 
 #endif

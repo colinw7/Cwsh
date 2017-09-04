@@ -1,10 +1,10 @@
-enum CwshBlockType {
-  CWSH_BLOCK_TYPE_FOREACH,
-  CWSH_BLOCK_TYPE_FILE,
-  CWSH_BLOCK_TYPE_FUNCTION,
-  CWSH_BLOCK_TYPE_IF,
-  CWSH_BLOCK_TYPE_SWITCH,
-  CWSH_BLOCK_TYPE_WHILE,
+enum class CwshBlockType {
+  FOREACH,
+  FILE,
+  FUNCTION,
+  IF,
+  SWITCH,
+  WHILE
 };
 
 class Cwsh;
@@ -54,8 +54,21 @@ class CwshSubWord;
 
 typedef std::string           CwshArg;
 typedef std::vector<CwshArg>  CwshArgArray;
-typedef std::string           CwshLine;
+
+//---
+
+struct CwshLine {
+  std::string line;
+  int         num { -1 };
+
+  CwshLine(const std::string &line, int num=-1) :
+   line(line), num(num) {
+  }
+};
+
 typedef std::vector<CwshLine> CwshLineArray;
+
+//---
 
 typedef std::string                         CwshAliasName;
 typedef std::string                         CwshAliasValue;

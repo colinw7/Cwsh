@@ -14,22 +14,22 @@ expand(CwshWordArray &words)
 
   const CwshSubWordArray &sub_words = word_.getSubWords();
 
-  string str1;
+  std::string str1;
 
   int num_sub_words = sub_words.size();
 
   for (int i = 0; i < num_sub_words; i++) {
     CwshSubWordType type = sub_words[i].getType();
 
-    string sub_str;
+    std::string sub_str;
 
-    if      (type == CWSH_SUB_WORD_TYPE_BACK_QUOTED) {
+    if      (type == CwshSubWordType::BACK_QUOTED) {
       sub_str = expandCommand(sub_words[i].getWord());
 
       flag = true;
     }
-    else if (type == CWSH_SUB_WORD_TYPE_DOUBLE_QUOTED) {
-      string sub_str1;
+    else if (type == CwshSubWordType::DOUBLE_QUOTED) {
+      std::string sub_str1;
 
       if (expandQuotedWord(CwshWord(sub_words[i].getWord()), sub_str1)) {
         sub_str = '"' + sub_str1 + '"';
@@ -60,7 +60,7 @@ expand(CwshWordArray &words)
 
 bool
 CwshInPlaceCommand::
-expandQuotedWord(const CwshWord &word, string &word1)
+expandQuotedWord(const CwshWord &word, std::string &word1)
 {
   bool flag = false;
 
@@ -71,9 +71,9 @@ expandQuotedWord(const CwshWord &word, string &word1)
   for (int i = 0; i < num_sub_words; i++) {
     CwshSubWordType type = sub_words[i].getType();
 
-    string sub_word;
+    std::string sub_word;
 
-    if (type == CWSH_SUB_WORD_TYPE_BACK_QUOTED) {
+    if (type == CwshSubWordType::BACK_QUOTED) {
       sub_word = expandCommand(sub_words[i].getWord());
 
       flag = true;
@@ -87,9 +87,9 @@ expandQuotedWord(const CwshWord &word, string &word1)
   return flag;
 }
 
-string
+std::string
 CwshInPlaceCommand::
-expandCommand(const string &str)
+expandCommand(const std::string &str)
 {
   // Convert Line to Command Groups
 
@@ -99,7 +99,7 @@ expandCommand(const string &str)
 
   //------
 
-  string output;
+  std::string output;
 
   int num_groups = groups.size();
 
@@ -115,7 +115,8 @@ expandCommand(const string &str)
 
   //------
 
-  std::for_each(groups.begin(), groups.end(), CDeletePointer());
+  for (auto &group : groups)
+    delete group;
 
   //------
 
@@ -126,17 +127,17 @@ expandCommand(const string &str)
   return output;
 }
 
-string
+std::string
 CwshInPlaceCommand::
 executeCommands(const CwshCmdArray &cmds)
 {
-  string output;
+  std::string output;
 
   //------
 
   // Execute Commands
 
-  vector<CwshCommandData *> pcommands;
+  std::vector<CwshCommandData *> pcommands;
 
   int num_cmds = cmds.size();
 
@@ -151,7 +152,7 @@ executeCommands(const CwshCmdArray &cmds)
 
     // Get Command
 
-    vector<string> words;
+    std::vector<std::string> words;
 
     int num_words = cmds[i]->getNumWords();
 
@@ -164,7 +165,7 @@ executeCommands(const CwshCmdArray &cmds)
 
     CwshCommand *command1 = command->getCommand();
 
-    if (command1 == NULL)
+    if (! command1)
       continue;
 
     // Set Redirection
@@ -177,7 +178,7 @@ executeCommands(const CwshCmdArray &cmds)
 
       CwshVariable *variable = cwsh_->lookupVariable("noclobber");
 
-      if (cmds[i]->getStdOutClobber() || variable == NULL)
+      if (cmds[i]->getStdOutClobber() || ! variable)
         command1->setFileDestOverwrite(true, 1);
       else
         command1->setFileDestOverwrite(false, 1);
@@ -192,7 +193,7 @@ executeCommands(const CwshCmdArray &cmds)
 
         CwshVariable *variable = cwsh_->lookupVariable("noclobber");
 
-        if (cmds[i]->getStdErrClobber() || variable == NULL)
+        if (cmds[i]->getStdErrClobber() || ! variable)
           command1->setFileDestOverwrite(true, 1);
         else
           command1->setFileDestOverwrite(false, 1);
@@ -205,7 +206,7 @@ executeCommands(const CwshCmdArray &cmds)
 
       CwshVariable *variable = cwsh_->lookupVariable("noclobber");
 
-      if (cmds[i]->getStdErrClobber() || variable == NULL)
+      if (cmds[i]->getStdErrClobber() || ! variable)
         command1->setFileDestOverwrite(true, 2);
       else
         command1->setFileDestOverwrite(false, 2);
@@ -216,8 +217,8 @@ executeCommands(const CwshCmdArray &cmds)
 
     // Run Command
 
-    if (separator != CWSH_COMMAND_SEPARATOR_PIPE &&
-        separator != CWSH_COMMAND_SEPARATOR_PIPE_ERR) {
+    if (separator != CwshCmdSeparatorType::PIPE &&
+        separator != CwshCmdSeparatorType::PIPE_ERR) {
       int num_pcommands = pcommands.size();
 
       if (num_pcommands > 0) {
@@ -233,7 +234,7 @@ executeCommands(const CwshCmdArray &cmds)
         if (i == num_cmds - 1) {
           command1->addStringDest(output);
 
-          separator = CWSH_COMMAND_SEPARATOR_NORMAL;
+          separator = CwshCmdSeparatorType::NORMAL;
         }
 
         command1->start();
@@ -241,19 +242,20 @@ executeCommands(const CwshCmdArray &cmds)
         for (int k = 0; k < num_pcommands; k++)
           pcommands[k]->getCommand()->wait();
 
-        if (separator != CWSH_COMMAND_SEPARATOR_BACKGROUND) {
+        if (separator != CwshCmdSeparatorType::BACKGROUND) {
           command1->wait();
 
           int status = command1->getReturnCode();
 
           cwsh_->defineVariable("status", status);
 
-          std::for_each(pcommands.begin(), pcommands.end(), CDeletePointer());
+          for (auto &pcommand : pcommands)
+            delete pcommand;
 
-          if (separator == CWSH_COMMAND_SEPARATOR_AND && status != 0)
+          if (separator == CwshCmdSeparatorType::AND && status != 0)
             break;
 
-          if (separator == CWSH_COMMAND_SEPARATOR_OR && status == 0)
+          if (separator == CwshCmdSeparatorType::OR && status == 0)
             break;
         }
         else {
@@ -272,22 +274,22 @@ executeCommands(const CwshCmdArray &cmds)
         if (i == num_cmds - 1) {
           command1->addStringDest(output);
 
-          separator = CWSH_COMMAND_SEPARATOR_NORMAL;
+          separator = CwshCmdSeparatorType::NORMAL;
         }
 
         command1->start();
 
-        if (separator != CWSH_COMMAND_SEPARATOR_BACKGROUND) {
+        if (separator != CwshCmdSeparatorType::BACKGROUND) {
           command1->wait();
 
           int status = command1->getReturnCode();
 
           cwsh_->defineVariable("status", status);
 
-          if (separator == CWSH_COMMAND_SEPARATOR_AND && status != 0)
+          if (separator == CwshCmdSeparatorType::AND && status != 0)
             break;
 
-          if (separator == CWSH_COMMAND_SEPARATOR_OR && status == 0)
+          if (separator == CwshCmdSeparatorType::OR && status == 0)
             break;
         }
         else {
@@ -303,7 +305,7 @@ executeCommands(const CwshCmdArray &cmds)
       if (pcommands.size() > 0)
         command1->addPipeSrc();
 
-      if (separator == CWSH_COMMAND_SEPARATOR_PIPE)
+      if (separator == CwshCmdSeparatorType::PIPE)
         command1->addPipeDest(1);
       else {
         command1->addPipeDest(1);

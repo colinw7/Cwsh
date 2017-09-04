@@ -40,7 +40,7 @@ kill(pid_t pid, int signal)
 {
   CwshProcess *process = lookupProcess(pid);
 
-  if (process == NULL) {
+  if (! process) {
     int error = COSProcess::killProcess(pid, signal);
 
     if (error < 0)
@@ -51,11 +51,11 @@ kill(pid_t pid, int signal)
 
   CCommand::State state = process->getCommandState();
 
-  if (state == CCommand::RUNNING_STATE || state == CCommand::STOPPED_STATE) {
+  if (state == CCommand::State::RUNNING || state == CCommand::State::STOPPED) {
     int error_code = COSProcess::killProcess(pid, signal);
 
     if (error_code != 0)
-      CWSH_THROW(string("kill: ") + strerror(errno) + ".");
+      CWSH_THROW(std::string("kill: ") + strerror(errno) + ".");
   }
 }
 
@@ -65,13 +65,10 @@ getNumActive()
 {
   int count  = 0;
 
-  ProcessList::iterator p1 = processes_.begin();
-  ProcessList::iterator p2 = processes_.end  ();
+  for (auto &process : processes_) {
+    CCommand::State state = process->getCommandState();
 
-  for ( ; p1 != p2; ++p1) {
-    CCommand::State state = (*p1)->getCommandState();
-
-    if (state != CCommand::RUNNING_STATE && state != CCommand::STOPPED_STATE)
+    if (state != CCommand::State::RUNNING && state != CCommand::State::STOPPED)
       continue;
 
     count++;
@@ -84,21 +81,18 @@ void
 CwshProcessMgr::
 displayActive(bool list_pids)
 {
-  vector<CwshProcess *> active_processes;
+  std::vector<CwshProcess *> active_processes;
 
-  ProcessList::iterator p1 = processes_.begin();
-  ProcessList::iterator p2 = processes_.end  ();
+  for (auto &process : processes_) {
+    CCommand::State state = process->getCommandState();
 
-  for ( ; p1 != p2; ++p1) {
-    CCommand::State state = (*p1)->getCommandState();
-
-    if (state == CCommand::EXITED_STATE)
+    if (state == CCommand::State::EXITED)
       continue;
 
-    if (! (*p1)->getCommand()->getCommand()->getDoFork())
+    if (! process->getCommand()->getCommand()->getDoFork())
       continue;
 
-    active_processes.push_back(*p1);
+    active_processes.push_back(process);
   }
 
   uint num_active_processes = active_processes.size();
@@ -118,7 +112,7 @@ displayActive(bool list_pids)
     if (list_pids)
       std::cout << " " << process->getCommandPid() << " ";
 
-    if      (process->getCommandState() == CCommand::STOPPED_STATE)
+    if      (process->getCommandState() == CCommand::State::STOPPED)
       std::cout << "Suspended             ";
     else
       std::cout << "Running               ";
@@ -138,18 +132,17 @@ displayExited()
   int count = 0;
 
   ProcessList::iterator p1 = processes_.begin();
-  ProcessList::iterator p2 = processes_.end  ();
 
-  while (p1 != p2) {
+  while (p1 != processes_.end()) {
     CwshProcess *process = *p1;
 
     CCommand::State state = process->getCommandState();
 
-    if (state == CCommand::RUNNING_STATE || state == CCommand::STOPPED_STATE ||
-        state == CCommand::EXITED_STATE)
+    if (state == CCommand::State::RUNNING || state == CCommand::State::STOPPED ||
+        state == CCommand::State::EXITED)
       count++;
 
-    if (state == CCommand::EXITED_STATE) {
+    if (state == CCommand::State::EXITED) {
       std::cout << "[" << process->getNum() << "]    Done                  ";
 
       process->print();
@@ -169,14 +162,10 @@ void
 CwshProcessMgr::
 deleteExited()
 {
-  ProcessList::iterator p1, p2;
-
-  for (p1 = processes_.begin(), p2 = processes_.end (); p1 != p2; ++p1) {
-    CwshProcess *process = *p1;
-
+  for (auto &process : processes_) {
     CCommand::State state = process->getCommandState();
 
-    if (state == CCommand::EXITED_STATE)
+    if (state == CCommand::State::EXITED)
       remove(process);
   }
 }
@@ -185,11 +174,7 @@ void
 CwshProcessMgr::
 waitActive()
 {
-  ProcessList::iterator p1, p2;
-
-  for (p1 = processes_.begin(), p2 = processes_.end (); p1 != p2; ++p1) {
-    CwshProcess *process = *p1;
-
+  for (auto &process : processes_) {
     CwshCommand *command = process->getCommand()->getCommand();
 
     if (! command->getDoFork())
@@ -203,7 +188,7 @@ waitActive()
 
 pid_t
 CwshProcessMgr::
-stringToPid(const string &str)
+stringToPid(const std::string &str)
 {
   CwshProcess *process = getActiveProcess(str);
 
@@ -212,12 +197,12 @@ stringToPid(const string &str)
 
 CwshProcess *
 CwshProcessMgr::
-getActiveProcess(const string &str)
+getActiveProcess(const std::string &str)
 {
   if (str.size() < 1 || str[0] != '%')
     CWSH_THROW("No current job.");
 
-  CwshProcess *process = NULL;
+  CwshProcess *process = nullptr;
 
   if      (str.size() == 1 ||
            (str.size() == 2 && (str[1] == '%' || str[1] == '+')))
@@ -230,11 +215,11 @@ getActiveProcess(const string &str)
     process = getActiveProcess(process_num);
   }
   else if (str[1] == '?')
-    process = matchActiveProcess(str.substr(1), CWSH_PROCESS_MATCH_ANY);
+    process = matchActiveProcess(str.substr(1), CwshProcessMatchType::ANY);
   else
-    process = matchActiveProcess(str.substr(1), CWSH_PROCESS_MATCH_START);
+    process = matchActiveProcess(str.substr(1), CwshProcessMatchType::START);
 
-  if (process == NULL)
+  if (! process)
     CWSH_THROW("No such job.");
 
   return process;
@@ -244,45 +229,39 @@ CwshProcess *
 CwshProcessMgr::
 getCurrentActiveProcess()
 {
-  CwshProcess *process = NULL;
+  CwshProcess *currentProcess = nullptr;
 
-  ProcessList::iterator p1 = processes_.begin();
-  ProcessList::iterator p2 = processes_.end  ();
-
-  for ( ; p1 != p2; ++p1) {
-    CwshCommand *command = (*p1)->getCommand()->getCommand();
+  for (auto &process : processes_) {
+    CwshCommand *command = process->getCommand()->getCommand();
 
     CCommand::State state = command->getState();
 
-    if (state != CCommand::RUNNING_STATE && state != CCommand::STOPPED_STATE)
+    if (state != CCommand::State::RUNNING && state != CCommand::State::STOPPED)
       continue;
 
-    process = *p1;
+    currentProcess = process;
   }
 
-  return process;
+  return currentProcess;
 }
 
 CwshProcess *
 CwshProcessMgr::
 getPreviousActiveProcess()
 {
-  CwshProcess *process1 = NULL;
-  CwshProcess *process2 = NULL;
+  CwshProcess *process1 = nullptr;
+  CwshProcess *process2 = nullptr;
 
-  ProcessList::iterator p1 = processes_.begin();
-  ProcessList::iterator p2 = processes_.end  ();
-
-  for ( ; p1 != p2; ++p1) {
-    CwshCommand *command = (*p1)->getCommand()->getCommand();
+  for (auto &process : processes_) {
+    CwshCommand *command = process->getCommand()->getCommand();
 
     CCommand::State state = command->getState();
 
-    if (state != CCommand::RUNNING_STATE && state != CCommand::STOPPED_STATE)
+    if (state != CCommand::State::RUNNING && state != CCommand::State::STOPPED)
       continue;
 
     process1 = process2;
-    process2 = *p1;
+    process2 = process;
   }
 
   return process1;
@@ -292,74 +271,63 @@ CwshProcess *
 CwshProcessMgr::
 getActiveProcess(int num)
 {
-  vector<CwshProcess *> active_processes;
+  std::vector<CwshProcess *> active_processes;
 
-  ProcessList::iterator p1 = processes_.begin();
-  ProcessList::iterator p2 = processes_.end  ();
-
-  for ( ; p1 != p2; ++p1) {
-    CwshCommand *command = (*p1)->getCommand()->getCommand();
+  for (auto &process : processes_) {
+    CwshCommand *command = process->getCommand()->getCommand();
 
     CCommand::State state = command->getState();
 
-    if (state != CCommand::RUNNING_STATE && state != CCommand::STOPPED_STATE)
+    if (state != CCommand::State::RUNNING && state != CCommand::State::STOPPED)
       continue;
 
-    active_processes.push_back(*p1);
+    active_processes.push_back(process);
   }
 
   int num_active_processes = active_processes.size();
 
   if (num > num_active_processes)
-    return NULL;
+    return nullptr;
 
   return active_processes[num_active_processes - num];
 }
 
 CwshProcess *
 CwshProcessMgr::
-matchActiveProcess(const string &str, CwshProcessMatchType match_type)
+matchActiveProcess(const std::string &str, CwshProcessMatchType match_type)
 {
-  CwshProcess *process = NULL;
+  CwshProcess *activeProcess = nullptr;
 
-  ProcessList::iterator p1 = processes_.begin();
-  ProcessList::iterator p2 = processes_.end  ();
-
-  for ( ; p1 != p2; ++p1) {
-    CwshCommand *command = (*p1)->getCommand()->getCommand();
+  for (auto &process : processes_) {
+    CwshCommand *command = process->getCommand()->getCommand();
 
     CCommand::State state = command->getState();
 
-    if (state != CCommand::RUNNING_STATE && state != CCommand::STOPPED_STATE)
+    if (state != CCommand::State::RUNNING && state != CCommand::State::STOPPED)
       continue;
 
-    string command_str = command->getCommandString();
+    std::string command_str = command->getCommandString();
 
-    string::size_type pos = command_str.find(str);
+    std::string::size_type pos = command_str.find(str);
 
-    if ((match_type == CWSH_PROCESS_MATCH_START && pos == 0) ||
-        (match_type == CWSH_PROCESS_MATCH_ANY   && pos != string::npos))
-      process = *p1;
+    if ((match_type == CwshProcessMatchType::START && pos == 0) ||
+        (match_type == CwshProcessMatchType::ANY   && pos != std::string::npos))
+      activeProcess = process;
   }
 
-  return process;
+  return activeProcess;
 }
 
 CwshProcess *
 CwshProcessMgr::
 lookupProcess(pid_t pid)
 {
-  ProcessList::iterator p1 = processes_.begin();
-  ProcessList::iterator p2 = processes_.end  ();
-
-  for ( ; p1 != p2; ++p1) {
-    CwshProcess *process = *p1;
-
+  for (auto &process : processes_) {
     if (process->isPid(pid))
       return process;
   }
 
-  return NULL;
+  return nullptr;
 }
 
 //--------
@@ -389,7 +357,7 @@ getCommandState() const
   return command_->getCommand()->getState();
 }
 
-string
+std::string
 CwshProcess::
 getCommandString() const
 {

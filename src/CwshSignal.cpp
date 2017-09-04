@@ -53,8 +53,8 @@ CwshSignal::signals_[] = {
 #endif
 };
 
-CwshInterruptType CwshSignal::interrupt_type_ = CWSH_INTERRUPT_TYPE_NORMAL;
-string            CwshSignal::interrupt_label_;
+CwshInterruptType CwshSignal::interrupt_type_ = CwshInterruptType::NORMAL;
+std::string       CwshSignal::interrupt_label_;
 
 void
 CwshSignal::
@@ -101,12 +101,12 @@ void
 CwshSignal::
 interruptHandler(int)
 {
-  if      (interrupt_type_ == CWSH_INTERRUPT_TYPE_NORMAL) {
+  if      (interrupt_type_ == CwshInterruptType::NORMAL) {
     CwshMgrInst.setInterrupt(true);
 
     CwshMgrInst.readInterrupt();
   }
-  else if (interrupt_type_ == CWSH_INTERRUPT_TYPE_GOTO)
+  else if (interrupt_type_ == CwshInterruptType::GOTO)
     CwshMgrInst.gotoBlockLabel(interrupt_label_);
 }
 
@@ -158,14 +158,14 @@ genericHandler(int)
 }
 
 CwshSignal::
-CwshSignal(const string &name, int num) :
+CwshSignal(const std::string &name, int num) :
  name_(name), num_(num)
 {
 }
 
 CwshSignal *
 CwshSignal::
-lookup(const string &name)
+lookup(const std::string &name)
 {
   int num_signals = getNumSignals();
 
@@ -173,7 +173,7 @@ lookup(const string &name)
     if (name == signals_[i].name_)
       return &signals_[i];
 
-  return NULL;
+  return nullptr;
 }
 
 CwshSignal *
@@ -186,7 +186,7 @@ lookup(int num)
     if (num == signals_[i].num_)
       return &signals_[i];
 
-  return NULL;
+  return nullptr;
 }
 
 int

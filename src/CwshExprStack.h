@@ -1,9 +1,9 @@
 #ifndef CWSH_EXPR_STACK_H
 #define CWSH_EXPR_STACK_H
 
-enum CwshExprStackNodeType {
-  CWSH_STACK_NODE_TYPE_OPERATOR,
-  CWSH_STACK_NODE_TYPE_VALUE,
+enum class CwshExprStackNodeType {
+  OPERATOR,
+  VALUE,
 };
 
 class CwshExprStackStack {
@@ -53,6 +53,8 @@ class CwshExprStackStack {
   CwshExprStackArray      stacks_;
 };
 
+//---
+
 class CwshExprStack {
   CINST_COUNT_MEMBER(CwshExprStack);
 
@@ -93,13 +95,15 @@ class CwshExprStack {
   void push(CwshExprStackNode *stack_node);
 
  private:
-  bool                             restart_;
-  bool                             in_bracket_;
-  CwshExprOperator                *last_opr_;
+  bool                             restart_    { false };
+  bool                             in_bracket_ { false };
+  CwshExprOperator                *last_opr_   { nullptr };
   CwshExprStackNodeList            stack_nodes_;
   CwshExprStackNodeList::iterator  pstack_node_;
-  bool                             debug_;
+  bool                             debug_      { false };
 };
+
+//---
 
 class CwshExprStackNode {
   CINST_COUNT_MEMBER(CwshExprStackNode);

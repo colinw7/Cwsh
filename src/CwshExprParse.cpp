@@ -1,8 +1,8 @@
 #include <CwshI.h>
 
-string CwshExprParse::unary_operator_chars_  = "+-!~";
-string CwshExprParse::binary_operator_chars_ = "+-*/%<>=!&|^#";
-string CwshExprParse::file_operator_chars_   = "deforwxz";
+std::string CwshExprParse::unary_operator_chars_  = "+-!~";
+std::string CwshExprParse::binary_operator_chars_ = "+-*/%<>=!&|^#";
+std::string CwshExprParse::file_operator_chars_   = "deforwxz";
 
 CwshExprParse::
 CwshExprParse(Cwsh *cwsh) :
@@ -10,13 +10,13 @@ CwshExprParse(Cwsh *cwsh) :
 {
 }
 
-string
+std::string
 CwshExprParse::
-parse(const string &str, uint *pos)
+parse(const std::string &str, uint *pos)
 {
   CStrUtil::skipSpace(str, pos);
 
-  string expr;
+  std::string expr;
 
   uint len = str.size();
 
@@ -43,9 +43,9 @@ parse(const string &str, uint *pos)
   return expr;
 }
 
-string
+std::string
 CwshExprParse::
-read(const string &str, uint *pos)
+read(const std::string &str, uint *pos)
 {
   CAutoPtr<CwshExprStackStack> stack;
 
@@ -55,14 +55,14 @@ read(const string &str, uint *pos)
 
   subStack(stack, str, pos);
 
-  string expr = str.substr(j, *pos - j);
+  std::string expr = str.substr(j, *pos - j);
 
   return expr;
 }
 
 void
 CwshExprParse::
-stack(CwshExprStackStack *stack, const string &expr)
+stack(CwshExprStackStack *stack, const std::string &expr)
 {
   uint pos = 0;
 
@@ -71,7 +71,7 @@ stack(CwshExprStackStack *stack, const string &expr)
 
 void
 CwshExprParse::
-subStack(CwshExprStackStack *stack, const string &str, uint *pos)
+subStack(CwshExprStackStack *stack, const std::string &str, uint *pos)
 {
   bool is_expr = false;
 
@@ -83,14 +83,14 @@ subStack(CwshExprStackStack *stack, const string &str, uint *pos)
     /* <expression> := <file_operator> <filename> */
 
     if      (! is_expr && str[*pos] == '-' &&
-             file_operator_chars_.find(str[*pos + 1]) != string::npos) {
+             file_operator_chars_.find(str[*pos + 1]) != std::string::npos) {
       CwshExprOperator *opr = readFileOperator(str, pos);
 
       stack->push(opr);
 
       CStrUtil::skipSpace(str, pos);
 
-      string value = readString(str, pos);
+      std::string value = readString(str, pos);
 
       CwshWord word = value;
 
@@ -113,7 +113,7 @@ subStack(CwshExprStackStack *stack, const string &str, uint *pos)
     /* <expression> := <unary_operator> <expression> */
 
     else if (! is_expr &&
-             unary_operator_chars_.find(str[*pos]) != string::npos) {
+             unary_operator_chars_.find(str[*pos]) != std::string::npos) {
       CwshExprOperator *opr = readUnaryOperator(str, pos);
 
       stack->push(opr);
@@ -126,7 +126,7 @@ subStack(CwshExprStackStack *stack, const string &str, uint *pos)
     /* <expression> := <expression> <binary_operator> <expression> */
 
     else if (is_expr &&
-             binary_operator_chars_.find(str[*pos]) != string::npos) {
+             binary_operator_chars_.find(str[*pos]) != std::string::npos) {
       CwshExprOperator *opr = readBinaryOperator(str, pos);
 
       stack->push(opr);
@@ -140,7 +140,7 @@ subStack(CwshExprStackStack *stack, const string &str, uint *pos)
 
     else if (! is_expr && str[*pos] == '(') {
       CwshExprOperator *opr =
-        CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_OPEN_BRACKET);
+        CwshExprOperator::lookup(CwshExprOperatorType::OPEN_BRACKET);
 
       stack->push(opr);
 
@@ -153,7 +153,7 @@ subStack(CwshExprStackStack *stack, const string &str, uint *pos)
       if (! skipToCloseBracket(str, pos) || str[*pos] != ')')
         CWSH_THROW("Missing Close Round Bracket.");
 
-      string str1 = str.substr(pos1, *pos - pos1);
+      std::string str1 = str.substr(pos1, *pos - pos1);
 
       (*pos)++;
 
@@ -166,7 +166,7 @@ subStack(CwshExprStackStack *stack, const string &str, uint *pos)
       if (pos1 < str1.size())
         CWSH_THROW("Invalid Expression '" + str1 + "'");
 
-      opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_CLOSE_BRACKET);
+      opr = CwshExprOperator::lookup(CwshExprOperatorType::CLOSE_BRACKET);
 
       stack->push(opr);
 
@@ -176,7 +176,7 @@ subStack(CwshExprStackStack *stack, const string &str, uint *pos)
     /* <expression> := <integer> */
 
     else if (! is_expr && isdigit(str[*pos])) {
-      string value = readInteger(str, pos);
+      std::string value = readInteger(str, pos);
 
       stack->push(value);
 
@@ -186,7 +186,7 @@ subStack(CwshExprStackStack *stack, const string &str, uint *pos)
     /* <expression> := <string_value> */
 
     else if (! is_expr) {
-      string value = readString(str, pos);
+      std::string value = readString(str, pos);
 
       stack->push(value);
 
@@ -204,9 +204,9 @@ subStack(CwshExprStackStack *stack, const string &str, uint *pos)
 
 CwshExprOperator *
 CwshExprParse::
-readFileOperator(const string &str, uint *pos)
+readFileOperator(const std::string &str, uint *pos)
 {
-  CwshExprOperator *opr = NULL;
+  CwshExprOperator *opr = nullptr;
 
   if (str[*pos] != '-')
     CWSH_THROW("Invalid Operator.");
@@ -215,28 +215,28 @@ readFileOperator(const string &str, uint *pos)
 
   switch (str[*pos]) {
     case 'd':
-      opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_IS_DIRECTORY);
+      opr = CwshExprOperator::lookup(CwshExprOperatorType::IS_DIRECTORY);
       break;
     case 'e':
-      opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_IS_FILE);
+      opr = CwshExprOperator::lookup(CwshExprOperatorType::IS_FILE);
       break;
     case 'f':
-      opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_IS_PLAIN);
+      opr = CwshExprOperator::lookup(CwshExprOperatorType::IS_PLAIN);
       break;
     case 'o':
-      opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_IS_OWNER);
+      opr = CwshExprOperator::lookup(CwshExprOperatorType::IS_OWNER);
       break;
     case 'r':
-      opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_IS_READABLE);
+      opr = CwshExprOperator::lookup(CwshExprOperatorType::IS_READABLE);
       break;
     case 'w':
-      opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_IS_WRITABLE);
+      opr = CwshExprOperator::lookup(CwshExprOperatorType::IS_WRITABLE);
       break;
     case 'x':
-      opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_IS_EXECUTABLE);
+      opr = CwshExprOperator::lookup(CwshExprOperatorType::IS_EXECUTABLE);
       break;
     case 'z':
-      opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_IS_ZERO);
+      opr = CwshExprOperator::lookup(CwshExprOperatorType::IS_ZERO);
       break;
     default:
       CWSH_THROW("Invalid Operator.");
@@ -250,31 +250,31 @@ readFileOperator(const string &str, uint *pos)
 
 CwshExprOperator *
 CwshExprParse::
-readUnaryOperator(const string &str, uint *pos)
+readUnaryOperator(const std::string &str, uint *pos)
 {
-  CwshExprOperator *opr = NULL;
+  CwshExprOperator *opr = nullptr;
 
   switch (str[*pos]) {
     case '+':
-      opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_UNARY_PLUS);
+      opr = CwshExprOperator::lookup(CwshExprOperatorType::UNARY_PLUS);
 
       (*pos)++;
 
       break;
     case '-':
-      opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_UNARY_MINUS);
+      opr = CwshExprOperator::lookup(CwshExprOperatorType::UNARY_MINUS);
 
       (*pos)++;
 
       break;
     case '!':
-      opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_LOGICAL_NOT);
+      opr = CwshExprOperator::lookup(CwshExprOperatorType::LOGICAL_NOT);
 
       (*pos)++;
 
       break;
     case '~':
-      opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_BIT_NOT);
+      opr = CwshExprOperator::lookup(CwshExprOperatorType::BIT_NOT);
 
       (*pos)++;
 
@@ -286,54 +286,54 @@ readUnaryOperator(const string &str, uint *pos)
 
 CwshExprOperator *
 CwshExprParse::
-readBinaryOperator(const string &str, uint *pos)
+readBinaryOperator(const std::string &str, uint *pos)
 {
-  CwshExprOperator *opr = NULL;
+  CwshExprOperator *opr = nullptr;
 
   switch (str[*pos]) {
     case '+':
-      opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_PLUS);
+      opr = CwshExprOperator::lookup(CwshExprOperatorType::PLUS);
 
       (*pos)++;
 
       break;
     case '-':
-      opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_MINUS);
+      opr = CwshExprOperator::lookup(CwshExprOperatorType::MINUS);
 
       (*pos)++;
 
       break;
     case '*':
-      opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_TIMES);
+      opr = CwshExprOperator::lookup(CwshExprOperatorType::TIMES);
 
       (*pos)++;
 
       break;
     case '/':
-      opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_DIVIDE);
+      opr = CwshExprOperator::lookup(CwshExprOperatorType::DIVIDE);
 
       (*pos)++;
 
       break;
     case '^':
-      opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_BIT_XOR);
+      opr = CwshExprOperator::lookup(CwshExprOperatorType::BIT_XOR);
 
       (*pos)++;
 
       break;
     case '<':
       if      (str[*pos + 1] == '=') {
-        opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_LESS_OR_EQUAL);
+        opr = CwshExprOperator::lookup(CwshExprOperatorType::LESS_OR_EQUAL);
 
         (*pos)++;
       }
       else if (str[*pos + 1] == '<') {
-        opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_BIT_LSHIFT);
+        opr = CwshExprOperator::lookup(CwshExprOperatorType::BIT_LSHIFT);
 
         (*pos)++;
       }
       else
-        opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_LESS);
+        opr = CwshExprOperator::lookup(CwshExprOperatorType::LESS);
 
       (*pos)++;
 
@@ -341,30 +341,30 @@ readBinaryOperator(const string &str, uint *pos)
     case '>':
       if      (str[*pos + 1] == '=') {
         opr = CwshExprOperator::lookup
-               (CWSH_EXPR_OPERATOR_TYPE_GREATER_OR_EQUAL);
+               (CwshExprOperatorType::GREATER_OR_EQUAL);
 
         (*pos)++;
       }
       else if (str[*pos + 1] == '>') {
-        opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_BIT_RSHIFT);
+        opr = CwshExprOperator::lookup(CwshExprOperatorType::BIT_RSHIFT);
 
         (*pos)++;
       }
       else
-        opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_GREATER);
+        opr = CwshExprOperator::lookup(CwshExprOperatorType::GREATER);
 
       (*pos)++;
 
       break;
     case '=':
       if      (str[*pos + 1] == '=') {
-        opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_EQUAL);
+        opr = CwshExprOperator::lookup(CwshExprOperatorType::EQUAL);
 
         (*pos)++;
         (*pos)++;
       }
       else if (str[*pos + 1] == '~') {
-        opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_MATCH_EQUAL);
+        opr = CwshExprOperator::lookup(CwshExprOperatorType::MATCH_EQUAL);
 
         (*pos)++;
         (*pos)++;
@@ -373,13 +373,13 @@ readBinaryOperator(const string &str, uint *pos)
       break;
     case '!':
       if      (str[*pos + 1] == '=') {
-        opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_NOT_EQUAL);
+        opr = CwshExprOperator::lookup(CwshExprOperatorType::NOT_EQUAL);
 
         (*pos)++;
         (*pos)++;
       }
       else if (str[*pos + 1] == '~') {
-        opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_NO_MATCH_EQUAL);
+        opr = CwshExprOperator::lookup(CwshExprOperatorType::NO_MATCH_EQUAL);
 
         (*pos)++;
         (*pos)++;
@@ -390,30 +390,30 @@ readBinaryOperator(const string &str, uint *pos)
       break;
     case '&':
       if      (str[*pos + 1] == '&') {
-        opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_LOGICAL_AND);
+        opr = CwshExprOperator::lookup(CwshExprOperatorType::LOGICAL_AND);
 
         (*pos)++;
       }
       else
-        opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_BIT_AND);
+        opr = CwshExprOperator::lookup(CwshExprOperatorType::BIT_AND);
 
       (*pos)++;
 
       break;
     case '|':
       if      (str[*pos + 1] == '|') {
-        opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_LOGICAL_OR);
+        opr = CwshExprOperator::lookup(CwshExprOperatorType::LOGICAL_OR);
 
         (*pos)++;
       }
       else
-        opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_BIT_OR);
+        opr = CwshExprOperator::lookup(CwshExprOperatorType::BIT_OR);
 
       (*pos)++;
 
       break;
     case '%':
-      opr = CwshExprOperator::lookup(CWSH_EXPR_OPERATOR_TYPE_MODULUS);
+      opr = CwshExprOperator::lookup(CwshExprOperatorType::MODULUS);
 
       (*pos)++;
 
@@ -425,25 +425,25 @@ readBinaryOperator(const string &str, uint *pos)
   return opr;
 }
 
-string
+std::string
 CwshExprParse::
-readInteger(const string &str, uint *pos)
+readInteger(const std::string &str, uint *pos)
 {
   uint pos1 = *pos;
 
   if (! CStrUtil::skipInteger(str, pos))
     CWSH_THROW("Invalid Integer Value.");
 
-  string value = str.substr(pos1, *pos - pos1);
+  std::string value = str.substr(pos1, *pos - pos1);
 
   return value;
 }
 
-string
+std::string
 CwshExprParse::
-readString(const string &str, uint *pos)
+readString(const std::string &str, uint *pos)
 {
-  string value = "";
+  std::string value = "";
 
   uint len = str.size();
 
@@ -475,7 +475,7 @@ readString(const string &str, uint *pos)
 
 bool
 CwshExprParse::
-skipToCloseBracket(const string &str, uint *pos)
+skipToCloseBracket(const std::string &str, uint *pos)
 {
   uint brackets = 0;
 

@@ -28,7 +28,7 @@ wordsToCommandLine(const CwshWordArray &words, int *i, CwshCmdLine *cmd)
   int num_words = words.size();
 
   while (*i < num_words) {
-    const string &word = words[*i].getWord();
+    const std::string &word = words[*i].getWord();
 
     if      (word == "(")
       ++brackets;
@@ -76,10 +76,10 @@ wordsToCommands(const CwshWordArray &words, CwshCmdArray &cmds)
 
     CwshCmdSeparatorType separator_type = last_cmd->getSeparator().getType();
 
-    if (separator_type == CWSH_COMMAND_SEPARATOR_PIPE     ||
-        separator_type == CWSH_COMMAND_SEPARATOR_PIPE_ERR ||
-        separator_type == CWSH_COMMAND_SEPARATOR_AND      ||
-        separator_type == CWSH_COMMAND_SEPARATOR_OR)
+    if (separator_type == CwshCmdSeparatorType::PIPE     ||
+        separator_type == CwshCmdSeparatorType::PIPE_ERR ||
+        separator_type == CwshCmdSeparatorType::AND      ||
+        separator_type == CwshCmdSeparatorType::OR)
       CWSH_THROW("Invalid null command.");
   }
 
@@ -95,7 +95,7 @@ wordsToCommand(const CwshWordArray &words, int *i, CwshCmd *cmd)
   int num_words = words.size();
 
   while (*i < num_words) {
-    const string &word = words[*i].getWord();
+    const std::string &word = words[*i].getWord();
 
     if      (word == "(")
       ++brackets;
@@ -108,7 +108,7 @@ wordsToCommand(const CwshWordArray &words, int *i, CwshCmd *cmd)
     else if (brackets == 0) {
       CwshCmdSeparator separator = parseCommandSeparator(word);
 
-      if (separator.getType() != CWSH_COMMAND_SEPARATOR_NONE) {
+      if (separator.getType() != CwshCmdSeparatorType::NONE) {
         cmd->setSeparator(separator);
 
         ++(*i);
@@ -131,22 +131,22 @@ wordsToCommand(const CwshWordArray &words, int *i, CwshCmd *cmd)
 
 CwshCmdSeparator
 CwshCmdSplit::
-parseCommandSeparator(const string &word)
+parseCommandSeparator(const std::string &word)
 {
   if      (word == "&")
-    return CwshCmdSeparator(CWSH_COMMAND_SEPARATOR_BACKGROUND);
+    return CwshCmdSeparator(CwshCmdSeparatorType::BACKGROUND);
   else if (word == "|")
-    return CwshCmdSeparator(CWSH_COMMAND_SEPARATOR_PIPE);
+    return CwshCmdSeparator(CwshCmdSeparatorType::PIPE);
   else if (word == "|&")
-    return CwshCmdSeparator(CWSH_COMMAND_SEPARATOR_PIPE_ERR);
+    return CwshCmdSeparator(CwshCmdSeparatorType::PIPE_ERR);
   else if (word == "&&")
-    return CwshCmdSeparator(CWSH_COMMAND_SEPARATOR_AND);
+    return CwshCmdSeparator(CwshCmdSeparatorType::AND);
   else if (word == "||")
-    return CwshCmdSeparator(CWSH_COMMAND_SEPARATOR_OR);
+    return CwshCmdSeparator(CwshCmdSeparatorType::OR);
   else if (word == ";")
-    return CwshCmdSeparator(CWSH_COMMAND_SEPARATOR_NORMAL);
+    return CwshCmdSeparator(CwshCmdSeparatorType::NORMAL);
   else
-    return CwshCmdSeparator(CWSH_COMMAND_SEPARATOR_NONE);
+    return CwshCmdSeparator(CwshCmdSeparatorType::NONE);
 }
 
 CwshCmdLine::
@@ -175,14 +175,16 @@ CwshCmdGroup(const CwshCmdArray &commands) :
 CwshCmdGroup::
 ~CwshCmdGroup()
 {
-  std::for_each(commands_.begin(), commands_.end(), CDeletePointer());
+  for (auto &command : commands_)
+    delete command;
 }
 
 void
 CwshCmd::
 displayCmdArray(const CwshCmdArray &cmds)
 {
-  std::for_each(cmds.begin(), cmds.end(), &CwshCmd::displayCmd);
+  for (auto &cmd : cmds)
+    CwshCmd::displayCmd(cmd);
 }
 
 void
@@ -194,7 +196,7 @@ displayCmd(const CwshCmd *cmd)
 
 CwshCmd::
 CwshCmd() :
- separator_(CWSH_COMMAND_SEPARATOR_NONE)
+ separator_(CwshCmdSeparatorType::NONE)
 {
 }
 
@@ -237,24 +239,24 @@ void
 CwshCmd::
 display() const
 {
-  string command_str = CwshWord::toString(words_);
+  std::string command_str = CwshWord::toString(words_);
 
   std::cerr << command_str << " " << separator_.getName() << std::endl;
 }
 
-string
+std::string
 CwshCmdSeparator::
 getName() const
 {
-  if      (type_ == CWSH_COMMAND_SEPARATOR_BACKGROUND)
+  if      (type_ == CwshCmdSeparatorType::BACKGROUND)
     return "&";
-  else if (type_ == CWSH_COMMAND_SEPARATOR_PIPE)
+  else if (type_ == CwshCmdSeparatorType::PIPE)
     return "|";
-  else if (type_ == CWSH_COMMAND_SEPARATOR_PIPE_ERR)
+  else if (type_ == CwshCmdSeparatorType::PIPE_ERR)
     return "|&";
-  else if (type_ == CWSH_COMMAND_SEPARATOR_AND)
+  else if (type_ == CwshCmdSeparatorType::AND)
     return "&&";
-  else if (type_ == CWSH_COMMAND_SEPARATOR_OR)
+  else if (type_ == CwshCmdSeparatorType::OR)
     return "||";
   else
     return "";

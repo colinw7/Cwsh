@@ -4,7 +4,7 @@ bool
 CwshBraces::
 expand(const CwshWord &word, CwshWordArray &words)
 {
-  string str = word.getWord();
+  std::string str = word.getWord();
 
   uint len = str.size();
 
@@ -74,8 +74,8 @@ expand(const CwshWord &word, CwshWordArray &words)
 
   CwshWordArray words1;
 
-  string str1 = str.substr(0, i1 - 1);
-  string str2 = str.substr(i2 + 2);
+  std::string str1 = str.substr(0, i1 - 1);
+  std::string str2 = str.substr(i2 + 2);
 
   int j = i1;
   int k = j;
@@ -88,7 +88,7 @@ expand(const CwshWord &word, CwshWordArray &words)
         j++;
     }
     else if (str[j] == ',') {
-      string word1 = str1 + str.substr(k, j - k) + str2;
+      std::string word1 = str1 + str.substr(k, j - k) + str2;
 
       words1.push_back(CwshWord(word1));
 
@@ -100,7 +100,7 @@ expand(const CwshWord &word, CwshWordArray &words)
       j++;
   }
 
-  string word1 = str1 + str.substr(k, j - k) + str2;
+  std::string word1 = str1 + str.substr(k, j - k) + str2;
 
   words1.push_back(CwshWord(word1));
 

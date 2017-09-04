@@ -1,15 +1,15 @@
 #include <CwshI.h>
 #include <COSLimit.h>
 
-enum CwshResourceType {
-  CWSH_RESOURCE_TYPE_NONE,
-  CWSH_RESOURCE_TYPE_TIME,
-  CWSH_RESOURCE_TYPE_SIZE,
-  CWSH_RESOURCE_TYPE_DATA,
+enum class CwshResourceType {
+  NONE,
+  TIME,
+  SIZE,
+  DATA,
 };
 
 struct CwshResourceLimit {
-  string                   name;
+  std::string              name;
   COSLimit::LimitSetProc   setProc;
   COSLimit::LimitGetProc   getProc;
   COSLimit::LimitUnsetProc unsetProc;
@@ -21,19 +21,19 @@ struct CwshResourceLimit {
 
 CwshResourceLimit
 CwshResource::limits_[] = {
-  { "cputime"     , limitProcs(CPU         ), CWSH_RESOURCE_TYPE_TIME, },
-  { "filesize"    , limitProcs(FileSize    ), CWSH_RESOURCE_TYPE_SIZE, },
-  { "datasize"    , limitProcs(DataSize    ), CWSH_RESOURCE_TYPE_SIZE, },
-  { "stacksize"   , limitProcs(StackSize   ), CWSH_RESOURCE_TYPE_SIZE, },
-  { "coredumpsize", limitProcs(CoreDumpSize), CWSH_RESOURCE_TYPE_SIZE, },
-  { "memoryuse"   , limitProcs(MemoryUse   ), CWSH_RESOURCE_TYPE_SIZE, },
-  { "vmemoryuse"  , limitProcs(VMemoryUse  ), CWSH_RESOURCE_TYPE_SIZE, },
-  { "descriptors" , limitProcs(Descriptors ), CWSH_RESOURCE_TYPE_DATA, },
-  { "memorylocked", limitProcs(MemoryLocked), CWSH_RESOURCE_TYPE_SIZE, },
-  { "maxproc"     , limitProcs(MaxProc     ), CWSH_RESOURCE_TYPE_DATA, },
-  { "openfiles"   , limitProcs(OpenFiles   ), CWSH_RESOURCE_TYPE_DATA, },
-  { "addressspace", limitProcs(AddressSpace), CWSH_RESOURCE_TYPE_SIZE, },
-  { ""            , NULL, NULL, NULL        , CWSH_RESOURCE_TYPE_NONE, },
+  { "cputime"     , limitProcs(CPU         ) , CwshResourceType::TIME, },
+  { "filesize"    , limitProcs(FileSize    ) , CwshResourceType::SIZE, },
+  { "datasize"    , limitProcs(DataSize    ) , CwshResourceType::SIZE, },
+  { "stacksize"   , limitProcs(StackSize   ) , CwshResourceType::SIZE, },
+  { "coredumpsize", limitProcs(CoreDumpSize) , CwshResourceType::SIZE, },
+  { "memoryuse"   , limitProcs(MemoryUse   ) , CwshResourceType::SIZE, },
+  { "vmemoryuse"  , limitProcs(VMemoryUse  ) , CwshResourceType::SIZE, },
+  { "descriptors" , limitProcs(Descriptors ) , CwshResourceType::DATA, },
+  { "memorylocked", limitProcs(MemoryLocked) , CwshResourceType::SIZE, },
+  { "maxproc"     , limitProcs(MaxProc     ) , CwshResourceType::DATA, },
+  { "openfiles"   , limitProcs(OpenFiles   ) , CwshResourceType::DATA, },
+  { "addressspace", limitProcs(AddressSpace) , CwshResourceType::SIZE, },
+  { ""            , nullptr, nullptr, nullptr, CwshResourceType::NONE, },
 };
 
 CwshResource::
@@ -43,11 +43,11 @@ CwshResource()
 
 void
 CwshResource::
-limit(const string &name, const string &value, bool hard)
+limit(const std::string &name, const std::string &value, bool hard)
 {
   CwshResourceLimit *rlimit = getLimit(name);
 
-  if (rlimit == NULL)
+  if (! rlimit)
     CWSH_THROW("No such limit.");
 
   int ivalue = convertValue(rlimit, value);
@@ -60,17 +60,17 @@ void
 CwshResource::
 unlimitAll()
 {
-  for (int i = 0; limits_[i].type != CWSH_RESOURCE_TYPE_NONE; i++)
+  for (int i = 0; limits_[i].type != CwshResourceType::NONE; i++)
     (*limits_[i].unsetProc)();
 }
 
 void
 CwshResource::
-unlimit(const string &name)
+unlimit(const std::string &name)
 {
   CwshResourceLimit *rlimit = getLimit(name);
 
-  if (rlimit == NULL)
+  if (! rlimit)
     CWSH_THROW("No such limit.");
 
   (*rlimit->unsetProc)();
@@ -80,17 +80,17 @@ void
 CwshResource::
 printAll(bool hard)
 {
-  for (int i = 0; limits_[i].type != CWSH_RESOURCE_TYPE_NONE; i++)
+  for (int i = 0; limits_[i].type != CwshResourceType::NONE; i++)
     print(&limits_[i], hard);
 }
 
 void
 CwshResource::
-print(const string &name, bool hard)
+print(const std::string &name, bool hard)
 {
   CwshResourceLimit *rlimit = getLimit(name);
 
-  if (rlimit == NULL)
+  if (! rlimit)
     CWSH_THROW("No such limit.");
 
   print(rlimit, hard);
@@ -117,7 +117,7 @@ print(CwshResourceLimit *rlimit, bool hard)
     return;
   }
 
-  if      (rlimit->type == CWSH_RESOURCE_TYPE_TIME) {
+  if      (rlimit->type == CwshResourceType::TIME) {
     int value1 = value/3600;
     int value2 = (value - value1*3600)/60;
     int value3 = value - value1*3600 - value2*60;
@@ -127,7 +127,7 @@ print(CwshResourceLimit *rlimit, bool hard)
     else
       std::cout << value2 << value3 << std::endl;
   }
-  else if (rlimit->type == CWSH_RESOURCE_TYPE_SIZE)
+  else if (rlimit->type == CwshResourceType::SIZE)
     std::cout << (int) (value/1024) << " kbytes" << std::endl;
   else
     std::cout << value << std::endl;
@@ -135,7 +135,7 @@ print(CwshResourceLimit *rlimit, bool hard)
 
 int
 CwshResource::
-convertValue(CwshResourceLimit *rlimit, const string &value)
+convertValue(CwshResourceLimit *rlimit, const std::string &value)
 {
   uint len = value.size();
 
@@ -149,7 +149,7 @@ convertValue(CwshResourceLimit *rlimit, const string &value)
   if (! CStrUtil::readInteger(value, &i, &ivalue))
     CWSH_THROW("Invalid Value.");
 
-  if      (rlimit->type == CWSH_RESOURCE_TYPE_TIME) {
+  if      (rlimit->type == CwshResourceType::TIME) {
     if      (i < len && value[i] == 'h') {
       i++;
 
@@ -173,7 +173,7 @@ convertValue(CwshResourceLimit *rlimit, const string &value)
       ivalue += ivalue1;
     }
   }
-  else if (rlimit->type == CWSH_RESOURCE_TYPE_SIZE) {
+  else if (rlimit->type == CwshResourceType::SIZE) {
     if      (i < len && value[i] == 'k') {
       i++;
 
@@ -196,9 +196,9 @@ convertValue(CwshResourceLimit *rlimit, const string &value)
 
 CwshResourceLimit *
 CwshResource::
-getLimit(const string &name)
+getLimit(const std::string &name)
 {
-  for (int i = 0; limits_[i].type != CWSH_RESOURCE_TYPE_NONE; i++)
+  for (int i = 0; limits_[i].type != CwshResourceType::NONE; i++)
     if (limits_[i].name == name)
       return &limits_[i];
 

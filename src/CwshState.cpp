@@ -10,7 +10,7 @@ void
 CwshStateMgr::
 save(Cwsh *cwsh)
 {
-  if (current_state_ != NULL) {
+  if (current_state_) {
     state_stack_.push(current_state_);
 
     current_state_.release();
@@ -23,7 +23,7 @@ void
 CwshStateMgr::
 restore()
 {
-  if (current_state_ == NULL)
+  if (! current_state_)
     CWSH_THROW("Not in saved state.");
 
   if (! state_stack_.empty()) {
@@ -34,7 +34,7 @@ restore()
     current_state_ = state;
   }
   else
-    current_state_ = NULL;
+    current_state_ = nullptr;
 }
 
 //-----

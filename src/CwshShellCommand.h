@@ -37,9 +37,11 @@ class CwshShellCommand {
   bool isBlockCommand() const { return (data_->end_name_ != NULL); }
 
  private:
-  CPtr<Cwsh>             cwsh_;
+  CPtr<Cwsh>            cwsh_;
   CwshShellCommandData *data_;
 };
+
+//---
 
 class CwshShellCommandMgr {
  public:

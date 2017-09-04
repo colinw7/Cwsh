@@ -17,6 +17,8 @@ class CwshStateMgr {
   StateArray          state_stack_;
 };
 
+//---
+
 class CwshState {
  public:
   CwshState(Cwsh *cwsh);

@@ -9,14 +9,15 @@ CwshExprStackStack()
 CwshExprStackStack::
 ~CwshExprStackStack()
 {
-  std::for_each(stacks_.begin(), stacks_.end(), CDeletePointer());
+  for (auto &stack : stacks_)
+    delete stack;
 }
 
 void
 CwshExprStackStack::
-push(const string &value)
+push(const std::string &value)
 {
-  if (current_ != NULL)
+  if (current_)
     current_->push(value);
 }
 
@@ -24,15 +25,15 @@ void
 CwshExprStackStack::
 push(CwshExprOperator *opr)
 {
-  if (current_ != NULL)
+  if (current_)
     current_->push(opr);
 }
 
 bool
 CwshExprStackStack::
-pop(string &value)
+pop(std::string &value)
 {
-  if (current_ != NULL) {
+  if (current_) {
     bool flag = current_->pop(value);
 
     return flag;
@@ -45,7 +46,7 @@ bool
 CwshExprStackStack::
 pop(CwshExprOperator **opr)
 {
-  if (current_ != NULL) {
+  if (current_) {
     bool flag = current_->pop(opr);
 
     return flag;
@@ -58,7 +59,7 @@ void
 CwshExprStackStack::
 remove(CwshExprStackNode *stack_node)
 {
-  if (current_ != NULL)
+  if (current_)
     current_->remove(stack_node);
 }
 
@@ -67,12 +68,13 @@ CwshExprStackStack::
 restart(bool flag)
 {
   if (flag) {
-    std::for_each(stacks_.begin(), stacks_.end(), CDeletePointer());
+    for (auto &stack : stacks_)
+      delete stack;
 
     stacks_.clear();
   }
 
-  if (current_ != NULL)
+  if (current_)
     current_->restart(flag);
 }
 
@@ -80,7 +82,7 @@ CwshExprStack *
 CwshExprStackStack::
 start()
 {
-  if (current_ != NULL) {
+  if (current_) {
     stacks_.push_back(current_);
 
     current_.release();
@@ -132,7 +134,7 @@ void
 CwshExprStackStack::
 toStart()
 {
-  if (current_ != NULL)
+  if (current_)
     current_->toStart();
 }
 
@@ -140,7 +142,7 @@ void
 CwshExprStackStack::
 toEnd()
 {
-  if (current_ != NULL)
+  if (current_)
     current_->toEnd();
 }
 
@@ -148,7 +150,7 @@ void
 CwshExprStackStack::
 setInBrackets(bool flag)
 {
-  if (current_ != NULL)
+  if (current_)
     current_->setInBrackets(flag);
 }
 
@@ -156,7 +158,7 @@ bool
 CwshExprStackStack::
 getInBrackets()
 {
-  if (current_ != NULL)
+  if (current_)
     return current_->getInBrackets();
   else
     return false;
@@ -166,7 +168,7 @@ void
 CwshExprStackStack::
 signalRestart()
 {
-  if (current_ != NULL)
+  if (current_)
     current_->signalRestart();
 }
 
@@ -174,7 +176,7 @@ bool
 CwshExprStackStack::
 checkRestart()
 {
-  if (current_ != NULL)
+  if (current_)
     return current_->checkRestart();
   else
     return false;
@@ -184,17 +186,17 @@ CwshExprStackNode *
 CwshExprStackStack::
 getCurrentNode()
 {
-  if (current_ != NULL)
+  if (current_)
     return current_->getCurrent();
-  else
-    return NULL;
+
+  return nullptr;
 }
 
 void
 CwshExprStackStack::
 toNext()
 {
-  if (current_ != NULL)
+  if (current_)
     current_->toNext();
 }
 
@@ -202,7 +204,7 @@ void
 CwshExprStackStack::
 toPrev()
 {
-  if (current_ != NULL)
+  if (current_)
     current_->toPrev();
 }
 
@@ -210,7 +212,7 @@ void
 CwshExprStackStack::
 setLastOperator()
 {
-  if (current_ != NULL)
+  if (current_)
     current_->setLastOperator();
 }
 
@@ -218,10 +220,10 @@ CwshExprOperator *
 CwshExprStackStack::
 getLastOperator()
 {
-  if (current_ != NULL)
+  if (current_)
     return current_->getLastOperator();
-  else
-    return NULL;
+
+  return nullptr;
 }
 
 //----------
@@ -229,22 +231,19 @@ getLastOperator()
 CwshExprStack::
 CwshExprStack()
 {
-  restart_     = false;
-  in_bracket_  = false;
-  last_opr_    = NULL;
   pstack_node_ = stack_nodes_.begin();
-  debug_       = false;
 }
 
 CwshExprStack::
 ~CwshExprStack()
 {
-  std::for_each(stack_nodes_.begin(), stack_nodes_.end(), CDeletePointer());
+  for (auto &stack_node : stack_nodes_)
+    delete stack_node;
 }
 
 void
 CwshExprStack::
-push(const string &value)
+push(const std::string &value)
 {
   if (debug_) {
     dumpStack();
@@ -294,13 +293,13 @@ push(CwshExprStackNode *stack_node)
 
 bool
 CwshExprStack::
-pop(string &value)
+pop(std::string &value)
 {
   if (debug_)
     dumpStack();
 
   if (pstack_node_ != stack_nodes_.end() &&
-      (*pstack_node_)->getType() == CWSH_STACK_NODE_TYPE_VALUE) {
+      (*pstack_node_)->getType() == CwshExprStackNodeType::VALUE) {
     value = (*pstack_node_)->getValue();
 
     remove(*pstack_node_);
@@ -324,7 +323,7 @@ pop(CwshExprOperator **opr)
     dumpStack();
 
   if (pstack_node_ != stack_nodes_.end() &&
-      (*pstack_node_)->getType() == CWSH_STACK_NODE_TYPE_OPERATOR) {
+      (*pstack_node_)->getType() == CwshExprStackNodeType::OPERATOR) {
     *opr = (*pstack_node_)->getOperator();
 
     remove(*pstack_node_);
@@ -357,9 +356,10 @@ restart(bool flag)
 {
   restart_    = flag;
   in_bracket_ = false;
-  last_opr_   = NULL;
+  last_opr_   = nullptr;
 
-  std::for_each(stack_nodes_.begin(), stack_nodes_.end(), CDeletePointer());
+  for (auto &stack_node : stack_nodes_)
+    delete stack_node;
 
   stack_nodes_.clear();
 
@@ -372,7 +372,7 @@ toStart()
 {
   restart_    = false;
   in_bracket_ = false;
-  last_opr_   = NULL;
+  last_opr_   = nullptr;
 
   pstack_node_ = stack_nodes_.begin();
 }
@@ -425,8 +425,8 @@ getCurrent()
 {
   if (pstack_node_ != stack_nodes_.end())
     return *pstack_node_;
-  else
-    return NULL;
+
+  return nullptr;
 }
 
 void
@@ -449,18 +449,18 @@ void
 CwshExprStack::
 setLastOperator()
 {
-  last_opr_ = NULL;
+  last_opr_ = nullptr;
 
-  CwshExprStackNodeList::iterator pstack_node1 = stack_nodes_.begin();
-  CwshExprStackNodeList::iterator pstack_node2 = stack_nodes_.end  ();
+  auto pstack_node1 = stack_nodes_.begin();
+  auto pstack_node2 = stack_nodes_.end  ();
 
   for ( ; pstack_node1 != pstack_node2; ++pstack_node1) {
     if (pstack_node1 == pstack_node_)
       break;
 
-    if ((*pstack_node1)->getType() == CWSH_STACK_NODE_TYPE_OPERATOR) {
+    if ((*pstack_node1)->getType() == CwshExprStackNodeType::OPERATOR) {
       if ((*pstack_node1)->getOperator()->isPunctuation())
-        last_opr_ = NULL;
+        last_opr_ = nullptr;
       else
         last_opr_ = (*pstack_node1)->getOperator();
     }
@@ -482,8 +482,8 @@ dumpStack()
 {
   std::cerr << "Stack: ";
 
-  CwshExprStackNodeList::iterator pstack_node1 = stack_nodes_.begin();
-  CwshExprStackNodeList::iterator pstack_node2 = stack_nodes_.end  ();
+  auto pstack_node1 = stack_nodes_.begin();
+  auto pstack_node2 = stack_nodes_.end  ();
 
   for ( ; pstack_node1 != pstack_node2; ++pstack_node1) {
     (*pstack_node1)->dump();
@@ -504,14 +504,14 @@ dumpStack()
 }
 
 CwshExprStackNode::
-CwshExprStackNode(const string &value) :
- type_(CWSH_STACK_NODE_TYPE_VALUE), opr_(NULL), value_(value)
+CwshExprStackNode(const std::string &value) :
+ type_(CwshExprStackNodeType::VALUE), opr_(nullptr), value_(value)
 {
 }
 
 CwshExprStackNode::
 CwshExprStackNode(CwshExprOperator *opr) :
- type_(CWSH_STACK_NODE_TYPE_OPERATOR), opr_(opr), value_("")
+ type_(CwshExprStackNodeType::OPERATOR), opr_(opr), value_("")
 {
 }
 
@@ -524,7 +524,7 @@ void
 CwshExprStackNode::
 print() const
 {
-  if (type_ == CWSH_STACK_NODE_TYPE_VALUE)
+  if (type_ == CwshExprStackNodeType::VALUE)
     std::cout << "Value " << value_ << std::endl;
   else
     std::cout << "Operator " << opr_->getToken() << std::endl;
@@ -534,7 +534,7 @@ void
 CwshExprStackNode::
 dump() const
 {
-  if (type_ == CWSH_STACK_NODE_TYPE_VALUE)
+  if (type_ == CwshExprStackNodeType::VALUE)
     std::cerr << "<value>" << value_;
   else
     std::cerr << "<opr>" << opr_->getToken();

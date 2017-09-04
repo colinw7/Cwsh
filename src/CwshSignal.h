@@ -1,19 +1,10 @@
-enum CwshInterruptType {
-  CWSH_INTERRUPT_TYPE_NORMAL,
-  CWSH_INTERRUPT_TYPE_IGNORE,
-  CWSH_INTERRUPT_TYPE_GOTO,
+enum class CwshInterruptType {
+  NORMAL,
+  IGNORE,
+  GOTO
 };
 
 class CwshSignal {
- private:
-  std::string name_;
-  int         num_;
-
-  static CwshSignal signals_[];
-
-  static CwshInterruptType interrupt_type_;
-  static std::string       interrupt_label_;
-
  public:
   static void addHandlers();
 
@@ -26,15 +17,15 @@ class CwshSignal {
   static CwshSignal *getSignal(int i);
 
   static void interruptReset() {
-    interrupt_type_ = CWSH_INTERRUPT_TYPE_NORMAL;
+    interrupt_type_ = CwshInterruptType::NORMAL;
   }
 
   static void interruptIgnore() {
-    interrupt_type_ = CWSH_INTERRUPT_TYPE_IGNORE;
+    interrupt_type_ = CwshInterruptType::IGNORE;
   }
 
   static void interruptGoto(const std::string &label) {
-    interrupt_type_  = CWSH_INTERRUPT_TYPE_GOTO;
+    interrupt_type_  = CwshInterruptType::GOTO;
     interrupt_label_ = label;
   }
 
@@ -48,4 +39,13 @@ class CwshSignal {
   static void genericHandler(int sig);
 
   CwshSignal(const std::string &name, int num);
+
+ private:
+  std::string name_;
+  int         num_;
+
+  static CwshSignal signals_[];
+
+  static CwshInterruptType interrupt_type_;
+  static std::string       interrupt_label_;
 };

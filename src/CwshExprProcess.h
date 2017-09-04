@@ -1,9 +1,9 @@
 #ifndef CWSH_EXPR_PROCESS_H
 #define CWSH_EXPR_PROCESS_H
 
-enum CwshExprProcessValueType {
-  CWSH_EXPR_PROCESS_VALUE_TYPE_STRING,
-  CWSH_EXPR_PROCESS_VALUE_TYPE_INTEGER,
+enum class CwshExprProcessValueType {
+  STRING,
+  INTEGER,
 };
 
 class CwshExprProcess {

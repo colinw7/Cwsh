@@ -8,11 +8,11 @@ class CwshVariableMgr {
 
  ~CwshVariableMgr();
 
-  void define(const CwshVariableName &name);
-  void define(const CwshVariableName &name, const CwshVariableValue &value);
-  void define(const CwshVariableName &name, int value);
-  void define(const CwshVariableName &name, const CwshVariableValueArray &values);
-  void define(const CwshVariableName &name, const char **values, int num_values);
+  CwshVariable *define(const CwshVariableName &name);
+  CwshVariable *define(const CwshVariableName &name, const CwshVariableValue &value);
+  CwshVariable *define(const CwshVariableName &name, int value);
+  CwshVariable *define(const CwshVariableName &name, const CwshVariableValueArray &values);
+  CwshVariable *define(const CwshVariableName &name, const char **values, int num_values);
 
   void undefine(const CwshVariableName &name);
 
@@ -26,7 +26,7 @@ class CwshVariableMgr {
     return variables_.end();
   }
 
-  void listVariables() const;
+  void listVariables(bool all) const;
 
   void save();
   void restore();
@@ -48,9 +48,11 @@ class CwshVariableMgr {
   static std::string upper_env_names_[];
 };
 
-enum CwshVariableType {
-  CWSH_VARIABLE_TYPE_WORD,
-  CWSH_VARIABLE_TYPE_WORDLIST,
+//---
+
+enum class CwshVariableType {
+  WORD,
+  WORDLIST
 };
 
 class CwshVariable {
@@ -73,9 +75,17 @@ class CwshVariable {
   const CwshVariableValue &getValue(int pos) const;
   void                     setValue(int pos, const CwshVariableValue &value);
 
+  bool isEnvVar() const { return envVar_; }
+
+  const std::string &getFilename() const { return filename_; }
+  void setFilename(const std::string &v) { filename_ = v; }
+
+  int getLineNum() const { return lineNum_; }
+  void setLineNum(int i) { lineNum_ = i; }
+
   void shift();
 
-  void print() const;
+  void print(bool all) const;
 
  private:
   void init();
@@ -87,8 +97,12 @@ class CwshVariable {
   CwshVariableName       name_;
   CwshVariableType       type_;
   CwshVariableValueArray values_;
-  bool                   env_var_;
+  bool                   envVar_ { false };
+  std::string            filename_;
+  int                    lineNum_ { -1 };
 };
+
+//---
 
 class CwshVariablesCmp {
  public:

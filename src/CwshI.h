@@ -4,7 +4,6 @@
 #include <CEnv.h>
 #include <CStrUtil.h>
 #include <CInstCount.h>
-#include <CFuncs.h>
 #include <CThrow.h>
 #include <COSFile.h>
 #include <COSUser.h>
@@ -51,11 +50,3 @@
 #include <CwshSet.h>
 
 #include <CwshErr.h>
-
-#include <algorithm>
-
-using std::string;
-using std::vector;
-using std::list;
-using std::set;
-using std::ostream;

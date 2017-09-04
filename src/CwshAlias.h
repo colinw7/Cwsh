@@ -13,7 +13,7 @@ class CwshAliasMgr {
   CwshAliasMgr(Cwsh *cwsh);
  ~CwshAliasMgr();
 
-  void define(const CwshAliasName &name, const CwshAliasValue &value);
+  CwshAlias *define(const CwshAliasName &name, const CwshAliasValue &value);
 
   void undefine(const CwshAliasName &name);
 
@@ -21,7 +21,7 @@ class CwshAliasMgr {
 
   bool substitute(CwshCmd *cmd, CwshCmdArray &cmds) const;
 
-  void display() const;
+  void display(bool all) const;
 
   std::string getAliasesMsg() const;
 
@@ -31,6 +31,8 @@ class CwshAliasMgr {
   CPtr<CwshAlias> last_alias_;
 };
 
+//---
+
 class CwshAlias {
   CINST_COUNT_MEMBER(CwshAlias);
 
@@ -38,17 +40,29 @@ class CwshAlias {
   CwshAlias(const CwshAliasName &name, const CwshAliasValue &value);
  ~CwshAlias();
 
-  const CwshAliasName  &getName () const { return name_ ; }
-  const CwshAliasValue &getValue() const { return value_; }
+  const CwshAliasName &getName () const { return name_; }
 
+  const CwshAliasValue &getValue() const { return value_; }
   void setValue(const CwshAliasValue &value) { value_ = value; }
 
-  void display() const;
+  const std::string &getFilename() const { return filename_; }
+  void setFilename(const std::string &v) { filename_ = v; }
+
+  int getLineNum() const { return lineNum_; }
+  void setLineNum(int i) { lineNum_ = i; }
+
+  void display(bool all) const;
+
+  void displayValue(bool all) const;
 
  private:
   CwshAliasName  name_;
   CwshAliasValue value_;
+  std::string    filename_;
+  int            lineNum_ { -1 };
 };
+
+//---
 
 class CwshAliasEq {
  public:

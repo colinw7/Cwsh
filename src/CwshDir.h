@@ -3,6 +3,6 @@
 
 namespace CwshDir {
   std::string lookup(Cwsh *cwsh, const std::string &dirname, bool required=true);
-};
+}
 
 #endif

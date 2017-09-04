@@ -14,12 +14,12 @@ push()
 
 void
 CwshDirStack::
-push(const string &dirname)
+push(const std::string &dirname)
 {
   dir_stack_.push_back(dirname);
 }
 
-string
+std::string
 CwshDirStack::
 pop()
 {
@@ -28,14 +28,14 @@ pop()
     return COSFile::getCurrentDir();
   }
 
-  string dirname = dir_stack_[dir_stack_.size() - 1];
+  std::string dirname = dir_stack_[dir_stack_.size() - 1];
 
   dir_stack_.pop_back();
 
   return dirname;
 }
 
-string
+std::string
 CwshDirStack::
 pop(int pos)
 {
@@ -46,7 +46,7 @@ pop(int pos)
     return COSFile::getCurrentDir();
   }
 
-  string dirname = dir_stack_[num_dirs - pos - 1];
+  std::string dirname = dir_stack_[num_dirs - pos - 1];
 
   for (int i = num_dirs - pos - 1; i < num_dirs - 2; ++i)
     dir_stack_[i] = dir_stack_[i + 1];
@@ -65,9 +65,9 @@ size()
 
 void
 CwshDirStack::
-print(ostream &os)
+print(std::ostream &os)
 {
-  string dirname = COSFile::getCurrentDir();
+  std::string dirname = COSFile::getCurrentDir();
 
   os << CwshString::replaceHome(dirname);
 

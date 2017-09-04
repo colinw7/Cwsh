@@ -1,11 +1,11 @@
 #include <CwshI.h>
 #include <CGlob.h>
 
-string
+std::string
 CwshString::
-replaceHome(const string &str)
+replaceHome(const std::string &str)
 {
-  string str1;
+  std::string str1;
 
   if (! CFile::addTilde(str, str1))
     return str;
@@ -15,7 +15,7 @@ replaceHome(const string &str)
 
 void
 CwshString::
-skipWordsToChar(const string &str, uint *i, int c)
+skipWordsToChar(const std::string &str, uint *i, int c)
 {
   uint len = str.size();
 
@@ -58,12 +58,12 @@ skipWordsToChar(const string &str, uint *i, int c)
   }
 
   if (*i >= len)
-    CWSH_THROW(string("Unmatched ") + ((char) c) + ".");
+    CWSH_THROW(std::string("Unmatched ") + ((char) c) + ".");
 }
 
 void
 CwshString::
-skipWord(const string &str, uint *i)
+skipWord(const std::string &str, uint *i)
 {
   uint len = str.size();
 
@@ -104,11 +104,11 @@ skipWord(const string &str, uint *i)
 
 void
 CwshString::
-addWords(const string &str, vector<string> &words)
+addWords(const std::string &str, std::vector<std::string> &words)
 {
   uint len = str.size();
 
-  string word;
+  std::string word;
 
   uint i = 0;
 
@@ -268,21 +268,21 @@ addWords(const string &str, vector<string> &words)
     words.push_back(word);
 }
 
-string
+std::string
 CwshString::
 readLineFromFile(CFile *file)
 {
   if (file->eof())
     CWSH_THROW("EOF");
 
-  string line;
+  std::string line;
 
   file->readLine(line);
 
   while (line.size() > 0 && line[line.size() - 1] == '\\') {
     line = line.substr(0, line.size() - 1);
 
-    string line1;
+    std::string line1;
 
     file->readLine(line1);
 
@@ -294,14 +294,14 @@ readLineFromFile(CFile *file)
 
 bool
 CwshString::
-matchUsers(const string &pattern, vector<string> &names)
+matchUsers(const std::string &pattern, std::vector<std::string> &names)
 {
   CGlob glob(pattern);
 
   glob.setAllowOr(false);
   glob.setAllowNonPrintable(true);
 
-  vector<string> pw_names;
+  std::vector<std::string> pw_names;
 
   COSUser::getUsers(pw_names);
 

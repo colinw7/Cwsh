@@ -4,21 +4,16 @@ CwshBlockMgr::
 CwshBlockMgr(Cwsh *cwsh) :
  cwsh_(cwsh)
 {
-  break_flag_    = false;
-  breaksw_flag_  = false;
-  continue_flag_ = false;
-  return_flag_   = false;
-
-  goto_depth_ = 0;
 }
 
 CwshBlockMgr::
 ~CwshBlockMgr()
 {
-  std::for_each(block_stack_.begin(), block_stack_.end(), CDeletePointer());
+  for (auto &block : block_stack_)
+    delete block;
 }
 
-void
+CwshBlock *
 CwshBlockMgr::
 startBlock(CwshBlockType type, const CwshLineArray &lines)
 {
@@ -31,6 +26,8 @@ startBlock(CwshBlockType type, const CwshLineArray &lines)
   current_block_ = new CwshBlock(type, lines);
 
   goto_depth_ = 0;
+
+  return current_block_;
 }
 
 void
@@ -46,17 +43,17 @@ endBlock()
     block_stack_.pop_back();
   }
   else
-    current_block_ = NULL;
+    current_block_ = nullptr;
 
   if (goto_depth_ > 1)
-    goto_depth_--;
+    --goto_depth_;
 }
 
 bool
 CwshBlockMgr::
 inBlock() const
 {
-  return (current_block_ != NULL);
+  return current_block_;
 }
 
 bool
@@ -84,7 +81,7 @@ CwshBlockMgr::
 find(CwshBlockType type)
 {
   if (! inBlock())
-    return NULL;
+    return nullptr;
 
   if (current_block_->getType() == type)
     return current_block_;
@@ -98,12 +95,12 @@ find(CwshBlockType type)
       return block;
   }
 
-  return NULL;
+  return nullptr;
 }
 
 void
 CwshBlockMgr::
-gotoLabel(const string &label)
+gotoLabel(const std::string &label)
 {
   if (! inBlock())
     CWSH_THROW("goto: Not in block.");
@@ -143,7 +140,6 @@ CwshBlock::
 CwshBlock(CwshBlockType type, const CwshLineArray &lines) :
  type_(type), lines_(lines)
 {
-  line_num_ = 0;
 }
 
 CwshBlock::
@@ -170,16 +166,16 @@ eof() const
 
 int
 CwshBlock::
-getLabelLineNum(const string &label) const
+getLabelLineNum(const std::string &label) const
 {
   int num_lines = lines_.size();
 
   for (int i = 0; i < num_lines; i++) {
     const CwshLine &line = lines_[i];
 
-    vector<string> words;
+    std::vector<std::string> words;
 
-    CwshString::addWords(line, words);
+    CwshString::addWords(line.line, words);
 
     if (words.size() == 2 && words[1] == ":" && words[0] == label)
       return i;

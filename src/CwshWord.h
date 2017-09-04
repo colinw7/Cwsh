@@ -1,16 +1,11 @@
-enum CwshSubWordType {
-  CWSH_SUB_WORD_TYPE_DOUBLE_QUOTED,
-  CWSH_SUB_WORD_TYPE_SINGLE_QUOTED,
-  CWSH_SUB_WORD_TYPE_BACK_QUOTED,
-  CWSH_SUB_WORD_TYPE_NORMAL,
+enum class CwshSubWordType {
+  DOUBLE_QUOTED,
+  SINGLE_QUOTED,
+  BACK_QUOTED,
+  NORMAL
 };
 
 class CwshWord {
- private:
-  std::string      word_;
-  bool             sub_words_created_;
-  CwshSubWordArray sub_words_;
-
  public:
   static void toWords(const std::string &line, CwshWordArray &words);
 
@@ -33,17 +28,20 @@ class CwshWord {
 
  private:
   void createSubWords();
+
+ private:
+  std::string      word_;
+  bool             sub_words_created_ { false };
+  CwshSubWordArray sub_words_;
 };
 
-class CwshSubWord {
- private:
-  std::string     word_;
-  CwshSubWordType type_;
+//---
 
+class CwshSubWord {
  public:
   static std::string toString(const CwshSubWordArray &words);
 
-  CwshSubWord(const std::string &word, CwshSubWordType type=CWSH_SUB_WORD_TYPE_NORMAL);
+  CwshSubWord(const std::string &word, CwshSubWordType type=CwshSubWordType::NORMAL);
 
   const std::string &getWord() const { return word_; }
   CwshSubWordType    getType() const { return type_; }
@@ -51,4 +49,8 @@ class CwshSubWord {
   std::string getString() const;
 
   friend std::ostream &operator<<(std::ostream &os, const CwshSubWord &word);
+
+ private:
+  std::string     word_;
+  CwshSubWordType type_;
 };
