@@ -45,12 +45,12 @@ CwshCommandData(Cwsh *cwsh, const std::vector<std::string> &words) :
 
           if (exec) {
             std::string              cmd;
-            std::vector<std::string> args;
+            std::vector<std::string> eargs;
 
-            if (exec->substitute(name, cmd, args)) {
+            if (exec->substitute(name, cmd, eargs)) {
               std::string path = CwshUnixCommand::search(cwsh, cmd);
 
-              command_ = new CwshCommand(cwsh_, cmd, path, args);
+              command_ = new CwshCommand(cwsh_, cmd, path, eargs);
 
               found = true;
             }
@@ -65,32 +65,32 @@ CwshCommandData(Cwsh *cwsh, const std::vector<std::string> &words) :
   else if (type_ == CwshCommandType::SHELL) {
     std::string name = CStrUtil::removeEscapeChars(words[0]);
 
-    std::vector<std::string> args;
+    std::vector<std::string> cargs;
 
     uint num_words = words.size();
 
     for (uint i = 1; i < num_words; ++i)
-      args.push_back(CStrUtil::removeEscapeChars(words[i]));
+      cargs.push_back(CStrUtil::removeEscapeChars(words[i]));
 
     CwshShellCommand *shell_command = cwsh_->lookupShellCommand(name);
 
     command_ = new CwshCommand(cwsh_, name, CwshShellCommandMgr::runProc,
-                               (CCommand::CallbackData) shell_command, args);
+                               (CCommand::CallbackData) shell_command, cargs);
   }
   else if (type_ == CwshCommandType::FUNCTION) {
     std::string name = CStrUtil::removeEscapeChars(words[0]);
 
-    std::vector<std::string> args;
+    std::vector<std::string> fargs;
 
     uint num_words = words.size();
 
     for (uint i = 1; i < num_words; ++i)
-      args.push_back(CStrUtil::removeEscapeChars(words[i]));
+      fargs.push_back(CStrUtil::removeEscapeChars(words[i]));
 
     CwshFunction *function = cwsh_->lookupFunction(name);
 
     command_ = new CwshCommand(cwsh_, name, CwshFunction::runProc,
-                               (CCommand::CallbackData) function, args);
+                               (CCommand::CallbackData) function, fargs);
   }
   else if (type_ == CwshCommandType::LABEL)
     ;
@@ -99,11 +99,11 @@ CwshCommandData(Cwsh *cwsh, const std::vector<std::string> &words) :
 
     std::string line = CStrUtil::toString(words, 1, words.size() - 2);
 
-    std::vector<std::string> args;
+    std::vector<std::string> sargs;
 
-    args.push_back(line);
+    sargs.push_back(line);
 
-    command_ = new CwshCommand(cwsh_, name, CwshCommandUtil::processLineProc, cwsh_, args, true);
+    command_ = new CwshCommand(cwsh_, name, CwshCommandUtil::processLineProc, cwsh_, sargs, true);
   }
   else if (type_ == CwshCommandType::PROCESS) {
     if (words.size() > 1)

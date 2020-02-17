@@ -7,25 +7,38 @@
 
 // utility functions for getting escape strings
 namespace CEscape {
-  enum WindowOp {
-    WINDOW_OP_DEICONIFY          = 1,
-    WINDOW_OP_ICONIFY            = 2,
-    WINDOW_OP_MOVE               = 3,
-    WINDOW_OP_PIXEL_SIZE         = 4,
-    WINDOW_OP_RAISE              = 5,
-    WINDOW_OP_LOWER              = 6,
-    WINDOW_OP_REFRESH            = 7,
-    WINDOW_OP_CHAR_SIZE          = 8,
-    WINDOW_OP_MAXIMIZE           = 9,
-    WINDOW_OP_REPORT_STATE       = 11,
-    WINDOW_OP_REPORT_POS         = WINDOW_OP_MOVE       + 10,
-    WINDOW_OP_REPORT_PIXEL_SIZE  = WINDOW_OP_PIXEL_SIZE + 10,
-    WINDOW_OP_REPORT_CHAR_SIZE   = WINDOW_OP_CHAR_SIZE  + 10,
-    WINDOW_OP_REPORT_SCREEN_SIZE = WINDOW_OP_MAXIMIZE   + 10,
-    WINDOW_OP_REPORT_ICON_STR    = 20,
-    WINDOW_OP_REPORT_TITLE_STR   = 21,
-    WINDOW_OP_LINE_SIZE_24       = 24,
+  enum class WindowOp {
+    DEICONIFY          = 1,
+    ICONIFY            = 2,
+    MOVE               = 3,
+    PIXEL_SIZE         = 4,
+    RAISE              = 5,
+    LOWER              = 6,
+    REFRESH            = 7,
+    CHAR_SIZE          = 8,
+    MAXIMIZE           = 9,
+    REPORT_STATE       = 11,
+    REPORT_POS         = MOVE       + 10,
+    REPORT_PIXEL_SIZE  = PIXEL_SIZE + 10,
+    REPORT_CHAR_SIZE   = CHAR_SIZE  + 10,
+    REPORT_SCREEN_SIZE = MAXIMIZE   + 10,
+    REPORT_ICON_STR    = 20,
+    REPORT_TITLE_STR   = 21,
+    LINE_SIZE_24       = 24
     // ...
+  };
+
+  struct OptString {
+    OptString() :
+     valid(false) {
+    }
+
+    OptString(const std::string &str) :
+     valid(true), str(str) {
+    }
+
+    bool        valid { false };
+    std::string str   { "" };
   };
 
   std::string NUL();
@@ -55,6 +68,11 @@ namespace CEscape {
   std::string CAN();
   std::string EM();
   std::string SUB();
+  std::string ESC();
+  std::string FS();
+  std::string GS();
+  std::string RS();
+  std::string US();
   std::string DEL();
 
   std::string SP();
@@ -70,6 +88,11 @@ namespace CEscape {
   std::string EPA();
   std::string SOS();
   std::string DECID();
+
+  std::string G0(const std::string &s="");
+  std::string G1(const std::string &s="");
+  std::string G2(const std::string &s="");
+  std::string G3(const std::string &s="");
 
   std::string windowOpDeiconify();
   std::string windowOpIconify();
@@ -172,13 +195,19 @@ namespace CEscape {
   std::string DECSERA(int top=-1, int left=-1, int bottom=-1, int right=-1);
   std::string DECRQLP(int n=-1);
 
+  std::string DECSCNM(bool b=true);
+  std::string DECTEK(bool b=true);
+
   void        APC(std::ostream &os, const std::string &str);
   std::string APC(const std::string &str);
 
-  void        CSI(std::ostream &os, const std::string &str);
-  std::string CSI(const std::string &str);
+  void        CSI(std::ostream &os, const std::string &str, bool bit8=false);
+  std::string CSI(const std::string &str=0, bool bit8=false);
 
   std::string stringToEscape(const std::string &str);
+  bool stringToEscape(const std::string &str, std::string &escapeStr);
+
+  OptString stringToOptEscape(const std::string &str);
 
   std::string stringWinOpToEscape(const std::vector<std::string> &words);
   std::string stringOSCOpToEscape(const std::vector<std::string> &words);
@@ -204,6 +233,8 @@ namespace CEscape {
   bool parseEscape(const std::string &str, std::vector<std::string> &args);
 
   bool parseMouse(const std::string &str, int *button, int *x, int *y, bool *release);
-};
+
+  std::string tek4014Coord(uint x, uint y);
+}
 
 #endif

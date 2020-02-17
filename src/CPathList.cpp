@@ -75,9 +75,9 @@ search(const std::string &file, std::string &path)
   for ( ; p1 != p2; ++p1) {
     path = *p1 + "/" + file;
 
-    CFile file(path);
+    CFile pfile(path);
 
-    if (file.exists() && file.isRegular() && file.isExecutable())
+    if (pfile.exists() && pfile.isRegular() && pfile.isExecutable())
       return true;
   }
 
@@ -88,13 +88,31 @@ std::string
 CPathList::
 mostMatchPrefix(const std::string &prefix)
 {
+  std::string path;
+
+  return mostMatchPrefix(prefix, path);
+}
+
+std::string
+CPathList::
+mostMatchPrefix(const std::string &prefix, std::string &path)
+{
+  path = "";
+
   std::vector<std::string> dirs;
   std::vector<std::string> files;
 
   if (! matchPrefix(prefix, dirs, files))
     return prefix;
 
-  return CStrUtil::mostMatch(files);
+  int ind;
+
+  std::string file = CStrUtil::mostMatch(files, ind);
+
+  if (ind >= 0)
+    path = dirs[ind];
+
+  return file;
 }
 
 std::string
@@ -107,7 +125,11 @@ mostMatchPattern(const std::string &pattern)
   if (! matchPattern(pattern, dirs, files))
     return pattern;
 
-  return CStrUtil::mostMatch(files);
+  int ind;
+
+  std::string file = CStrUtil::mostMatch(files, ind);
+
+  return file;
 }
 
 bool
@@ -150,12 +172,12 @@ matchPattern(const std::string &pattern, std::vector<std::string> &dirs,
       CFile file(fileName);
 
       if (file.exists() && file.isRegular() && file.isExecutable()) {
-        std::string::size_type pos = files1[j].rfind('/');
+        std::string::size_type pos1 = files1[j].rfind('/');
 
         dirs.push_back(file.getDir());
 
-        if (pos != std::string::npos)
-          files.push_back(files1[j].substr(pos + 1));
+        if (pos1 != std::string::npos)
+          files.push_back(files1[j].substr(pos1 + 1));
         else
           files.push_back(files1[j]);
       }
@@ -187,12 +209,12 @@ matchPattern(const std::string &pattern, std::vector<std::string> &dirs,
       CFile file(fileName);
 
       if (file.exists() && file.isRegular() && file.isExecutable()) {
-        std::string::size_type pos = files1[j].rfind('/');
+        std::string::size_type pos1 = files1[j].rfind('/');
 
         dirs.push_back(file.getDir());
 
-        if (pos != std::string::npos)
-          files.push_back(files1[j].substr(pos + 1));
+        if (pos1 != std::string::npos)
+          files.push_back(files1[j].substr(pos1 + 1));
         else
           files.push_back(files1[j]);
       }

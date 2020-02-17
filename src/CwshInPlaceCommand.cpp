@@ -229,9 +229,9 @@ executeCommands(const CwshCmdArray &cmds)
 
         pcommands[num_pcommands - 1]->getCommand()->start();
 
-        int num_cmds = cmds.size();
+        int numPCmds = cmds.size();
 
-        if (i == num_cmds - 1) {
+        if (i == numPCmds - 1) {
           command1->addStringDest(output);
 
           separator = CwshCmdSeparatorType::NORMAL;
@@ -269,9 +269,9 @@ executeCommands(const CwshCmdArray &cmds)
         pcommands.clear();
       }
       else {
-        int num_cmds = cmds.size();
+        int numPCmds = cmds.size();
 
-        if (i == num_cmds - 1) {
+        if (i == numPCmds - 1) {
           command1->addStringDest(output);
 
           separator = CwshCmdSeparatorType::NORMAL;

@@ -9,7 +9,7 @@
 
 namespace {
 
-auto nSpace = [&](int n) -> std::string {
+auto nSpace = [](int n) -> std::string {
   std::string str;
 
   for (int i = 0; i < n; ++i)
@@ -18,8 +18,8 @@ auto nSpace = [&](int n) -> std::string {
   return str;
 };
 
-auto helpStr = [&](const std::string &cmd, const std::string &args, int len,
-                   const std::string &desc) -> void {
+auto helpStr = [](const std::string &cmd, const std::string &args, int len,
+                  const std::string &desc) -> void {
   std::cout << CwshMgrInst.helpNameColorStr() + cmd  + CwshMgrInst.resetColorStr() + " " +
                CwshMgrInst.helpArgsColorStr() + args + CwshMgrInst.resetColorStr() +
                nSpace(len - args.size()) + " ; " +
@@ -1018,26 +1018,26 @@ helpCmd(Cwsh *cwsh, const CwshArgArray &args)
   uint num_cmds = cmds.size();
 
   if (num_cmds == 0) {
-    std::set<std::string> cmds;
+    std::set<std::string> cmds1;
 
     uint num_commands = mgr->commands_.size();
 
     uint i = 0;
 
     for ( ; i < num_commands; ++i)
-      cmds.insert(mgr->commands_[i]->getName());
+      cmds1.insert(mgr->commands_[i]->getName());
 
     std::set<std::string>::const_iterator p1, p2;
 
-    for (i = 0, p1 = cmds.begin(), p2 = cmds.end(); p1 != p2; ++i, ++p1) {
+    for (i = 0, p1 = cmds1.begin(), p2 = cmds1.end(); p1 != p2; ++i, ++p1) {
       if (show_all) {
         CwshShellCommand *command = mgr->lookup(*p1);
 
-        CwshArgArray args;
+        CwshArgArray hargs;
 
-        args.push_back("--help");
+        hargs.push_back("--help");
 
-        (command->getProc())(cwsh, args);
+        (command->getProc())(cwsh, hargs);
       }
       else {
         if (i > 0) std::cout << " ";
@@ -1054,11 +1054,11 @@ helpCmd(Cwsh *cwsh, const CwshArgArray &args)
       CwshShellCommand *command = mgr->lookup(args[i]);
 
       if (command) {
-        CwshArgArray args;
+        CwshArgArray hargs;
 
-        args.push_back("--help");
+        hargs.push_back("--help");
 
-        (command->getProc())(cwsh, args);
+        (command->getProc())(cwsh, hargs);
       }
       else
         CWSH_THROW("Unknown command " + args[0]);
@@ -1176,35 +1176,35 @@ ifCmd(Cwsh *cwsh, const CwshArgArray &args)
 
       if (words.size() > 0 && words[0] == "else") {
         if (words.size() > 1 && words[1] == "if") {
-          std::string str = CStrUtil::toString(words, 2, -1);
+          std::string str1 = CStrUtil::toString(words, 2, -1);
 
-          uint i = 0;
+          uint i1 = 0;
 
-          CwshExprParse parse(cwsh);
+          CwshExprParse parse1(cwsh);
 
-          std::string expr_str = parse.parse(str, &i);
+          std::string exprStr1 = parse1.parse(str1, &i1);
 
-          CStrUtil::skipSpace(str, &i);
+          CStrUtil::skipSpace(str1, &i1);
 
-          uint j = i;
+          uint j1 = i1;
 
-          CStrUtil::skipNonSpace(str, &j);
+          CStrUtil::skipNonSpace(str1, &j1);
 
-          std::string word = str.substr(i, j - i);
+          std::string word1 = str1.substr(i1, j1 - i1);
 
-          if (word == "then") {
-            i = j;
+          if (word1 == "then") {
+            i1 = j1;
 
-            CStrUtil::skipSpace(str, &i);
+            CStrUtil::skipSpace(str1, &i1);
 
-            uint len = str.size();
+            uint len1 = str1.size();
 
-            if (i < len)
+            if (i1 < len1)
               CWSH_THROW("Improper then.");
 
-            CwshExprEvaluate expr(cwsh, expr_str);
+            CwshExprEvaluate expr1(cwsh, exprStr1);
 
-            int processing1 = expr.process();
+            int processing1 = expr1.process();
 
             if (! if_processed)
               processing = processing1;
@@ -1213,11 +1213,11 @@ ifCmd(Cwsh *cwsh, const CwshArgArray &args)
               if_processed = true;
           }
           else {
-            std::string line = str.substr(i);
+            std::string line1 = str1.substr(i1);
 
-            CwshExprEvaluate expr(cwsh, expr_str);
+            CwshExprEvaluate expr1(cwsh, exprStr1);
 
-            int processing1 = expr.process();
+            int processing1 = expr1.process();
 
             if (! if_processed)
               processing = processing1;
@@ -1228,7 +1228,7 @@ ifCmd(Cwsh *cwsh, const CwshArgArray &args)
               if_processed = true;
 
             if (processing) {
-              cwsh->processInputLine(line);
+              cwsh->processInputLine(line1);
 
               processing = false;
             }
@@ -1241,9 +1241,9 @@ ifCmd(Cwsh *cwsh, const CwshArgArray &args)
             if_processed = true;
 
           if (words.size() > 1) {
-            std::string line = CStrUtil::toString(words, 1, -1);
+            std::string line1 = CStrUtil::toString(words, 1, -1);
 
-            cwsh->processInputLine(line);
+            cwsh->processInputLine(line1);
 
             processing = false;
           }
@@ -1392,8 +1392,8 @@ killCmd(Cwsh *cwsh, const CwshArgArray &args)
 
   uint num_pids = pids.size();
 
-  for (uint i = 0; i < num_pids; ++i)
-    cwsh->killProcess(pids[i], signal_num);
+  for (uint pi = 0; pi < num_pids; ++pi)
+    cwsh->killProcess(pids[pi], signal_num);
 }
 
 void
@@ -2532,20 +2532,20 @@ whileCmd(Cwsh *cwsh, const CwshArgArray &args)
 
     i = 0;
 
-    CwshExprParse parse(cwsh);
+    CwshExprParse parse1(cwsh);
 
-    expr_str = parse.parse(str1, &i);
+    expr_str = parse1.parse(str1, &i);
 
     CStrUtil::skipSpace(str1, &i);
 
-    uint len1 = str1.size();
+    uint len2 = str1.size();
 
-    if (i < len1)
+    if (i < len2)
       CWSH_THROW("Expression Syntax.");
 
-    CwshExprEvaluate expr(cwsh, expr_str);
+    CwshExprEvaluate expr1(cwsh, expr_str);
 
-    processing = expr.process();
+    processing = expr1.process();
   }
 
   cwsh->setBlockContinue(false);

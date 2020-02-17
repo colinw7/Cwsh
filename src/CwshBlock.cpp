@@ -120,10 +120,10 @@ gotoLabel(const std::string &label)
   for (int i = num_blocks - 1; i >= 0; i--) {
     CwshBlock *block = block_stack_[i];
 
-    int line_num = block->getLabelLineNum(label);
+    int lineNum1 = block->getLabelLineNum(label);
 
-    if (line_num != -1) {
-      block->setLineNum(line_num);
+    if (lineNum1 != -1) {
+      block->setLineNum(lineNum1);
 
       goto_depth_ = i + 1;
 

@@ -183,22 +183,22 @@ expandVariables1(const std::string &str, std::vector<std::string> &words)
       }
 
       if (i < len && str[i] == ':') {
-        int k = i + 1;
+        int k1 = i + 1;
 
-        if (k < len && str[k] == 'g') {
-          k++;
+        if (k1 < len && str[k1] == 'g') {
+          k1++;
 
-          if (k < len &&
-              (str[k] == 'r' || str[k] == 'e' ||
-               str[k] == 'h' || str[k] == 't'))
-            i = k + 1;
+          if (k1 < len &&
+              (str[k1] == 'r' || str[k1] == 'e' ||
+               str[k1] == 'h' || str[k1] == 't'))
+            i = k1 + 1;
         }
         else {
-          if (k < len &&
-              (str[k] == 'r' || str[k] == 'e' ||
-               str[k] == 'h' || str[k] == 't' ||
-               str[k] == 'q' || str[k] == 'z'))
-            i = k + 1;
+          if (k1 < len &&
+              (str[k1] == 'r' || str[k1] == 'e' ||
+               str[k1] == 'h' || str[k1] == 't' ||
+               str[k1] == 'q' || str[k1] == 'z'))
+            i = k1 + 1;
         }
       }
 
@@ -378,8 +378,8 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
 
     int num_values = values.size();
 
-    for (int i = 0; i < num_values; i++)
-      variable_values.push_back(values[i]);
+    for (int iv = 0; iv < num_values; iv++)
+      variable_values.push_back(values[iv]);
   }
 
   //------
@@ -401,31 +401,31 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
   int start_value, end_value;
 
   if (subscript_len > 0 && subscript_str[0] == '[') {
-    int i = 1;
+    int is = 1;
 
-    CStrUtil::skipSpace(subscript_str, &i);
+    CStrUtil::skipSpace(subscript_str, &is);
 
-    if (i >= subscript_len ||
-        (subscript_str[i] != '*' && subscript_str[i] != '-' &&
-         ! isdigit(subscript_str[i])))
+    if (is >= subscript_len ||
+        (subscript_str[is] != '*' && subscript_str[is] != '-' &&
+         ! isdigit(subscript_str[is])))
       CWSH_THROW("Variable Syntax.");
 
-    if      (subscript_str[i] == '*') {
+    if      (subscript_str[is] == '*') {
       start_value = 1;
       end_value   = variable_values.size();
 
-      i++;
+      is++;
     }
     else {
-      if (isdigit(subscript_str[i])) {
-        int j = i;
+      if (isdigit(subscript_str[is])) {
+        int j = is;
 
-        i++;
+        is++;
 
-        while (i < subscript_len && isdigit(subscript_str[i]))
-          i++;
+        while (is < subscript_len && isdigit(subscript_str[is]))
+          is++;
 
-        std::string num_str = subscript_str.substr(j, i - j);
+        std::string num_str = subscript_str.substr(j, is - j);
 
         start_value = CStrUtil::toInteger(num_str);
 
@@ -440,28 +440,28 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
             CWSH_THROW(variable_name + ": Subscript out of range.");
         }
 
-        CStrUtil::skipSpace(subscript_str, &i);
+        CStrUtil::skipSpace(subscript_str, &is);
       }
       else
         start_value = -1;
 
-      if (i < subscript_len && subscript_str[i] == '-') {
-        i++;
+      if (is < subscript_len && subscript_str[is] == '-') {
+        is++;
 
-        CStrUtil::skipSpace(subscript_str, &i);
+        CStrUtil::skipSpace(subscript_str, &is);
 
-        if (isdigit(subscript_str[i])) {
+        if (isdigit(subscript_str[is])) {
           if (start_value == -1)
             start_value = 1;
 
-          int j = i;
+          int j = is;
 
-          i++;
+          is++;
 
-          while (i < subscript_len && isdigit(subscript_str[i]))
-            i++;
+          while (is < subscript_len && isdigit(subscript_str[is]))
+            is++;
 
-          std::string num_str = subscript_str.substr(j, i - j);
+          std::string num_str = subscript_str.substr(j, is - j);
 
           end_value = CStrUtil::toInteger(num_str);
 
@@ -481,17 +481,17 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
         end_value = start_value;
     }
 
-    CStrUtil::skipSpace(subscript_str, &i);
+    CStrUtil::skipSpace(subscript_str, &is);
 
-    if (i < subscript_len && subscript_str[i] != ']')
+    if (is < subscript_len && subscript_str[is] != ']')
       CWSH_THROW("Variable Syntax.");
 
-    i++;
+    is++;
 
     if (start_value > end_value)
       CWSH_THROW(variable_name + ": Invalid subscript range.");
 
-    subscript_str = subscript_str.substr(i);
+    subscript_str = subscript_str.substr(is);
 
     subscript_len = subscript_str.size();
   }
@@ -505,21 +505,21 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
   bool modifier_global = false;
 
   if (subscript_len > 0 && subscript_str[0] == ':') {
-    int i = 1;
+    int is = 1;
 
-    if (i >= subscript_len)
+    if (is >= subscript_len)
       CWSH_THROW("Variable Syntax.");
 
-    if (i < subscript_len - 1 &&
-        subscript_str[i] == 'g' &&
-        (subscript_str[i + 1] == 'r' || subscript_str[i + 1] == 'e' ||
-         subscript_str[i + 1] == 'h' || subscript_str[i + 1] == 't')) {
-      i++;
+    if (is < subscript_len - 1 &&
+        subscript_str[is] == 'g' &&
+        (subscript_str[is + 1] == 'r' || subscript_str[is + 1] == 'e' ||
+         subscript_str[is + 1] == 'h' || subscript_str[is + 1] == 't')) {
+      is++;
 
       modifier_global = true;
     }
 
-    switch (subscript_str[i]) {
+    switch (subscript_str[is]) {
       case 'r':
         modifier = CwshVariableValueModifier::ROOT;
         break;
@@ -539,13 +539,13 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
         modifier = CwshVariableValueModifier::QUOTE_WORD;
         break;
       default:
-        CWSH_THROW(std::string("Bad : modifier in $ (") + subscript_str[i] + ").");
+        CWSH_THROW(std::string("Bad : modifier in $ (") + subscript_str[is] + ").");
         break;
     }
 
-    i++;
+    is++;
 
-    subscript_str = subscript_str.substr(i);
+    subscript_str = subscript_str.substr(is);
   }
 
   std::vector<std::string> values;
@@ -573,30 +573,30 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
            modifier == CwshVariableValueModifier::TAIL) {
     int num_values = values.size();
 
-    for (int i = 0; i < num_values; i++) {
+    for (int iv = 0; iv < num_values; iv++) {
       if      (modifier == CwshVariableValueModifier::ROOT) {
-        std::string::size_type pos = values[i].rfind('.');
+        std::string::size_type pos = values[iv].rfind('.');
 
         if (pos != std::string::npos)
-          values[i] = values[i].substr(0, pos);
+          values[iv] = values[iv].substr(0, pos);
       }
       else if (modifier == CwshVariableValueModifier::EXTENSION) {
-        std::string::size_type pos = values[i].rfind('.');
+        std::string::size_type pos = values[iv].rfind('.');
 
         if (pos != std::string::npos)
-          values[i] = values[i].substr(pos + 1);
+          values[iv] = values[iv].substr(pos + 1);
       }
       else if (modifier == CwshVariableValueModifier::HEADER) {
-        std::string::size_type pos = values[i].rfind('/');
+        std::string::size_type pos = values[iv].rfind('/');
 
         if (pos != std::string::npos)
-          values[i] = values[i].substr(0, pos);
+          values[iv] = values[iv].substr(0, pos);
       }
       else if (modifier == CwshVariableValueModifier::TAIL) {
-        std::string::size_type pos = values[i].rfind('/');
+        std::string::size_type pos = values[iv].rfind('/');
 
         if (pos != std::string::npos)
-          values[i] = values[i].substr(pos + 1);
+          values[iv] = values[iv].substr(pos + 1);
       }
 
       if (! modifier_global)
@@ -609,11 +609,11 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
 
     int num_values = values.size();
 
-    for (int i = 0; i < num_values; i++) {
-      if (i > 0)
+    for (int iv = 0; iv < num_values; iv++) {
+      if (iv > 0)
         value += " ";
 
-      value += values[i];
+      value += values[iv];
     }
 
     values.clear();

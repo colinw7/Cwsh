@@ -54,9 +54,15 @@ CwshVariable.cpp \
 CwshVariableParser.cpp \
 CwshWildCard.cpp \
 CwshWord.cpp \
+\
+CMessage.cpp \
+\
 CPathList.cpp \
+\
 CFileMatch.cpp \
+\
 CEscape.cpp \
+CEscapeColors.cpp \
 
 OBJS = $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(SRC))
 
@@ -65,14 +71,15 @@ CPPFLAGS = \
 -I$(INC_DIR) \
 -I../../CCommand/include \
 -I../../CFile/include \
+-I../../CConfig/include \
 -I../../CArgs/include \
+-I../../CReadLine/include \
+-I../../CMath/include \
 -I../../CStrUtil/include \
 -I../../CGlob/include \
 -I../../COS/include \
 -I../../CUtil/include \
--I../../CReadLine/include \
 -I../../CRGBName/include \
--I../../CMath/include \
 -I.
 
 LFLAGS = \
@@ -80,21 +87,26 @@ $(LDEBUG) \
 -L$(LIB_DIR) \
 -L../../CCommand/lib \
 -L../../CFile/lib \
+-L../../CConfig/lib \
 -L../../CArgs/lib \
+-L../../CReadLine/lib \
+-L../../CMath/lib \
 -L../../CStrUtil/lib \
 -L../../CGlob/lib \
 -L../../COS/lib \
--L../../CReadLine/lib \
+-L../../CUtil/lib \
 -L../../CRGBName/lib \
--L../../CMath/lib \
 -lCCommand \
 -lCFile \
+-lCConfig \
 -lCArgs \
 -lCReadLine \
--lCOS \
--lCGlob \
--lCRGBName \
+-lCMath \
 -lCStrUtil \
+-lCGlob \
+-lCOS \
+-lCUtil \
+-lCRGBName \
 -lreadline \
 -lcurses
 

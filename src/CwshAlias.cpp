@@ -68,8 +68,8 @@ substitute(CwshCmd *cmd, CwshCmdArray &cmds) const
 
   std::vector<std::string> words;
 
-  for (const auto &word : cmd->getWords())
-    words.push_back(word.getWord());
+  for (const auto &cword : cmd->getWords())
+    words.push_back(cword.getWord());
 
   std::string line = parser.apply(words);
 

@@ -147,20 +147,20 @@ void
 CwshInput::
 executeBlockLines(bool interactive)
 {
-  std::string line;
+  //std::string line;
 
   while (! eof()) {
-    CwshLine line = getLine();
+    CwshLine cline = getLine();
 
     if (interactive && cwsh_->getSilentMode()) {
-      printf("%s", CEscape::commandToEscape(line.line, COSFile::getCurrentDir(), true).c_str());
+      printf("%s", CEscape::commandToEscape(cline.line, COSFile::getCurrentDir(), true).c_str());
       fflush(stdout);
     }
 
-    processLine(line);
+    processLine(cline);
 
     if (interactive && cwsh_->getSilentMode()) {
-      printf("%s", CEscape::commandToEscape(line.line, COSFile::getCurrentDir(), false).c_str());
+      printf("%s", CEscape::commandToEscape(cline.line, COSFile::getCurrentDir(), false).c_str());
       fflush(stdout);
     }
 
@@ -392,10 +392,10 @@ processLine(const CwshLine &line)
 
     uint num_groups = groups.size();
 
-    for (uint i = 0; i < num_groups; i++) {
+    for (uint ig = 0; ig < num_groups; ig++) {
       // Parse Command
 
-      CwshCmdArray cmds = CwshCommandUtil::parseCommandGroup(cwsh_, groups[i]);
+      CwshCmdArray cmds = CwshCommandUtil::parseCommandGroup(cwsh_, groups[ig]);
 
       // Execute Commands
 
@@ -494,9 +494,9 @@ executeCommands(const CwshCmdArray &cmds)
     if (cmds[i]->hasStdOutFile()) {
       ccommand->addFileDest(cmds[i]->getStdOutFile(), 1);
 
-      CwshVariable *variable = cwsh_->lookupVariable("noclobber");
+      CwshVariable *variable1 = cwsh_->lookupVariable("noclobber");
 
-      if (cmds[i]->getStdOutClobber() || ! variable)
+      if (cmds[i]->getStdOutClobber() || ! variable1)
         ccommand->setFileDestOverwrite(true, 1);
       else
         ccommand->setFileDestOverwrite(false, 1);
@@ -509,9 +509,9 @@ executeCommands(const CwshCmdArray &cmds)
       if (! cmds[i]->hasStdOutFile()) {
         ccommand->addFileDest(cmds[i]->getStdErrFile(), 1);
 
-        CwshVariable *variable = cwsh_->lookupVariable("noclobber");
+        CwshVariable *variable1 = cwsh_->lookupVariable("noclobber");
 
-        if (cmds[i]->getStdErrClobber() || ! variable)
+        if (cmds[i]->getStdErrClobber() || ! variable1)
           ccommand->setFileDestOverwrite(true, 1);
         else
           ccommand->setFileDestOverwrite(false, 1);
@@ -522,9 +522,9 @@ executeCommands(const CwshCmdArray &cmds)
 
       ccommand->addFileDest(cmds[i]->getStdErrFile(), 2);
 
-      CwshVariable *variable = cwsh_->lookupVariable("noclobber");
+      CwshVariable *variable2 = cwsh_->lookupVariable("noclobber");
 
-      if (cmds[i]->getStdErrClobber() || ! variable)
+      if (cmds[i]->getStdErrClobber() || ! variable2)
         ccommand->setFileDestOverwrite(true, 2);
       else
         ccommand->setFileDestOverwrite(false, 2);
@@ -589,9 +589,9 @@ executeCommands(const CwshCmdArray &cmds)
 
         if (separator != CwshCmdSeparatorType::BACKGROUND) {
           for (int k = 0; k < num_pcommands; k++) {
-            CwshCommand *pccommand = pcommands[k]->getCommand();
+            CwshCommand *pccommand1 = pcommands[k]->getCommand();
 
-            pccommand->wait();
+            pccommand1->wait();
           }
 
           ccommand->wait();
@@ -617,9 +617,9 @@ executeCommands(const CwshCmdArray &cmds)
           std::cout << "[" << process->getNum() << "]";
 
           for (int k = 0; k < num_pcommands; k++) {
-            CwshCommand *pccommand = pcommands[k]->getCommand();
+            CwshCommand *pccommand1 = pcommands[k]->getCommand();
 
-            std::cout << " " << pccommand->getPid();
+            std::cout << " " << pccommand1->getPid();
           }
 
           std::cout << " " << ccommand->getPid() << std::endl;

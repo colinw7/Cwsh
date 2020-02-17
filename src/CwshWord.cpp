@@ -117,34 +117,34 @@ createSubWords()
       break;
 
     if (word_[i] == '\"') {
-      uint i1 = i + 1;
+      uint i2 = i + 1;
 
       if (! CStrUtil::skipDoubleQuotedString(word_, &i))
         CWSH_THROW("Unmatched \".");
 
-      sub_word = word_.substr(i1, i - i1 - 1);
+      sub_word = word_.substr(i2, i - i2 - 1);
 
       sub_words_.push_back(
        CwshSubWord(sub_word, CwshSubWordType::DOUBLE_QUOTED));
     }
     else if (word_[i] == '\'') {
-      uint i1 = i + 1;
+      uint i2 = i + 1;
 
       if (! CStrUtil::skipSingleQuotedString(word_, &i))
         CWSH_THROW("Unmatched \'.");
 
-      sub_word = word_.substr(i1, i - i1 - 1);
+      sub_word = word_.substr(i2, i - i2 - 1);
 
       sub_words_.push_back(
        CwshSubWord(sub_word, CwshSubWordType::SINGLE_QUOTED));
     }
     else if (word_[i] == '`') {
-      uint i1 = i + 1;
+      uint i2 = i + 1;
 
       if (! CStrUtil::skipBackQuotedString(word_, &i))
         CWSH_THROW("Unmatched `.");
 
-      sub_word = word_.substr(i1, i - i1 - 1);
+      sub_word = word_.substr(i2, i - i2 - 1);
 
       sub_words_.push_back(
        CwshSubWord(sub_word, CwshSubWordType::BACK_QUOTED));

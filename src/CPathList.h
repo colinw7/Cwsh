@@ -16,7 +16,9 @@ class CPathList {
 
   bool search(const std::string &file, std::string &path);
 
+  std::string mostMatchPrefix(const std::string &prefix, std::string &path);
   std::string mostMatchPrefix(const std::string &prefix);
+
   std::string mostMatchPattern(const std::string &pattern);
 
   bool matchPrefix(const std::string &prefix, std::vector<std::string> &dirs,

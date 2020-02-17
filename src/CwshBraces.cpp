@@ -109,14 +109,14 @@ expand(const CwshWord &word, CwshWordArray &words)
   uint num_words = words1.size();
 
   for (i = 0; i < num_words; i++) {
-    const CwshWord &word1 = words1[i];
+    const CwshWord &cword1 = words1[i];
 
     CwshWordArray words2;
 
-    if (expand(word1, words2))
+    if (expand(cword1, words2))
       copy(words2.begin(), words2.end(), back_inserter(words));
     else
-      words.push_back(word1);
+      words.push_back(cword1);
   }
 
   //------

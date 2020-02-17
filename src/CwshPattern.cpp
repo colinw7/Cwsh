@@ -53,9 +53,9 @@ expandWordToFiles(const CwshWord &word, CwshWordArray &words)
     return false;
 
   if (words1.size() == 0) {
-    CwshVariable *variable = cwsh_->lookupVariable("nonomatch");
+    CwshVariable *variable1 = cwsh_->lookupVariable("nonomatch");
 
-    if (! variable)
+    if (! variable1)
       CWSH_THROW("No match.");
 
     return false;
