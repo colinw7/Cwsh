@@ -59,8 +59,6 @@ CMessage.cpp \
 \
 CPathList.cpp \
 \
-CFileMatch.cpp \
-\
 CEscape.cpp \
 CEscapeColors.cpp \
 
