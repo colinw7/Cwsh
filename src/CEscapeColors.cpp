@@ -72,7 +72,7 @@ getColor(CEscapeColor type) const
 
   bool dim = isDim(type);
 
-  CEscapeColor type1 = (dim ? CEscapeColor(uint(type) & ~uint(CEscapeColor::DIM)) : type);
+  auto type1 = (dim ? CEscapeColor(uint(type) & ~uint(CEscapeColor::DIM)) : type);
 
   if      (type1 == CEscapeColor::BG)
     c = getBg();
@@ -97,7 +97,7 @@ setColor(CEscapeColor type, const CRGBA &rgba)
 {
   bool dim = isDim(type);
 
-  CEscapeColor type1 = (dim ? CEscapeColor(uint(type) & ~uint(CEscapeColor::DIM)) : type);
+  auto type1 = (dim ? CEscapeColor(uint(type) & ~uint(CEscapeColor::DIM)) : type);
 
   if (type1 == CEscapeColor::BG) { setBg(rgba); return; }
   if (type1 == CEscapeColor::FG) { setFg(rgba); return; }

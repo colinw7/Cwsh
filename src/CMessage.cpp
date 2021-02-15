@@ -5,6 +5,9 @@
 
 #include <iostream>
 #include <cstring>
+#include <cstdio>
+#include <cstdlib>
+#include <cassert>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 
@@ -16,7 +19,9 @@ class CMessageLock {
   void *getData() const { return data_; }
 
  private:
-  void *data_ { nullptr };
+  static bool locked_;
+
+  void* data_ { nullptr };
 };
 
 //---------
@@ -67,33 +72,41 @@ bool
 CMessage::
 isActive(const std::string &id)
 {
-  std::string id_filename = CMessageMgrInst->getIdFilename(id);
+  std::string idFilename = CMessageMgrInst->getIdFilename(id);
 
-  int shm_id = getShmId(id_filename);
+  int shmId = getShmId(idFilename);
 
-  return (shm_id != 0);
+  return (shmId != 0);
 }
 
 CMessage::
 CMessage(const std::string &id) :
  id_(id), debug_(false)
 {
-  if (getenv("CMESSAGE_DEBUG") != NULL)
+  if (getenv("CMESSAGE_DEBUG"))
     debug_ = true;
 
-  id_filename_  = CMessageMgrInst->getIdFilename (id_);
-  num_filename_ = CMessageMgrInst->getNumFilename(id_);
+  idFilename_  = CMessageMgrInst->getIdFilename (id_);
+  numFilename_ = CMessageMgrInst->getNumFilename(id_);
 
-  shm_id_ = getShmId(id_filename_);
+  shmId_ = getShmId(idFilename_);
 
-  if (shm_id_ == 0) {
-    shm_id_ = createSharedMem();
+  if (shmId_ == 0) {
+    shmId_ = createSharedMem();
 
-    setShmId (shm_id_);
+    setShmId (shmId_);
     setShmNum(1);
+
+    initSharedMem();
   }
   else
     incShmNum();
+
+  std::size_t messageSize = this->messageSize();
+
+  bufferData_.memSize = numBuffers_*messageSize;
+
+  bufferData_.mem = new char [bufferData_.memSize];
 }
 
 CMessage::
@@ -101,138 +114,550 @@ CMessage::
 {
   if (decShmNum()) {
     if (debug_)
-      std::cerr << "remove shm id " << shm_id_ << std::endl;
+      std::cerr << "remove shm id " << shmId_ << "\n";
 
-    shmctl(shm_id_, IPC_RMID, NULL);
+    shmctl(shmId_, IPC_RMID, nullptr);
 
     if (debug_)
-      std::cerr << "remove files " << id_filename_ << " " << num_filename_ << std::endl;
+      std::cerr << "remove files " << idFilename_ << " " << numFilename_ << "\n";
 
-    CFile::remove(id_filename_);
-    CFile::remove(num_filename_);
+    CFile::remove(idFilename_);
+    CFile::remove(numFilename_);
   }
+
+  delete [] bufferData_.mem;
 }
 
 int
 CMessage::
 createSharedMem()
 {
-  int shm_id =
-    shmget(IPC_PRIVATE, sizeof(MessageData), IPC_CREAT | IPC_EXCL | 0600);
+  int shmId = shmget(IPC_PRIVATE, memorySize(), IPC_CREAT | IPC_EXCL | 0600);
 
-  if (shm_id == -1)
+  if (shmId == -1)
     perror("shmget");
 
-  return shm_id;
+  return shmId;
 }
+
+void
+CMessage::
+initSharedMem()
+{
+  CMessageLock lock(shmId_);
+
+  auto *messageMemory = (MessageMemory *) lock.getData();
+  assert(messageMemory);
+
+  memset(messageMemory, 0, memorySize());
+
+  messageMemory->uid = 0xBEADFEED;
+
+  auto *messageAddr = (char *) &messageMemory->data[0];
+
+  std::size_t messageSize = this->messageSize();
+
+  for (uint i = 0; i < numMessages_; ++i) {
+    auto *messageData = (MessageData *) messageAddr;
+
+    messageData->uid = 0xFEEDBEAD;
+
+    messageAddr += messageSize;
+  }
+}
+
+//---
 
 bool
 CMessage::
 sendClientMessage(const std::string &msg)
 {
-  CMessageLock lock(shm_id_);
+  return sendClientData((int) Type::STRING, msg.c_str(), msg.size() + 1);
+}
 
-  MessageData *data = (MessageData *) lock.getData();
-
-  if (data == NULL)
+bool
+CMessage::
+sendClientData(int type, const char *data, int len)
+{
+  if (len >= (int) maxData_) {
+    ++numErrors_;
+    std::cerr << "CMessage::sendClientData : message too large (" << numErrors_ << ")\n";
     return false;
+  }
 
-  ClientMessageData *client_data = &data->client_data;
+  //---
 
-  if (client_data->pending)
+  CMessageLock lock(shmId_);
+
+  auto *messageMemory = (MessageMemory *) lock.getData();
+
+  if (! messageMemory) {
+    ++numErrors_;
+    std::cerr << "CMessage::sendClientData : lock failed (" << numErrors_ << ")\n";
     return false;
+  }
 
-  client_data->len = msg.size();
+  assert(messageMemory->uid == 0xBEADFEED);
 
-  if (client_data->len >= (int) sizeof(client_data->msg))
-    return false;
+  //---
 
-  strncpy(client_data->msg, msg.c_str(), client_data->len);
-  client_data->msg[client_data->len] = '\0';
+  // find slot for message
+  std::size_t messageSize = this->messageSize();
 
-  client_data->pending = true;
+  uint  messageNum  = 0;
+  auto *messageAddr = (char *) &messageMemory->data[0];
 
-  return true;
+  while (messageNum < numMessages_) {
+    auto *messageData = (MessageData *) messageAddr;
+
+    assert(messageData->uid == 0xFEEDBEAD);
+
+    if (! messageData->isPending())
+      break;
+
+    ++messageNum;
+
+    messageAddr += messageSize;
+  }
+
+  //---
+
+  // use slot if found
+  if (messageNum < numMessages_) {
+    auto *messageData = (MessageData *) messageAddr;
+
+    messageData->setPending(true);
+    messageData->setClient (true);
+
+    messageData->id        = ++lastId_;
+    messageData->type      = type;
+    messageData->len       = len;
+    messageData->errorCode = 0;
+
+    char *clientData = &messageData->data[0];
+
+    memcpy(clientData, data, len);
+
+    //---
+
+    numErrors_ = 0;
+
+    return true;
+  }
+
+  //--
+
+  // store in buffer if memory full
+  if (bufferData_.enabled) {
+    if (bufferData_.num < numBuffers_) {
+      uint pos = bufferData_.pos + bufferData_.num;
+
+      if (pos >= numBuffers_)
+        pos -= numBuffers_;
+
+      int messagePos = messageSize*pos;
+
+      assert(messagePos + messageSize <= bufferData_.memSize);
+
+      auto *bufferMessageData = (MessageData *) &bufferData_.mem[messagePos];
+
+      bufferMessageData->setPending(true);
+      bufferMessageData->setClient (true);
+
+      bufferMessageData->id        = ++lastId_;
+      bufferMessageData->type      = type;
+      bufferMessageData->len       = len;
+      bufferMessageData->errorCode = 0;
+
+      char *bufferData = &bufferMessageData->data[0];
+
+      memcpy(bufferData, data, len);
+
+      ++bufferData_.num;
+
+      std::cerr << "CMessage::sendClientData : message buffered (" << bufferData_.num << ")\n";
+
+      return true;
+    }
+  }
+
+  //---
+
+  ++numErrors_;
+
+  std::cerr << "CMessage::sendClientData : message pending (" << numErrors_ << ")\n";
+
+  return false;
 }
 
 bool
 CMessage::
 recvClientMessage(std::string &msg)
 {
-  CMessageLock lock(shm_id_);
+  CMessageLock lock(shmId_);
 
-  MessageData *data = (MessageData *) lock.getData();
+  auto *messageMemory = (MessageMemory *) lock.getData();
+  if (! messageMemory) return false;
 
-  if (data == NULL)
+  assert(messageMemory->uid == 0xBEADFEED);
+
+  //---
+
+  // find next pending string message
+  std::size_t messageSize = this->messageSize();
+
+  uint  messageNum  = 0;
+  auto *messageAddr = (char *) &messageMemory->data[0];
+
+  while (messageNum < numMessages_) {
+    auto *messageData = (MessageData *) messageAddr;
+
+    assert(messageData->uid == 0xFEEDBEAD);
+
+    if (messageData->isPending() && messageData->isClient() &&
+        messageData->type == (int) Type::STRING)
+      break;
+
+    ++messageNum;
+
+    messageAddr += messageSize;
+  }
+
+  //---
+
+  // return message if found
+  if (messageNum >= numMessages_)
     return false;
 
-  ClientMessageData *client_data = &data->client_data;
+  auto *messageData = (MessageData *) messageAddr;
 
-  if (! client_data->pending)
-    return false;
+  messageData->setPending(false);
 
-  msg = std::string(client_data->msg, client_data->len);
+  char *clientData = &messageData->data[0];
 
-  client_data->pending = false;
+  msg = std::string(clientData, messageData->len);
 
   return true;
 }
 
 bool
 CMessage::
-sendServerMessage(const std::string &msg, int error_code)
+recvClientData(int &type, char* &data, int &len)
 {
-  CMessageLock lock(shm_id_);
+  CMessageLock lock(shmId_);
 
-  MessageData *data = (MessageData *) lock.getData();
+  auto *messageMemory = (MessageMemory *) lock.getData();
+  if (! messageMemory) return false;
 
-  if (data == NULL)
+  assert(messageMemory->uid == 0xBEADFEED);
+
+  //---
+
+  // find next pending message (any type)
+  std::size_t messageSize = this->messageSize();
+
+  uint  messageNum  = 0;
+  auto *messageAddr = (char *) &messageMemory->data[0];
+
+  while (messageNum < numMessages_) {
+    auto *messageData = (MessageData *) messageAddr;
+
+    assert(messageData->uid == 0xFEEDBEAD);
+
+    if (messageData->isPending() && messageData->isClient())
+      break;
+
+    ++messageNum;
+
+    messageAddr += messageSize;
+  }
+
+  //---
+
+  // return message if found
+  if (messageNum >= numMessages_)
     return false;
 
-  ServerMessageData *server_data = &data->server_data;
+  auto *messageData = (MessageData *) messageAddr;
 
-  if (server_data->pending)
+  messageData->setPending(false);
+
+  type = messageData->len;
+  len  = messageData->len;
+
+  data = new char [len];
+
+  memcpy(data, &messageData->data[0], len);
+
+  return true;
+}
+
+void
+CMessage::
+sendClientPending()
+{
+  if (bufferData_.num > 0) {
+    std::size_t messageSize = this->messageSize();
+
+    uint pos = bufferData_.pos + bufferData_.num;
+
+    if (pos >= numBuffers_)
+      pos -= numBuffers_;
+
+    int messagePos = messageSize*pos;
+
+    assert(messagePos + messageSize <= bufferData_.memSize);
+
+    auto *bufferMessageData = (MessageData *) &bufferData_.mem[messagePos];
+
+    assert(bufferMessageData->isPending());
+
+    if (! bufferMessageData->isClient())
+      return;
+
+    char *bufferData = &bufferMessageData->data[0];
+
+    bufferData_.enabled = false;
+
+    if (sendClientData(bufferMessageData->type, bufferData, bufferMessageData->len)) {
+      ++bufferData_.pos;
+      --bufferData_.num;
+
+      if (bufferData_.pos >= numBuffers_)
+        bufferData_.pos -= numBuffers_;
+    }
+
+    bufferData_.enabled = true;
+  }
+}
+
+//---
+
+bool
+CMessage::
+sendServerMessage(const std::string &msg, int errorCode)
+{
+  return sendServerData((int) Type::STRING, msg.c_str(), msg.size() + 1, errorCode);
+}
+
+bool
+CMessage::
+sendServerData(int type, const char *data, int len, int errorCode)
+{
+  if (len >= (int) maxData_) {
+    ++numErrors_;
+    std::cerr << "CMessage::sendServerData : message too large (" << numErrors_ << ")\n";
+    return false;
+  }
+
+  //---
+
+  CMessageLock lock(shmId_);
+
+  auto *messageMemory = (MessageMemory *) lock.getData();
+
+  if (! messageMemory) {
+    ++numErrors_;
+    std::cerr << "CMessage::sendServerData : lock failed (" << numErrors_ << ")\n";
+    return false;
+  }
+
+  assert(messageMemory->uid == 0xBEADFEED);
+
+  //---
+
+  // find slot for message
+  std::size_t messageSize = this->messageSize();
+
+  uint  messageNum  = 0;
+  auto *messageAddr = (char *) &messageMemory->data[0];
+
+  while (messageNum < numMessages_) {
+    auto *messageData = (MessageData *) messageAddr;
+
+    assert(messageData->uid == 0xFEEDBEAD);
+
+    if (! messageData->isPending())
+      break;
+
+    ++messageNum;
+
+    messageAddr += messageSize;
+  }
+
+  //---
+
+  // use slot if found
+  if (messageNum < numMessages_) {
+    auto *messageData = (MessageData *) messageAddr;
+
+    messageData->setPending(true);
+    messageData->setClient (false);
+
+    messageData->id        = ++lastId_;
+    messageData->type      = type;
+    messageData->len       = len;
+    messageData->errorCode = errorCode;
+
+    char *serverData = &messageData->data[0];
+
+    memcpy(serverData, data, len);
+
+    //---
+
+    numErrors_ = 0;
+
+    return true;
+  }
+
+  //--
+
+  // store in buffer if memory full
+  if (bufferData_.enabled) {
+    if (bufferData_.num < numBuffers_) {
+      uint pos = bufferData_.pos + bufferData_.num;
+
+      if (pos >= numBuffers_)
+        pos -= numBuffers_;
+
+      int messagePos = messageSize*pos;
+
+      assert(messagePos + messageSize <= bufferData_.memSize);
+
+      auto *bufferMessageData = (MessageData *) &bufferData_.mem[messagePos];
+
+      bufferMessageData->setPending(true);
+      bufferMessageData->setClient (false);
+
+      bufferMessageData->id        = ++lastId_;
+      bufferMessageData->type      = type;
+      bufferMessageData->len       = len;
+      bufferMessageData->errorCode = errorCode;
+
+      char *bufferServerData = &bufferMessageData->data[0];
+
+      memcpy(bufferServerData, data, len);
+
+      ++bufferData_.num;
+
+      std::cerr << "CMessage::sendServerData : message buffered (" << bufferData_.num << ")\n";
+
+      return true;
+    }
+  }
+
+  ++numErrors_;
+
+  std::cerr << "CMessage::sendServerData : message pending (" << numErrors_ << ")\n";
+
+  return false;
+}
+
+bool
+CMessage::
+recvServerMessage(std::string &msg, int *errorCode)
+{
+  CMessageLock lock(shmId_);
+
+  auto *messageMemory = (MessageMemory *) lock.getData();
+  if (! messageMemory) return false;
+
+  assert(messageMemory->uid == 0xBEADFEED);
+
+  //---
+
+  // find next pending string message
+  std::size_t messageSize = this->messageSize();
+
+  uint  messageNum  = 0;
+  auto *messageAddr = (char *) &messageMemory->data[0];
+
+  while (messageNum < numMessages_) {
+    auto *messageData = (MessageData *) messageAddr;
+
+    assert(messageData->uid == 0xFEEDBEAD);
+
+    if (messageData->isPending() && ! messageData->isClient() &&
+        messageData->type == (int) Type::STRING)
+      break;
+
+    ++messageNum;
+
+    messageAddr += messageSize;
+  }
+
+  //---
+
+  // return message if found
+  if (messageNum >= numMessages_)
     return false;
 
-  server_data->len = msg.size();
+  auto *messageData = (MessageData *) messageAddr;
 
-  if (server_data->len >= (int) sizeof(server_data->msg))
-    return false;
+  messageData->setPending(false);
 
-  strncpy(server_data->msg, msg.c_str(), server_data->len);
-  server_data->msg[server_data->len] = '\0';
+  char *serverData = &messageData->data[0];
 
-  server_data->error_code = error_code;
+  msg = std::string(serverData, messageData->len);
 
-  server_data->pending = true;
+  *errorCode = messageData->errorCode;
 
   return true;
 }
 
 bool
 CMessage::
-recvServerMessage(std::string &msg, int *error_code)
+recvServerData(int &type, char* &data, int &len)
 {
-  CMessageLock lock(shm_id_);
+  CMessageLock lock(shmId_);
 
-  MessageData *data = (MessageData *) lock.getData();
+  auto *messageMemory = (MessageMemory *) lock.getData();
+  if (! messageMemory) return false;
 
-  if (data == NULL)
+  assert(messageMemory->uid == 0xBEADFEED);
+
+  //---
+
+  // find next pending message (any type)
+  std::size_t messageSize = this->messageSize();
+
+  uint  messageNum  = 0;
+  auto *messageAddr = (char *) &messageMemory->data[0];
+
+  while (messageNum < numMessages_) {
+    auto *messageData = (MessageData *) messageAddr;
+
+    assert(messageData->uid == 0xFEEDBEAD);
+
+    if (messageData->isPending() && ! messageData->isClient())
+      break;
+
+    ++messageNum;
+
+    messageAddr += messageSize;
+  }
+
+  //---
+
+  // return message if found
+  if (messageNum >= numMessages_)
     return false;
 
-  ServerMessageData *server_data = &data->server_data;
+  auto *messageData = (MessageData *) messageAddr;
 
-  if (! server_data->pending)
-    return false;
+  messageData->setPending(false);
 
-  msg = std::string(server_data->msg, server_data->len);
+  type = messageData->len;
+  len  = messageData->len;
 
-  *error_code = server_data->error_code;
+  data = new char [len];
 
-  server_data->pending = false;
+  memcpy(data, &messageData->data[0], len);
 
   return true;
 }
+
+//---
 
 bool
 CMessage::
@@ -245,30 +670,32 @@ sendClientMessageAndRecv(const std::string &msg, std::string &reply)
   for (int i = 0; i < 10000; ++i) {
     COSTimer::msleep(50);
 
-    int error_code;
+    int errorCode;
 
-    if (recvServerMessage(reply, &error_code))
+    if (recvServerMessage(reply, &errorCode))
       return true;
   }
 
   return false;
 }
 
+//---
+
 int
 CMessage::
 getShmId()
 {
-  return getShmId(id_filename_);
+  return getShmId(idFilename_);
 }
 
 int
 CMessage::
-getShmId(const std::string &id_filename)
+getShmId(const std::string &idFilename)
 {
   int integer = 0;
 
-  if (CFile::exists(id_filename)) {
-    CFile file(id_filename);
+  if (CFile::exists(idFilename)) {
+    CFile file(idFilename);
 
     std::string line;
 
@@ -279,10 +706,8 @@ getShmId(const std::string &id_filename)
 
   CMessageLock lock(integer);
 
-  MessageData *data = (MessageData *) lock.getData();
-
-  if (data == NULL)
-    return 0;
+  auto *messageMemory = (MessageMemory *) lock.getData();
+  if (! messageMemory) return 0;
 
   return integer;
 }
@@ -291,42 +716,42 @@ void
 CMessage::
 setShmId(int integer)
 {
-  CFile file(id_filename_);
+  CFile file(idFilename_);
 
   std::string line = CStrUtil::toString(integer) + "\n";
 
   file.write(line);
 
   if (debug_)
-    std::cerr << "setShmId " << integer << std::endl;
+    std::cerr << "setShmId " << integer << "\n";
 }
 
 void
 CMessage::
 setShmNum(int integer)
 {
-  CMessageLock lock(shm_id_);
+  CMessageLock lock(shmId_);
 
-  CFile file(num_filename_);
+  CFile file(numFilename_);
 
   std::string line = CStrUtil::toString(integer) + "\n";
 
   file.write(line);
 
   if (debug_)
-    std::cerr << "setShmNum " << integer << std::endl;
+    std::cerr << "setShmNum " << integer << "\n";
 }
 
 void
 CMessage::
 incShmNum()
 {
-  CMessageLock lock(shm_id_);
+  CMessageLock lock(shmId_);
 
   int integer = 0;
 
-  if (CFile::exists(num_filename_)) {
-    CFile file(num_filename_);
+  if (CFile::exists(numFilename_)) {
+    CFile file(numFilename_);
 
     std::string line;
 
@@ -345,7 +770,7 @@ incShmNum()
   else {
     integer = 1;
 
-    CFile file(num_filename_);
+    CFile file(numFilename_);
 
     std::string line = CStrUtil::toString(integer) + "\n";
 
@@ -353,19 +778,19 @@ incShmNum()
   }
 
   if (debug_)
-    std::cerr << "incShmNum " << integer << std::endl;
+    std::cerr << "incShmNum " << integer << "\n";
 }
 
 bool
 CMessage::
 decShmNum()
 {
-  CMessageLock lock(shm_id_);
+  CMessageLock lock(shmId_);
 
   int integer = 0;
 
-  if (CFile::exists(num_filename_)) {
-    CFile file(num_filename_);
+  if (CFile::exists(numFilename_)) {
+    CFile file(numFilename_);
 
     std::string line;
 
@@ -384,7 +809,7 @@ decShmNum()
   else {
     integer = 0;
 
-    CFile file(num_filename_);
+    CFile file(numFilename_);
 
     std::string line = CStrUtil::toString(integer) + "\n";
 
@@ -392,24 +817,34 @@ decShmNum()
   }
 
   if (debug_)
-    std::cerr << "decShmNum " << integer << std::endl;
+    std::cerr << "decShmNum " << integer << "\n";
 
   return (integer == 0);
 }
 
 //--------
 
+bool CMessageLock::locked_ = false;
+
 CMessageLock::
 CMessageLock(int id)
 {
-  data_ = shmat(id, NULL, SHM_RND);
+  assert(! locked_);
+
+  locked_ = true;
+
+  data_ = shmat(id, nullptr, SHM_RND);
 
   if (data_ == (void *) -1)
-    data_ = NULL;
+    data_ = nullptr;
 }
 
 CMessageLock::
 ~CMessageLock()
 {
+  assert(locked_);
+
+  locked_ = false;
+
   shmdt(data_);
 }

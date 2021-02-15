@@ -2,8 +2,9 @@
 #define CMESSAGE_H
 
 #include <map>
-
-#define CMessageMgrInst CMessageMgr::getInstance()
+#include <string>
+#include <cstddef>
+#include <sys/types.h>
 
 class CMessageMgr {
  public:
@@ -22,6 +23,10 @@ class CMessageMgr {
   IdMap idMap_;
 };
 
+#define CMessageMgrInst CMessageMgr::getInstance()
+
+//---
+
 class CMessage {
  public:
   static bool isActive(const std::string &id);
@@ -30,14 +35,25 @@ class CMessage {
  ~CMessage();
 
   bool sendClientMessage(const std::string &msg);
+  bool sendClientData(int type, const char *data, int len);
+
   bool recvClientMessage(std::string &msg);
-  bool sendServerMessage(const std::string &msg, int error_code = 0);
-  bool recvServerMessage(std::string &msg, int *error_code);
+  bool recvClientData(int &type, char* &data, int &len);
+
+  bool sendServerMessage(const std::string &msg, int errorCode=0);
+  bool sendServerData(int type, const char *data, int len, int errorCode=0);
+
+  bool recvServerMessage(std::string &msg, int *errorCode);
+  bool recvServerData(int &type, char* &data, int &len);
+
+  void sendClientPending();
 
   bool sendClientMessageAndRecv(const std::string &msg, std::string &reply);
 
  private:
   int createSharedMem();
+
+  void initSharedMem();
 
   int  getShmId();
   void setShmId(int integer);
@@ -46,32 +62,63 @@ class CMessage {
   void incShmNum();
   bool decShmNum();
 
-  static int getShmId(const std::string &id_filename);
+  static int getShmId(const std::string &idFilename);
+
+  //---
+
+  std::size_t messageSize() const { return sizeof(MessageData) + maxData_; }
+
+  std::size_t memorySize() const { return sizeof(MessageMemory) + numMessages_*messageSize(); }
 
  private:
-  struct ClientMessageData {
-    int  pending;
-    char msg[32768];
-    int  len;
+  enum class Type {
+    STRING
   };
 
-  struct ServerMessageData {
-    int  pending;
-    char msg[32768];
-    int  len;
-    int  error_code;
-  };
-
+  // message data (header and payload)
   struct MessageData {
-    ClientMessageData client_data;
-    ServerMessageData server_data;
+    uint uid; // fixed
+
+    char state[4]; // flags
+
+    uint id;
+    uint type;
+    uint len;
+    int  errorCode;
+    char data[4];
+
+    bool isPending() const { return state[0]; }
+    void setPending(bool b) { state[0] = b; }
+
+    bool isClient() const { return state[1]; }
+    void setClient(bool b) { state[1] = b; }
+  };
+
+  // shared memory (header and messages)
+  struct MessageMemory {
+    uint uid;
+    char data[4];
+  };
+
+  struct BufferData {
+    uint        num        { 0 };
+    uint        pos        { 0 };
+    char*       mem        { nullptr };
+    std::size_t memSize    { 0 };
+    bool        enabled    { true };
   };
 
   std::string id_;
-  int         shm_id_ { 0 };
-  std::string id_filename_;
-  std::string num_filename_;
-  bool        debug_ { false };
+  int         shmId_        { 0 };
+  std::string idFilename_;
+  std::string numFilename_;
+  bool        debug_        { false };
+  uint        lastId_       { 0 };
+  uint        numMessages_  { 1024 };
+  uint        numErrors_    { 0 };
+  uint        maxData_      { 1024 };
+  uint        numBuffers_   { 1024 };
+  BufferData  bufferData_;
 };
 
 #endif

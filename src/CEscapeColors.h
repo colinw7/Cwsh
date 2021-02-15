@@ -37,7 +37,7 @@ class CEscapeColors {
   void init();
 
  private:
-  typedef std::map<CEscapeColor,CRGBA> Colors;
+  using Colors = std::map<CEscapeColor,CRGBA>;
 
   CRGBA  bg_, fg_;
   Colors colors_;
