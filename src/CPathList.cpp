@@ -28,10 +28,10 @@ addEnvValue(const std::string &name)
 
   CStrWords words = CStrUtil::toFields(path, ":");
 
-  int num_words = words.size();
+  auto num_words = words.size();
 
-  for (int i = 0; i < num_words; i++)
-    dirs_.push_back(words[i].getWord());
+  for (uint i = 0; i < num_words; i++)
+    dirs_.push_back(words[int(i)].getWord());
 }
 
 void
@@ -110,7 +110,7 @@ mostMatchPrefix(const std::string &prefix, std::string &path)
   std::string file = CStrUtil::mostMatch(files, ind);
 
   if (ind >= 0)
-    path = dirs[ind];
+    path = dirs[uint(ind)];
 
   return file;
 }
@@ -161,9 +161,9 @@ matchPattern(const std::string &pattern, std::vector<std::string> &dirs,
 
     fileMatch.matchPattern(pattern1, files1);
 
-    int num_files1 = files1.size();
+    auto num_files1 = files1.size();
 
-    for (int j = 0; j < num_files1; j++) {
+    for (uint j = 0; j < num_files1; j++) {
       std::string fileName;
 
       if (! CFile::expandTilde(files1[j], fileName))
@@ -198,9 +198,9 @@ matchPattern(const std::string &pattern, std::vector<std::string> &dirs,
 
     fileMatch.matchPattern(full_path, files1);
 
-    int num_files1 = files1.size();
+    auto num_files1 = files1.size();
 
-    for (int j = 0; j < num_files1; j++) {
+    for (uint j = 0; j < num_files1; j++) {
       std::string fileName;
 
       if (! CFile::expandTilde(files1[j], fileName))

@@ -146,19 +146,19 @@ initSharedMem()
 {
   CMessageLock lock(shmId_);
 
-  auto *messageMemory = (MessageMemory *) lock.getData();
+  auto *messageMemory = reinterpret_cast<MessageMemory *>(lock.getData());
   assert(messageMemory);
 
   memset(messageMemory, 0, memorySize());
 
   messageMemory->uid = 0xBEADFEED;
 
-  auto *messageAddr = (char *) &messageMemory->data[0];
+  auto *messageAddr = reinterpret_cast<char *>(&messageMemory->data[0]);
 
   std::size_t messageSize = this->messageSize();
 
   for (uint i = 0; i < numMessages_; ++i) {
-    auto *messageData = (MessageData *) messageAddr;
+    auto *messageData = reinterpret_cast<MessageData *>(messageAddr);
 
     messageData->uid = 0xFEEDBEAD;
 
@@ -172,14 +172,14 @@ bool
 CMessage::
 sendClientMessage(const std::string &msg)
 {
-  return sendClientData((int) Type::STRING, msg.c_str(), msg.size() + 1);
+  return sendClientData(int(Type::STRING), msg.c_str(), int(msg.size() + 1));
 }
 
 bool
 CMessage::
 sendClientData(int type, const char *data, int len)
 {
-  if (len >= (int) maxData_) {
+  if (len >= int(maxData_)) {
     ++numErrors_;
     std::cerr << "CMessage::sendClientData : message too large (" << numErrors_ << ")\n";
     return false;
@@ -189,7 +189,7 @@ sendClientData(int type, const char *data, int len)
 
   CMessageLock lock(shmId_);
 
-  auto *messageMemory = (MessageMemory *) lock.getData();
+  auto *messageMemory = reinterpret_cast<MessageMemory *>(lock.getData());
 
   if (! messageMemory) {
     ++numErrors_;
@@ -205,10 +205,10 @@ sendClientData(int type, const char *data, int len)
   std::size_t messageSize = this->messageSize();
 
   uint  messageNum  = 0;
-  auto *messageAddr = (char *) &messageMemory->data[0];
+  auto *messageAddr = reinterpret_cast<char *>(&messageMemory->data[0]);
 
   while (messageNum < numMessages_) {
-    auto *messageData = (MessageData *) messageAddr;
+    auto *messageData = reinterpret_cast<MessageData *>(messageAddr);
 
     assert(messageData->uid == 0xFEEDBEAD);
 
@@ -224,19 +224,19 @@ sendClientData(int type, const char *data, int len)
 
   // use slot if found
   if (messageNum < numMessages_) {
-    auto *messageData = (MessageData *) messageAddr;
+    auto *messageData = reinterpret_cast<MessageData *>(messageAddr);
 
     messageData->setPending(true);
     messageData->setClient (true);
 
     messageData->id        = ++lastId_;
-    messageData->type      = type;
-    messageData->len       = len;
+    messageData->type      = uint(type);
+    messageData->len       = uint(len);
     messageData->errorCode = 0;
 
     char *clientData = &messageData->data[0];
 
-    memcpy(clientData, data, len);
+    memcpy(clientData, data, uint(len));
 
     //---
 
@@ -255,23 +255,23 @@ sendClientData(int type, const char *data, int len)
       if (pos >= numBuffers_)
         pos -= numBuffers_;
 
-      int messagePos = messageSize*pos;
+      int messagePos = int(messageSize*pos);
 
-      assert(messagePos + messageSize <= bufferData_.memSize);
+      assert(messagePos + int(messageSize) <= int(bufferData_.memSize));
 
-      auto *bufferMessageData = (MessageData *) &bufferData_.mem[messagePos];
+      auto *bufferMessageData = reinterpret_cast<MessageData *>(&bufferData_.mem[messagePos]);
 
       bufferMessageData->setPending(true);
       bufferMessageData->setClient (true);
 
       bufferMessageData->id        = ++lastId_;
-      bufferMessageData->type      = type;
-      bufferMessageData->len       = len;
+      bufferMessageData->type      = uint(type);
+      bufferMessageData->len       = uint(len);
       bufferMessageData->errorCode = 0;
 
       char *bufferData = &bufferMessageData->data[0];
 
-      memcpy(bufferData, data, len);
+      memcpy(bufferData, data, uint(len));
 
       ++bufferData_.num;
 
@@ -296,7 +296,7 @@ recvClientMessage(std::string &msg)
 {
   CMessageLock lock(shmId_);
 
-  auto *messageMemory = (MessageMemory *) lock.getData();
+  auto *messageMemory = reinterpret_cast<MessageMemory *>(lock.getData());
   if (! messageMemory) return false;
 
   assert(messageMemory->uid == 0xBEADFEED);
@@ -307,15 +307,15 @@ recvClientMessage(std::string &msg)
   std::size_t messageSize = this->messageSize();
 
   uint  messageNum  = 0;
-  auto *messageAddr = (char *) &messageMemory->data[0];
+  auto *messageAddr = reinterpret_cast<char *>(&messageMemory->data[0]);
 
   while (messageNum < numMessages_) {
-    auto *messageData = (MessageData *) messageAddr;
+    auto *messageData = reinterpret_cast<MessageData *>(messageAddr);
 
     assert(messageData->uid == 0xFEEDBEAD);
 
     if (messageData->isPending() && messageData->isClient() &&
-        messageData->type == (int) Type::STRING)
+        messageData->type == int(Type::STRING))
       break;
 
     ++messageNum;
@@ -329,7 +329,7 @@ recvClientMessage(std::string &msg)
   if (messageNum >= numMessages_)
     return false;
 
-  auto *messageData = (MessageData *) messageAddr;
+  auto *messageData = reinterpret_cast<MessageData *>(messageAddr);
 
   messageData->setPending(false);
 
@@ -346,7 +346,7 @@ recvClientData(int &type, char* &data, int &len)
 {
   CMessageLock lock(shmId_);
 
-  auto *messageMemory = (MessageMemory *) lock.getData();
+  auto *messageMemory = reinterpret_cast<MessageMemory *>(lock.getData());
   if (! messageMemory) return false;
 
   assert(messageMemory->uid == 0xBEADFEED);
@@ -357,10 +357,10 @@ recvClientData(int &type, char* &data, int &len)
   std::size_t messageSize = this->messageSize();
 
   uint  messageNum  = 0;
-  auto *messageAddr = (char *) &messageMemory->data[0];
+  auto *messageAddr = reinterpret_cast<char *>(&messageMemory->data[0]);
 
   while (messageNum < numMessages_) {
-    auto *messageData = (MessageData *) messageAddr;
+    auto *messageData = reinterpret_cast<MessageData *>(messageAddr);
 
     assert(messageData->uid == 0xFEEDBEAD);
 
@@ -378,16 +378,16 @@ recvClientData(int &type, char* &data, int &len)
   if (messageNum >= numMessages_)
     return false;
 
-  auto *messageData = (MessageData *) messageAddr;
+  auto *messageData = reinterpret_cast<MessageData *>(messageAddr);
 
   messageData->setPending(false);
 
-  type = messageData->len;
-  len  = messageData->len;
+  type = int(messageData->len);
+  len  = int(messageData->len);
 
-  data = new char [len];
+  data = new char [uint(len)];
 
-  memcpy(data, &messageData->data[0], len);
+  memcpy(data, &messageData->data[0], uint(len));
 
   return true;
 }
@@ -404,11 +404,11 @@ sendClientPending()
     if (pos >= numBuffers_)
       pos -= numBuffers_;
 
-    int messagePos = messageSize*pos;
+    int messagePos = int(messageSize*pos);
 
-    assert(messagePos + messageSize <= bufferData_.memSize);
+    assert(messagePos + int(messageSize) <= int(bufferData_.memSize));
 
-    auto *bufferMessageData = (MessageData *) &bufferData_.mem[messagePos];
+    auto *bufferMessageData = reinterpret_cast<MessageData *>(&bufferData_.mem[messagePos]);
 
     assert(bufferMessageData->isPending());
 
@@ -419,7 +419,7 @@ sendClientPending()
 
     bufferData_.enabled = false;
 
-    if (sendClientData(bufferMessageData->type, bufferData, bufferMessageData->len)) {
+    if (sendClientData(int(bufferMessageData->type), bufferData, int(bufferMessageData->len))) {
       ++bufferData_.pos;
       --bufferData_.num;
 
@@ -437,14 +437,14 @@ bool
 CMessage::
 sendServerMessage(const std::string &msg, int errorCode)
 {
-  return sendServerData((int) Type::STRING, msg.c_str(), msg.size() + 1, errorCode);
+  return sendServerData(int(Type::STRING), msg.c_str(), int(msg.size() + 1), errorCode);
 }
 
 bool
 CMessage::
 sendServerData(int type, const char *data, int len, int errorCode)
 {
-  if (len >= (int) maxData_) {
+  if (len >= int(maxData_)) {
     ++numErrors_;
     std::cerr << "CMessage::sendServerData : message too large (" << numErrors_ << ")\n";
     return false;
@@ -454,7 +454,7 @@ sendServerData(int type, const char *data, int len, int errorCode)
 
   CMessageLock lock(shmId_);
 
-  auto *messageMemory = (MessageMemory *) lock.getData();
+  auto *messageMemory = reinterpret_cast<MessageMemory *>(lock.getData());
 
   if (! messageMemory) {
     ++numErrors_;
@@ -470,10 +470,10 @@ sendServerData(int type, const char *data, int len, int errorCode)
   std::size_t messageSize = this->messageSize();
 
   uint  messageNum  = 0;
-  auto *messageAddr = (char *) &messageMemory->data[0];
+  auto *messageAddr = reinterpret_cast<char *>(&messageMemory->data[0]);
 
   while (messageNum < numMessages_) {
-    auto *messageData = (MessageData *) messageAddr;
+    auto *messageData = reinterpret_cast<MessageData *>(messageAddr);
 
     assert(messageData->uid == 0xFEEDBEAD);
 
@@ -489,19 +489,19 @@ sendServerData(int type, const char *data, int len, int errorCode)
 
   // use slot if found
   if (messageNum < numMessages_) {
-    auto *messageData = (MessageData *) messageAddr;
+    auto *messageData = reinterpret_cast<MessageData *>(messageAddr);
 
     messageData->setPending(true);
     messageData->setClient (false);
 
     messageData->id        = ++lastId_;
-    messageData->type      = type;
-    messageData->len       = len;
+    messageData->type      = uint(type);
+    messageData->len       = uint(len);
     messageData->errorCode = errorCode;
 
     char *serverData = &messageData->data[0];
 
-    memcpy(serverData, data, len);
+    memcpy(serverData, data, uint(len));
 
     //---
 
@@ -520,23 +520,23 @@ sendServerData(int type, const char *data, int len, int errorCode)
       if (pos >= numBuffers_)
         pos -= numBuffers_;
 
-      int messagePos = messageSize*pos;
+      int messagePos = int(messageSize*pos);
 
-      assert(messagePos + messageSize <= bufferData_.memSize);
+      assert(messagePos + int(messageSize) <= int(bufferData_.memSize));
 
-      auto *bufferMessageData = (MessageData *) &bufferData_.mem[messagePos];
+      auto *bufferMessageData = reinterpret_cast<MessageData *>(&bufferData_.mem[messagePos]);
 
       bufferMessageData->setPending(true);
       bufferMessageData->setClient (false);
 
       bufferMessageData->id        = ++lastId_;
-      bufferMessageData->type      = type;
-      bufferMessageData->len       = len;
+      bufferMessageData->type      = uint(type);
+      bufferMessageData->len       = uint(len);
       bufferMessageData->errorCode = errorCode;
 
       char *bufferServerData = &bufferMessageData->data[0];
 
-      memcpy(bufferServerData, data, len);
+      memcpy(bufferServerData, data, uint(len));
 
       ++bufferData_.num;
 
@@ -559,7 +559,7 @@ recvServerMessage(std::string &msg, int *errorCode)
 {
   CMessageLock lock(shmId_);
 
-  auto *messageMemory = (MessageMemory *) lock.getData();
+  auto *messageMemory = reinterpret_cast<MessageMemory *>(lock.getData());
   if (! messageMemory) return false;
 
   assert(messageMemory->uid == 0xBEADFEED);
@@ -570,15 +570,15 @@ recvServerMessage(std::string &msg, int *errorCode)
   std::size_t messageSize = this->messageSize();
 
   uint  messageNum  = 0;
-  auto *messageAddr = (char *) &messageMemory->data[0];
+  auto *messageAddr = reinterpret_cast<char *>(&messageMemory->data[0]);
 
   while (messageNum < numMessages_) {
-    auto *messageData = (MessageData *) messageAddr;
+    auto *messageData = reinterpret_cast<MessageData *>(messageAddr);
 
     assert(messageData->uid == 0xFEEDBEAD);
 
     if (messageData->isPending() && ! messageData->isClient() &&
-        messageData->type == (int) Type::STRING)
+        messageData->type == int(Type::STRING))
       break;
 
     ++messageNum;
@@ -592,7 +592,7 @@ recvServerMessage(std::string &msg, int *errorCode)
   if (messageNum >= numMessages_)
     return false;
 
-  auto *messageData = (MessageData *) messageAddr;
+  auto *messageData = reinterpret_cast<MessageData *>(messageAddr);
 
   messageData->setPending(false);
 
@@ -611,7 +611,7 @@ recvServerData(int &type, char* &data, int &len)
 {
   CMessageLock lock(shmId_);
 
-  auto *messageMemory = (MessageMemory *) lock.getData();
+  auto *messageMemory = reinterpret_cast<MessageMemory *>(lock.getData());
   if (! messageMemory) return false;
 
   assert(messageMemory->uid == 0xBEADFEED);
@@ -622,10 +622,10 @@ recvServerData(int &type, char* &data, int &len)
   std::size_t messageSize = this->messageSize();
 
   uint  messageNum  = 0;
-  auto *messageAddr = (char *) &messageMemory->data[0];
+  auto *messageAddr = reinterpret_cast<char *>(&messageMemory->data[0]);
 
   while (messageNum < numMessages_) {
-    auto *messageData = (MessageData *) messageAddr;
+    auto *messageData = reinterpret_cast<MessageData *>(messageAddr);
 
     assert(messageData->uid == 0xFEEDBEAD);
 
@@ -643,16 +643,16 @@ recvServerData(int &type, char* &data, int &len)
   if (messageNum >= numMessages_)
     return false;
 
-  auto *messageData = (MessageData *) messageAddr;
+  auto *messageData = reinterpret_cast<MessageData *>(messageAddr);
 
   messageData->setPending(false);
 
-  type = messageData->len;
-  len  = messageData->len;
+  type = int(messageData->len);
+  len  = int(messageData->len);
 
-  data = new char [len];
+  data = new char [uint(len)];
 
-  memcpy(data, &messageData->data[0], len);
+  memcpy(data, &messageData->data[0], uint(len));
 
   return true;
 }
@@ -706,7 +706,7 @@ getShmId(const std::string &idFilename)
 
   CMessageLock lock(integer);
 
-  auto *messageMemory = (MessageMemory *) lock.getData();
+  auto *messageMemory = reinterpret_cast<MessageMemory *>(lock.getData());
   if (! messageMemory) return 0;
 
   return integer;
@@ -835,7 +835,7 @@ CMessageLock(int id)
 
   data_ = shmat(id, nullptr, SHM_RND);
 
-  if (data_ == (void *) -1)
+  if (data_ == reinterpret_cast<void *>(-1))
     data_ = nullptr;
 }
 
