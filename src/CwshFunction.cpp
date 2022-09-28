@@ -58,7 +58,7 @@ void
 CwshFunction::
 runProc(const CwshArgArray &args, CCommand::CallbackData data)
 {
-  CwshFunction *function = (CwshFunction *) data;
+  auto *function = reinterpret_cast<CwshFunction *>(data);
 
   function->run(args);
 }

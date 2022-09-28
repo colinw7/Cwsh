@@ -18,7 +18,7 @@ parse(const std::string &str, uint *pos)
 
   std::string expr;
 
-  uint len = str.size();
+  uint len = uint(str.size());
 
   if (*pos < len && str[*pos] == '(') {
     (*pos)++;
@@ -77,7 +77,7 @@ subStack(CwshExprStackStack *stack, const std::string &str, uint *pos)
 
   CStrUtil::skipSpace(str, pos);
 
-  uint len = str.size();
+  uint len = uint(str.size());
 
   while (*pos < len) {
     /* <expression> := <file_operator> <filename> */
@@ -99,7 +99,7 @@ subStack(CwshExprStackStack *stack, const std::string &str, uint *pos)
       CwshPattern pattern(cwsh_);
 
       if (pattern.expandWordToFiles(word, words)) {
-        uint num_words = words.size();
+        uint num_words = uint(words.size());
 
         for (uint i = 0; i < num_words; i++)
           stack->push(words[i].getWord());
@@ -445,7 +445,7 @@ readString(const std::string &str, uint *pos)
 {
   std::string value = "";
 
-  uint len = str.size();
+  uint len = uint(str.size());
 
   while (*pos < len) {
     if      (str[*pos] == '\"') {
@@ -479,7 +479,7 @@ skipToCloseBracket(const std::string &str, uint *pos)
 {
   uint brackets = 0;
 
-  uint len = str.size();
+  uint len = uint(str.size());
 
   while (*pos < len) {
     if      (str[*pos] == '(') {

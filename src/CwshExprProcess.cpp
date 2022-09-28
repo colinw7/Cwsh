@@ -276,7 +276,7 @@ CwshExprProcess::
 getValueType(const std::string &value, int *integer)
 {
   if (CStrUtil::isInteger(value)) {
-    *integer = CStrUtil::toInteger(value);
+    *integer = int(CStrUtil::toInteger(value));
 
     return CwshExprProcessValueType::INTEGER;
   }

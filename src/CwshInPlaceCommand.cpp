@@ -16,7 +16,7 @@ expand(CwshWordArray &words)
 
   std::string str1;
 
-  int num_sub_words = sub_words.size();
+  int num_sub_words = int(sub_words.size());
 
   for (int i = 0; i < num_sub_words; i++) {
     CwshSubWordType type = sub_words[i].getType();
@@ -66,7 +66,7 @@ expandQuotedWord(const CwshWord &word, std::string &word1)
 
   const CwshSubWordArray &sub_words = word.getSubWords();
 
-  int num_sub_words = sub_words.size();
+  int num_sub_words = int(sub_words.size());
 
   for (int i = 0; i < num_sub_words; i++) {
     CwshSubWordType type = sub_words[i].getType();
@@ -101,7 +101,7 @@ expandCommand(const std::string &str)
 
   std::string output;
 
-  int num_groups = groups.size();
+  int num_groups = int(groups.size());
 
   for (int i = 0; i < num_groups; i++) {
     CwshCmdArray cmds = CwshCommandUtil::parseCommandGroup(cwsh_, groups[i]);
@@ -139,7 +139,7 @@ executeCommands(const CwshCmdArray &cmds)
 
   std::vector<CwshCommandData *> pcommands;
 
-  int num_cmds = cmds.size();
+  int num_cmds = int(cmds.size());
 
   for (int i = 0; i < num_cmds; i++) {
     if (cwsh_->getDebug()) {
@@ -219,7 +219,7 @@ executeCommands(const CwshCmdArray &cmds)
 
     if (separator != CwshCmdSeparatorType::PIPE &&
         separator != CwshCmdSeparatorType::PIPE_ERR) {
-      int num_pcommands = pcommands.size();
+      int num_pcommands = int(pcommands.size());
 
       if (num_pcommands > 0) {
         command1->addPipeSrc();
@@ -229,7 +229,7 @@ executeCommands(const CwshCmdArray &cmds)
 
         pcommands[num_pcommands - 1]->getCommand()->start();
 
-        int numPCmds = cmds.size();
+        int numPCmds = int(cmds.size());
 
         if (i == numPCmds - 1) {
           command1->addStringDest(output);
@@ -269,7 +269,7 @@ executeCommands(const CwshCmdArray &cmds)
         pcommands.clear();
       }
       else {
-        int numPCmds = cmds.size();
+        int numPCmds = int(cmds.size());
 
         if (i == numPCmds - 1) {
           command1->addStringDest(output);

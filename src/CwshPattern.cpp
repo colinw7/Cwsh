@@ -23,7 +23,7 @@ expandWordToFiles(const CwshWord &word, CwshWordArray &words)
 
   std::string word1;
 
-  int num_sub_words = sub_words.size();
+  int num_sub_words = int(sub_words.size());
 
   for (int i = 0; i < num_sub_words; i++) {
     CwshSubWordType type = sub_words[i].getType();
@@ -63,7 +63,7 @@ expandWordToFiles(const CwshWord &word, CwshWordArray &words)
 
   CStrUtil::sort(words1);
 
-  int num_words1 = words1.size();
+  int num_words1 = int(words1.size());
 
   for (int i = 0; i < num_words1; i++)
     words.push_back(CwshWord(words1[i]));

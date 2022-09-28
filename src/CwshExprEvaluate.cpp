@@ -15,7 +15,7 @@ process()
   if (! CStrUtil::isInteger(value))
     CWSH_THROW("Invalid Expression '" + expression_ + "'");
 
-  int integer = CStrUtil::toInteger(value);
+  int integer = int(CStrUtil::toInteger(value));
 
   return integer;
 }

@@ -86,7 +86,7 @@ find(CwshBlockType type)
   if (current_block_->getType() == type)
     return current_block_;
 
-  int num_blocks = block_stack_.size();
+  int num_blocks = int(block_stack_.size());
 
   for (int i = num_blocks - 1; i >= 0; --i) {
     CwshBlock *block = block_stack_[i];
@@ -115,7 +115,7 @@ gotoLabel(const std::string &label)
     return;
   }
 
-  int num_blocks = block_stack_.size();
+  int num_blocks = int(block_stack_.size());
 
   for (int i = num_blocks - 1; i >= 0; i--) {
     CwshBlock *block = block_stack_[i];
@@ -161,14 +161,14 @@ bool
 CwshBlock::
 eof() const
 {
-  return (line_num_ >= (int) lines_.size());
+  return (line_num_ >= int(lines_.size()));
 }
 
 int
 CwshBlock::
 getLabelLineNum(const std::string &label) const
 {
-  int num_lines = lines_.size();
+  int num_lines = int(lines_.size());
 
   for (int i = 0; i < num_lines; i++) {
     const CwshLine &line = lines_[i];

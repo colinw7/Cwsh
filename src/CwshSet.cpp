@@ -15,7 +15,7 @@ parseSet(const std::string &str, std::string &name, int *index,
 
   parseVariable(str, &i, name, index);
 
-  uint len = str.size();
+  uint len = uint(str.size());
 
   if (i >= len || str[i] != '=')
     return;
@@ -31,7 +31,7 @@ processSet(const std::string &name, int index, CwshVariableType type,
            std::vector<std::string> &values)
 {
   if (index != -1) {
-    int num_values = values.size();
+    int num_values = int(values.size());
 
     if (num_values != 1)
       CWSH_THROW("Syntax Error.");
@@ -102,7 +102,7 @@ processAssign(const std::string &name, int index,
     if (! CStrUtil::isInteger(str))
       CWSH_THROW("Expression Syntax.");
 
-    integer1 = CStrUtil::toInteger(str);
+    integer1 = int(CStrUtil::toInteger(str));
   }
   else {
     if (assign_type != CwshSetAssignType::EQUALS && ! variable)
@@ -114,7 +114,7 @@ processAssign(const std::string &name, int index,
       if (! CStrUtil::isInteger(str))
         CWSH_THROW("Expression Syntax.");
 
-      integer1 = CStrUtil::toInteger(str);
+      integer1 = int(CStrUtil::toInteger(str));
     }
   }
 
@@ -173,7 +173,7 @@ parseVariable(const std::string &str, uint *i, std::string &name, int *index)
 {
   CStrUtil::skipSpace(str, i);
 
-  uint len = str.size();
+  uint len = uint(str.size());
 
   if (*i >= len || (str[*i] != '_' && ! isalpha(str[*i])))
     CWSH_THROW("Variable name must begin with a letter.");
@@ -209,7 +209,7 @@ parseVariable(const std::string &str, uint *i, std::string &name, int *index)
   if (! CStrUtil::isInteger(istr))
     throw "set: Subscript error.";
 
-  *index = CStrUtil::toInteger(istr);
+  *index = int(CStrUtil::toInteger(istr));
 
   CStrUtil::skipSpace(str, i);
 
@@ -367,7 +367,7 @@ setValues(const std::string &str, uint *i, CwshVariableType *type,
 {
   CStrUtil::skipSpace(str, i);
 
-  uint len = str.size();
+  uint len = uint(str.size());
 
   if (*i < len && str[*i] == '(') {
     *type = CwshVariableType::WORDLIST;

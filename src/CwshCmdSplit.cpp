@@ -6,7 +6,7 @@ wordsToCommandLines(const CwshWordArray &words, CwshCmdLineArray &cmds)
 {
   int i = 0;
 
-  int num_words = words.size();
+  int num_words = int(words.size());
 
   while (i < num_words) {
     CwshCmdLine *cmd = new CwshCmdLine();
@@ -25,7 +25,7 @@ wordsToCommandLine(const CwshWordArray &words, int *i, CwshCmdLine *cmd)
 {
   int brackets = 0;
 
-  int num_words = words.size();
+  int num_words = int(words.size());
 
   while (*i < num_words) {
     const std::string &word = words[*i].getWord();
@@ -59,7 +59,7 @@ wordsToCommands(const CwshWordArray &words, CwshCmdArray &cmds)
 {
   int i = 0;
 
-  int num_words = words.size();
+  int num_words = int(words.size());
 
   while (i < num_words) {
     CwshCmd *cmd = new CwshCmd();
@@ -92,7 +92,7 @@ wordsToCommand(const CwshWordArray &words, int *i, CwshCmd *cmd)
 {
   int brackets = 0;
 
-  int num_words = words.size();
+  int num_words = int(words.size());
 
   while (*i < num_words) {
     const std::string &word = words[*i].getWord();

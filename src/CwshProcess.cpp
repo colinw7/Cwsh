@@ -95,7 +95,7 @@ displayActive(bool list_pids)
     active_processes.push_back(process);
   }
 
-  uint num_active_processes = active_processes.size();
+  uint num_active_processes = uint(active_processes.size());
 
   for (uint i = 0; i < num_active_processes; i++) {
     CwshProcess *process = active_processes[i];
@@ -210,7 +210,7 @@ getActiveProcess(const std::string &str)
   else if (str.size() == 2 && str[1] == '-')
     process = getPreviousActiveProcess();
   else if (str.size() > 1 && CStrUtil::isInteger(str.substr(1))) {
-    int process_num = CStrUtil::toInteger(str.substr(1));
+    int process_num = int(CStrUtil::toInteger(str.substr(1)));
 
     process = getActiveProcess(process_num);
   }
@@ -284,7 +284,7 @@ getActiveProcess(int num)
     active_processes.push_back(process);
   }
 
-  int num_active_processes = active_processes.size();
+  int num_active_processes = int(active_processes.size());
 
   if (num > num_active_processes)
     return nullptr;
@@ -403,7 +403,7 @@ void
 CwshProcess::
 resume()
 {
-  uint numSubCommands = subCommands_.size();
+  uint numSubCommands = uint(subCommands_.size());
 
   for (uint i = 0; i < numSubCommands; ++i)
     subCommands_[i]->getCommand()->resume();
@@ -434,7 +434,7 @@ isPid(pid_t pid) const
   if (pid1 == pid)
     return true;
 
-  uint numSubCommands = subCommands_.size();
+  uint numSubCommands = uint(subCommands_.size());
 
   for (uint i = 0; i < numSubCommands; ++i) {
     pid1 = subCommands_[i]->getCommand()->getPid();
@@ -452,7 +452,7 @@ print() const
 {
   std::cout << " " << command_->getCommand()->getCommandString();
 
-  uint numSubCommands = subCommands_.size();
+  uint numSubCommands = uint(subCommands_.size());
 
   for (uint i = 0; i < numSubCommands; ++i)
     std::cout << " | " << subCommands_[i]->getCommand()->getCommandString();

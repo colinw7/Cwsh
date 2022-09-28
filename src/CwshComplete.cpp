@@ -35,8 +35,8 @@ complete(std::string &line1)
   else
     flag = false;
 
-  uint len  = word .size();
-  uint len1 = word1.size();
+  uint len  = uint(word .size());
+  uint len1 = uint(word1.size());
 
   if (! flag || len1 < len || word != word1.substr(0, len))
     return false;
@@ -98,7 +98,7 @@ completeFile(const std::string &file, std::string &file1)
 
   CFileMatch fileMatch;
 
-  uint num = file_ignore_list_.size();
+  uint num = int(file_ignore_list_.size());
 
   for (uint i = 0; i < num; ++i)
     fileMatch.addIgnorePattern(file_ignore_list_[i]);
@@ -108,7 +108,7 @@ completeFile(const std::string &file, std::string &file1)
   if (file1.find(' ')) {
     std::string file2;
 
-    uint len = file1.size();
+    uint len = uint(file1.size());
 
     for (uint i = 0; i < len; ++i) {
       if (file1[i] == ' ')
@@ -136,7 +136,7 @@ completeExecFile(const std::string &file, std::string &file1)
   if (file1.find(' ')) {
     std::string file2;
 
-    uint len = file1.size();
+    uint len = uint(file1.size());
 
     for (uint i = 0; i < len; ++i) {
       if (file1[i] == ' ')
@@ -212,19 +212,19 @@ getCompletionType(std::string *word)
 
   CwshString::addWords(line_, words);
 
-  uint len = line_.size();
+  uint len = uint(line_.size());
 
   if (len > 0 && isspace(line_[len - 1]))
     words.push_back("");
 
-  len = words.size();
+  len = uint(words.size());
 
   if (len == 0)
     return CwshCompletionType::NONE;
 
   const std::string &word1 = words[len - 1];
 
-  uint len1 = word1.size();
+  uint len1 = uint(word1.size());
 
   if      (len1 > 0 && word1[0] == '$') {
     *word = word1.substr(1);

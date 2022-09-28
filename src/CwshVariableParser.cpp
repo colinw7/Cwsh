@@ -15,7 +15,7 @@ expandVariables(CwshWordArray &words)
 
   std::string word1;
 
-  int num_sub_words = sub_words.size();
+  int num_sub_words = int(sub_words.size());
 
   for (int i = 0; i < num_sub_words; i++) {
     CwshSubWordType type = sub_words[i].getType();
@@ -43,7 +43,7 @@ expandVariables(CwshWordArray &words)
 
       sub_words1[0] = word1 + sub_words1[0];
 
-      int num_sub_words1 = sub_words1.size();
+      int num_sub_words1 = int(sub_words1.size());
 
       for (int j = 0; j < num_sub_words1 - 1; j++)
         words.push_back(sub_words1[j]);
@@ -67,7 +67,7 @@ expandQuotedVariables(const CwshWord &word)
 
   std::string word1;
 
-  int num_sub_words = sub_words.size();
+  int num_sub_words = int(sub_words.size());
 
   for (int i = 0; i < num_sub_words; i++) {
     CwshSubWordType type = sub_words[i].getType();
@@ -87,7 +87,7 @@ expandQuotedVariables(const CwshWord &word)
 
       expandVariables1(sub_words[i].getString(), sub_words1);
 
-      int num_sub_words1 = sub_words1.size();
+      int num_sub_words1 = int(sub_words1.size());
 
       for (int j = 0; j < num_sub_words1; j++)
         word1 += sub_words1[j];
@@ -105,7 +105,7 @@ expandVariables1(const std::string &str, std::vector<std::string> &words)
 
   int i = 0;
 
-  int len = str.size();
+  int len = int(str.size());
 
   while (i < len) {
     int j = i;
@@ -216,7 +216,7 @@ expandVariables1(const std::string &str, std::vector<std::string> &words)
 
     values[0] = word + values[0];
 
-    int num_values = values.size();
+    int num_values = int(values.size());
 
     for (int k = 0; k < num_values - 1; k++)
       words.push_back(values[k]);
@@ -297,7 +297,7 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
   //------
 
   if (isdigit(name1[0])) {
-    int len1 = name1.size();
+    int len1 = int(name1.size());
 
     int i = 1;
 
@@ -306,7 +306,7 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
 
     std::string num_str = name1.substr(0, i);
 
-    int num = CStrUtil::toInteger(num_str);
+    int num = int(CStrUtil::toInteger(num_str));
 
     if (type == CwshVariableValueType::SIZE)
       CWSH_THROW("$#<num> is not allowed.");
@@ -328,7 +328,7 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
 
   //------
 
-  int len1 = name1.size();
+  int len1 = int(name1.size());
 
   int i = 1;
 
@@ -376,7 +376,7 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
 
     std::vector<std::string> values = CEnvInst.getValues(variable_name);
 
-    int num_values = values.size();
+    int num_values = int(values.size());
 
     for (int iv = 0; iv < num_values; iv++)
       variable_values.push_back(values[iv]);
@@ -385,7 +385,7 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
   //------
 
   if (type == CwshVariableValueType::SIZE) {
-    std::string word = CStrUtil::toString((int) variable_values.size());
+    std::string word = CStrUtil::toString(int(variable_values.size()));
 
     word += subscript_str;
 
@@ -396,7 +396,7 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
 
   //------
 
-  int subscript_len = subscript_str.size();
+  int subscript_len = int(subscript_str.size());
 
   int start_value, end_value;
 
@@ -412,7 +412,7 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
 
     if      (subscript_str[is] == '*') {
       start_value = 1;
-      end_value   = variable_values.size();
+      end_value   = int(variable_values.size());
 
       is++;
     }
@@ -427,9 +427,9 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
 
         std::string num_str = subscript_str.substr(j, is - j);
 
-        start_value = CStrUtil::toInteger(num_str);
+        start_value = int(CStrUtil::toInteger(num_str));
 
-        int num_variable_values = variable_values.size();
+        int num_variable_values = int(variable_values.size());
 
         if (variable_name == "argv") {
           if (start_value <  0 || start_value > num_variable_values)
@@ -463,9 +463,9 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
 
           std::string num_str = subscript_str.substr(j, is - j);
 
-          end_value = CStrUtil::toInteger(num_str);
+          end_value = int(CStrUtil::toInteger(num_str));
 
-          int num_variable_values = variable_values.size();
+          int num_variable_values = int(variable_values.size());
 
           if (end_value <= 0 || end_value > num_variable_values)
             CWSH_THROW(variable_name + ": Subscript out of range.");
@@ -474,7 +474,7 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
           if (start_value == -1)
             CWSH_THROW("Variable Syntax.");
 
-          end_value = variable_values.size();
+          end_value = int(variable_values.size());
         }
       }
       else
@@ -493,11 +493,11 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
 
     subscript_str = subscript_str.substr(is);
 
-    subscript_len = subscript_str.size();
+    subscript_len = int(subscript_str.size());
   }
   else {
     start_value = 1;
-    end_value   = variable_values.size();
+    end_value   = int(variable_values.size());
   }
 
   CwshVariableValueModifier modifier = CwshVariableValueModifier::NONE;
@@ -556,7 +556,7 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
     start_value++;
   }
 
-  int num_variable_values = variable_values.size();
+  int num_variable_values = int(variable_values.size());
 
   for (i = start_value; i <= end_value; i++) {
     if      (i >= 1 && i <= num_variable_values)
@@ -571,7 +571,7 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
            modifier == CwshVariableValueModifier::EXTENSION ||
            modifier == CwshVariableValueModifier::HEADER ||
            modifier == CwshVariableValueModifier::TAIL) {
-    int num_values = values.size();
+    int num_values = int(values.size());
 
     for (int iv = 0; iv < num_values; iv++) {
       if      (modifier == CwshVariableValueModifier::ROOT) {
@@ -607,7 +607,7 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
            modifier == CwshVariableValueModifier::QUOTE_WORD) {
     std::string value;
 
-    int num_values = values.size();
+    int num_values = int(values.size());
 
     for (int iv = 0; iv < num_values; iv++) {
       if (iv > 0)

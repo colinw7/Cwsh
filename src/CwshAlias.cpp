@@ -93,7 +93,7 @@ substitute(CwshCmd *cmd, CwshCmdArray &cmds) const
 
   CwshCmdSplit::wordsToCommands(words1, cmds);
 
-  int num_cmds = cmds.size();
+  int num_cmds = int(cmds.size());
 
   if (num_cmds > 0)
     cmds[num_cmds - 1]->setSeparator(cmd->getSeparator());

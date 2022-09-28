@@ -334,7 +334,7 @@ CwshVariable::
 CwshVariable(const CwshVariable &variable) :
  cwsh_(variable.cwsh_), name_(variable.name_), type_(variable.type_), envVar_(variable.envVar_)
 {
-  int num_values = variable.values_.size();
+  int num_values = int(variable.values_.size());
 
   for (int i = 0; i < num_values; ++i)
     values_.push_back(variable.values_[i]);
@@ -349,7 +349,7 @@ void
 CwshVariable::
 checkName()
 {
-  int len = name_.size();
+  int len = int(name_.size());
 
   if (len < 1)
     CWSH_THROW("NULL variable Name");
@@ -390,7 +390,7 @@ int
 CwshVariable::
 getNumValues() const
 {
-  return values_.size();
+  return int(values_.size());
 }
 
 const CwshVariableValueArray &
@@ -418,7 +418,7 @@ void
 CwshVariable::
 shift()
 {
-  int len = values_.size();
+  int len = int(values_.size());
 
   for (int i = 1; i < len; i++)
     values_[i - 1] = values_[i];
@@ -434,7 +434,7 @@ print(bool all) const
 
   std:: cout << CwshMgrInst.varValueColorStr();
 
-  int num_values = values_.size();
+  int num_values = int(values_.size());
 
   if (num_values > 1)
     std::cout << '(';

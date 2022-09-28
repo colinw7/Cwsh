@@ -8,7 +8,7 @@ toWords(const std::string &line, CwshWordArray &words)
 
   CwshString::addWords(line, words1);
 
-  int num_words1 = words1.size();
+  int num_words1 = int(words1.size());
 
   for (int i = 0; i < num_words1; i++) {
     const std::string &word = words1[i];
@@ -23,7 +23,7 @@ toString(const CwshWordArray &words)
 {
   std::string str;
 
-  int num_words = words.size();
+  int num_words = int(words.size());
 
   for (int i = 0; i < num_words; i++) {
     if (i > 0)
@@ -41,7 +41,7 @@ toString(const CwshSubWordArray &sub_words)
 {
   std::string str;
 
-  int num_sub_words = sub_words.size();
+  int num_sub_words = int(sub_words.size());
 
   for (int i = 0; i < num_sub_words; i++)
     str += sub_words[i].getString();
@@ -53,7 +53,7 @@ void
 CwshWord::
 printWords(const CwshWordArray &words)
 {
-  int num_words = words.size();
+  int num_words = int(words.size());
 
   for (int i = 0; i < num_words; i++) {
     if (i > 0)
@@ -95,7 +95,7 @@ void
 CwshWord::
 createSubWords()
 {
-  uint len = word_.size();
+  uint len = uint(word_.size());
 
   std::string sub_word;
 
@@ -162,7 +162,7 @@ removeQuotes()
 
   std::string str;
 
-  int num_sub_words = sub_words.size();
+  int num_sub_words = int(sub_words.size());
 
   for (int i = 0; i < num_sub_words; i++)
     str += sub_words[i].getWord();

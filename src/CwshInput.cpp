@@ -73,7 +73,7 @@ executeCurrentFile()
   int lineNum = 1;
 
   while (inputFile_->readLine(line)) {
-    uint len = line.size();
+    uint len = uint(line.size());
 
     if (len == 0) {
       ++lineNum;
@@ -317,7 +317,7 @@ processLine(const CwshLine &line)
 
     CStrUtil::skipSpace(line.line, &i);
 
-    uint len = line.line.size();
+    uint len = uint(line.line.size());
 
     if (i < len && line.line[i] != '#')
       line1 = line.line;
@@ -390,7 +390,7 @@ processLine(const CwshLine &line)
 
     //------
 
-    uint num_groups = groups.size();
+    uint num_groups = uint(groups.size());
 
     for (uint ig = 0; ig < num_groups; ig++) {
       // Parse Command
@@ -437,7 +437,7 @@ executeCommands(const CwshCmdArray &cmds)
   std::vector<std::string>       delete_files;
   CwshCommandData*               first_command = nullptr;
 
-  int num_cmds = cmds.size();
+  int num_cmds = int(cmds.size());
 
   for (int i = 0; i < num_cmds; i++) {
     if (cwsh_->getDebug()) {
@@ -539,7 +539,7 @@ executeCommands(const CwshCmdArray &cmds)
 
     if (separator != CwshCmdSeparatorType::PIPE &&
         separator != CwshCmdSeparatorType::PIPE_ERR) {
-      int num_pcommands = pcommands.size();
+      int num_pcommands = int(pcommands.size());
 
       if (num_pcommands > 0) {
         ccommand->addPipeSrc();
@@ -686,7 +686,7 @@ executeCommands(const CwshCmdArray &cmds)
     }
   }
 
-  int num_delete_files = delete_files.size();
+  int num_delete_files = int(delete_files.size());
 
   for (int i = 0; i < num_delete_files; i++)
     unlink(delete_files[i].c_str());
@@ -736,7 +736,7 @@ processStdInLine(const CwshLine &line)
     CwshWord::printWords(words);
   }
 
-  int num_words = words.size();
+  int num_words = int(words.size());
 
   //------
 
@@ -755,7 +755,7 @@ processStdInLine(const CwshLine &line)
       variable_words.push_back(words[i]);
   }
 
-  int num_variable_words = variable_words.size();
+  int num_variable_words = int(variable_words.size());
 
   //------
 
@@ -771,7 +771,7 @@ processStdInLine(const CwshLine &line)
     CwshInPlaceCommand icmd(cwsh_, word);
 
     if (icmd.expand(in_place_words)) {
-      int num_in_place_words = in_place_words.size();
+      int num_in_place_words = int(in_place_words.size());
 
       for (int k = 0; k < num_in_place_words; ++k)
         cmd_words.push_back(in_place_words[k]);
@@ -799,7 +799,7 @@ processExprLine(const CwshLine &line)
     CwshWord::printWords(words);
   }
 
-  int num_words = words.size();
+  int num_words = int(words.size());
 
   //------
 
@@ -818,7 +818,7 @@ processExprLine(const CwshLine &line)
       variable_words.push_back(words[i]);
   }
 
-  int num_variable_words = variable_words.size();
+  int num_variable_words = int(variable_words.size());
 
   //------
 
@@ -839,7 +839,7 @@ processExprLine(const CwshLine &line)
       cmd_words.push_back(word);
   }
 
-  int num_cmd_words = cmd_words.size();
+  int num_cmd_words = int(cmd_words.size());
 
   //------
 
@@ -869,7 +869,7 @@ processExprLine(const CwshLine &line)
       brace_words.push_back(word);
   }
 
-  int num_brace_words = brace_words.size();
+  int num_brace_words = int(brace_words.size());
 
   //------
 

@@ -6,7 +6,7 @@ expand(const CwshWord &word, CwshWordArray &words)
 {
   std::string str = word.getWord();
 
-  uint len = str.size();
+  uint len = uint(str.size());
 
   uint i = 0;
 
@@ -84,7 +84,7 @@ expand(const CwshWord &word, CwshWordArray &words)
     if      (str[j] == '\\') {
       j++;
 
-      if (j < (int) len)
+      if (j < int(len))
         j++;
     }
     else if (str[j] == ',') {
@@ -106,7 +106,7 @@ expand(const CwshWord &word, CwshWordArray &words)
 
   //------
 
-  uint num_words = words1.size();
+  uint num_words = uint(words1.size());
 
   for (i = 0; i < num_words; i++) {
     const CwshWord &cword1 = words1[i];

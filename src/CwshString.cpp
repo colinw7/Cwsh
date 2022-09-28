@@ -17,7 +17,7 @@ void
 CwshString::
 skipWordsToChar(const std::string &str, uint *i, int c)
 {
-  uint len = str.size();
+  uint len = uint(str.size());
 
   int brackets = 0;
 
@@ -58,14 +58,14 @@ skipWordsToChar(const std::string &str, uint *i, int c)
   }
 
   if (*i >= len)
-    CWSH_THROW(std::string("Unmatched ") + ((char) c) + ".");
+    CWSH_THROW(std::string("Unmatched ") + char(c) + ".");
 }
 
 void
 CwshString::
 skipWord(const std::string &str, uint *i)
 {
-  uint len = str.size();
+  uint len = uint(str.size());
 
   int brackets = 0;
 
@@ -106,7 +106,7 @@ void
 CwshString::
 addWords(const std::string &str, std::vector<std::string> &words)
 {
-  uint len = str.size();
+  uint len = uint(str.size());
 
   std::string word;
 
@@ -305,7 +305,7 @@ matchUsers(const std::string &pattern, std::vector<std::string> &names)
 
   COSUser::getUsers(pw_names);
 
-  int num_names = pw_names.size();
+  int num_names = int(pw_names.size());
 
   for (int i = 0; i < num_names; ++i) {
     if (glob.compare(pw_names[i]))

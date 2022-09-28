@@ -107,7 +107,7 @@ print(CwshResourceLimit *rlimit, bool hard)
 
   std::cout << rlimit->name;
 
-  int name_len = rlimit->name.size();
+  int name_len = int(rlimit->name.size());
 
   for (int i = name_len; i < 16; i++)
     std::cout << " ";
@@ -118,9 +118,9 @@ print(CwshResourceLimit *rlimit, bool hard)
   }
 
   if      (rlimit->type == CwshResourceType::TIME) {
-    int value1 = value/3600;
-    int value2 = (value - value1*3600)/60;
-    int value3 = value - value1*3600 - value2*60;
+    int value1 = int(value/3600);
+    int value2 = int((value - value1*3600)/60);
+    int value3 = int(value - value1*3600 - value2*60);
 
     if (value1 > 0)
       std::cout << value1 << value2 << value3 << std::endl;
@@ -128,7 +128,7 @@ print(CwshResourceLimit *rlimit, bool hard)
       std::cout << value2 << value3 << std::endl;
   }
   else if (rlimit->type == CwshResourceType::SIZE)
-    std::cout << (int) (value/1024) << " kbytes" << std::endl;
+    std::cout << int(value/1024) << " kbytes" << std::endl;
   else
     std::cout << value << std::endl;
 }
@@ -137,7 +137,7 @@ int
 CwshResource::
 convertValue(CwshResourceLimit *rlimit, const std::string &value)
 {
-  uint len = value.size();
+  uint len = uint(value.size());
 
   if (len == 0 || ! isdigit(value[0]))
     CWSH_THROW("Invalid Value.");

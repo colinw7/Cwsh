@@ -29,7 +29,7 @@ processMessage()
   if (! message_->recvClientMessage(msg))
     return false;
 
-  uint len = msg.size();
+  uint len = uint(msg.size());
 
   std::string reply;
 

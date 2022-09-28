@@ -7,7 +7,7 @@ lookup(Cwsh *cwsh, const std::string &dirname, bool required)
   if (CFile::exists(dirname) && CFile::isDirectory(dirname))
     return dirname;
 
-  int len = dirname.size();
+  int len = int(dirname.size());
 
   if (len > 0 && (dirname[0] == '/' || dirname[0] == '.')) {
     if (required)

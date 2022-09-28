@@ -60,23 +60,40 @@ void
 CwshSignal::
 addHandlers()
 {
-  COSSignal::addSignalHandler(SIGHUP  , (COSSignal::SignalHandler) termHandler     );
-  COSSignal::addSignalHandler(SIGINT  , (COSSignal::SignalHandler) interruptHandler);
-  COSSignal::addSignalHandler(SIGQUIT , (COSSignal::SignalHandler) genericHandler  );
-  COSSignal::addSignalHandler(SIGILL  , (COSSignal::SignalHandler) genericHandler  );
-  COSSignal::addSignalHandler(SIGTRAP , (COSSignal::SignalHandler) genericHandler  );
-  COSSignal::addSignalHandler(SIGIOT  , (COSSignal::SignalHandler) genericHandler  );
-  COSSignal::addSignalHandler(SIGFPE  , (COSSignal::SignalHandler) genericHandler  );
-  COSSignal::addSignalHandler(SIGUSR1 , (COSSignal::SignalHandler) genericHandler  );
-  COSSignal::addSignalHandler(SIGUSR2 , (COSSignal::SignalHandler) genericHandler  );
-  COSSignal::addSignalHandler(SIGPIPE , (COSSignal::SignalHandler) genericHandler  );
-  COSSignal::addSignalHandler(SIGALRM , (COSSignal::SignalHandler) genericHandler  );
-  COSSignal::addSignalHandler(SIGTERM , (COSSignal::SignalHandler) genericHandler  );
-  COSSignal::addSignalHandler(SIGCONT , (COSSignal::SignalHandler) genericHandler  );
-  COSSignal::addSignalHandler(SIGTSTP , (COSSignal::SignalHandler) stopHandler     );
-  COSSignal::addSignalHandler(SIGTTIN , (COSSignal::SignalHandler) SIG_IGN         );
-  COSSignal::addSignalHandler(SIGTTOU , (COSSignal::SignalHandler) genericHandler  );
-  COSSignal::addSignalHandler(SIGWINCH, (COSSignal::SignalHandler) genericHandler  );
+  COSSignal::addSignalHandler(SIGHUP  ,
+    reinterpret_cast<COSSignal::SignalHandler>(termHandler     ));
+  COSSignal::addSignalHandler(SIGINT  ,
+    reinterpret_cast<COSSignal::SignalHandler>(interruptHandler));
+  COSSignal::addSignalHandler(SIGQUIT ,
+    reinterpret_cast<COSSignal::SignalHandler>(genericHandler  ));
+  COSSignal::addSignalHandler(SIGILL  ,
+    reinterpret_cast<COSSignal::SignalHandler>(genericHandler  ));
+  COSSignal::addSignalHandler(SIGTRAP ,
+    reinterpret_cast<COSSignal::SignalHandler>(genericHandler  ));
+  COSSignal::addSignalHandler(SIGIOT  ,
+    reinterpret_cast<COSSignal::SignalHandler>(genericHandler  ));
+  COSSignal::addSignalHandler(SIGFPE  ,
+    reinterpret_cast<COSSignal::SignalHandler>(genericHandler  ));
+  COSSignal::addSignalHandler(SIGUSR1 ,
+    reinterpret_cast<COSSignal::SignalHandler>(genericHandler  ));
+  COSSignal::addSignalHandler(SIGUSR2 ,
+    reinterpret_cast<COSSignal::SignalHandler>(genericHandler  ));
+  COSSignal::addSignalHandler(SIGPIPE ,
+    reinterpret_cast<COSSignal::SignalHandler>(genericHandler  ));
+  COSSignal::addSignalHandler(SIGALRM ,
+    reinterpret_cast<COSSignal::SignalHandler>(genericHandler  ));
+  COSSignal::addSignalHandler(SIGTERM ,
+    reinterpret_cast<COSSignal::SignalHandler>(genericHandler  ));
+  COSSignal::addSignalHandler(SIGCONT ,
+    reinterpret_cast<COSSignal::SignalHandler>(genericHandler  ));
+  COSSignal::addSignalHandler(SIGTSTP ,
+    reinterpret_cast<COSSignal::SignalHandler>(stopHandler     ));
+  COSSignal::addSignalHandler(SIGTTIN ,
+    reinterpret_cast<COSSignal::SignalHandler>(SIG_IGN         ));
+  COSSignal::addSignalHandler(SIGTTOU ,
+    reinterpret_cast<COSSignal::SignalHandler>(genericHandler  ));
+  COSSignal::addSignalHandler(SIGWINCH,
+    reinterpret_cast<COSSignal::SignalHandler>(genericHandler  ));
 }
 
 void

@@ -132,7 +132,7 @@ parse(const std::string &str)
 {
   str_ = str;
 
-  uint len = str_.size();
+  uint len = uint(str_.size());
 
   if (len > 0 && str_[0] == '^') {
     operation_ = new CwshHistoryOperation(cwsh_);
@@ -180,7 +180,7 @@ isCommand()
 {
   int pos1 = pos_;
 
-  int len = str_.size();
+  int len = int(str_.size());
 
   if (pos1 >= len || str_[pos1] != '!')
     return false;
@@ -220,7 +220,7 @@ void
 CwshHistoryParser::
 parseSubStr()
 {
-  uint len = str_.size();
+  uint len = uint(str_.size());
 
   if (pos_ < len && str_[pos_] == '!') {
     pos_++;
@@ -258,7 +258,7 @@ parseSubStr()
     std::string str = str_.substr(pos1, pos_ - pos1);
 
     if (numeric)
-      operation_->setCommandNum(CStrUtil::toInteger(str));
+      operation_->setCommandNum(int(CStrUtil::toInteger(str)));
     else {
       operation_->setCommandType(CwshHistoryCommandType::SEARCH_START);
       operation_->setNewString  (str);
@@ -287,7 +287,7 @@ parseSubStr()
     if (numeric) {
       int command_num = cwsh_->getHistoryCommandNum();
 
-      operation_->setCommandNum(command_num - CStrUtil::toInteger(str));
+      operation_->setCommandNum(command_num - int(CStrUtil::toInteger(str)));
     }
     else {
       operation_->setCommandType(CwshHistoryCommandType::SEARCH_START);
@@ -374,7 +374,7 @@ parseArgSelector()
 
   // Check if we have a Arg Selector
 
-  uint len = str_.size();
+  uint len = uint(str_.size());
 
   uint pos1 = pos_;
 
@@ -498,7 +498,7 @@ parseModifier()
 {
   // Check if we have a History Modifier
 
-  uint len = str_.size();
+  uint len = uint(str_.size());
 
   uint pos1 = pos_;
 
@@ -640,7 +640,7 @@ parseQuickSubStr()
 
   //------
 
-  uint len = str_.size();
+  uint len = uint(str_.size());
 
   pos_++;
 
@@ -675,7 +675,7 @@ apply()
 {
   std::string str = str_;
 
-  uint num_operations = operations_.size();
+  uint num_operations = uint(operations_.size());
 
   for (int i = num_operations - 1; i >= 0; i--)
     str = operations_[i]->apply(*this, str);
@@ -695,7 +695,7 @@ apply(const std::vector<std::string> &words)
 {
   std::string str = str_;
 
-  uint num_operations = operations_.size();
+  uint num_operations = uint(operations_.size());
 
   if (num_operations > 0) {
     for (int i = num_operations - 1; i >= 0; i--)
@@ -717,7 +717,7 @@ void
 CwshHistoryParser::
 display() const
 {
-  uint num_operations = operations_.size();
+  uint num_operations = uint(operations_.size());
 
   for (uint i = 0; i < num_operations; i++)
     operations_[i]->display(str_);
@@ -764,9 +764,9 @@ apply(CwshHistoryParser &parser, const std::string &line)
 
   std::string rstr;
 
-  uint len = line.size();
+  uint len = uint(line.size());
 
-  if (end_pos_ < (int) len)
+  if (end_pos_ < int(len))
     rstr = line.substr(end_pos_);
 
   std::string command;
@@ -818,13 +818,13 @@ apply(CwshHistoryParser &parser, const std::string &line)
   CStrWords words = CStrUtil::toWords(command, nullptr);
 
   if (start_arg_num_ < 0)
-    start_arg_num_ += words.size();
+    start_arg_num_ += int(words.size());
 
   if (end_arg_num_ < 0)
-    end_arg_num_ += words.size();
+    end_arg_num_ += int(words.size());
 
-  if (start_arg_num_ < 0 || start_arg_num_ >= words.size() ||
-      end_arg_num_   < 0 || end_arg_num_   >= words.size() ||
+  if (start_arg_num_ < 0 || start_arg_num_ >= int(words.size()) ||
+      end_arg_num_   < 0 || end_arg_num_   >= int(words.size()) ||
       start_arg_num_ > end_arg_num_) {
     if (! force_args_)
       CWSH_THROW("Bad ! arg selector.");
@@ -832,13 +832,13 @@ apply(CwshHistoryParser &parser, const std::string &line)
     command = "";
   }
   else {
-    if (start_arg_num_ != 0 || end_arg_num_ != words.size() - 1)
+    if (start_arg_num_ != 0 || end_arg_num_ != int(words.size()) - 1)
       words.truncate(start_arg_num_, end_arg_num_);
   }
 
   command = CStrUtil::toString(words, " ");
 
-  int num_modifiers = modifiers_.size();
+  int num_modifiers = int(modifiers_.size());
 
   for (int i = 0; i < num_modifiers; i++) {
     CwshHistoryModifierType  type    = modifiers_[i].getType();
@@ -914,7 +914,7 @@ apply(CwshHistoryParser &parser, const std::string &line)
     else if (type == CwshHistoryModifierType::ROOT) {
       CStrWords rwords = CStrUtil::toWords(command, nullptr);
 
-      int num_words = rwords.size();
+      int num_words = int(rwords.size());
 
       for (int ir = 0; ir < num_words; ir++) {
         std::string word = rwords[ir].getWord();
@@ -922,7 +922,7 @@ apply(CwshHistoryParser &parser, const std::string &line)
         std::string::size_type pos = word.rfind('.');
 
         if (pos != std::string::npos)
-          rwords.truncateWord(ir, 0, pos - 1);
+          rwords.truncateWord(ir, 0, int(pos - 1));
 
         if (! global)
           break;
@@ -933,7 +933,7 @@ apply(CwshHistoryParser &parser, const std::string &line)
     else if (type == CwshHistoryModifierType::EXTENSION) {
       CStrWords ewords = CStrUtil::toWords(command, nullptr);
 
-      int num_words = ewords.size();
+      int num_words = int(ewords.size());
 
       for (int ie = 0; ie < num_words; ie++) {
         std::string word = ewords[ie].getWord();
@@ -941,7 +941,7 @@ apply(CwshHistoryParser &parser, const std::string &line)
         std::string::size_type pos = word.rfind('.');
 
         if (pos != std::string::npos)
-          ewords.truncateWord(ie, pos + 1, ewords.size() - 1);
+          ewords.truncateWord(ie, int(pos + 1), int(ewords.size() - 1));
 
         if (! global)
           break;
@@ -952,7 +952,7 @@ apply(CwshHistoryParser &parser, const std::string &line)
     else if (type == CwshHistoryModifierType::HEADER) {
       CStrWords hwords = CStrUtil::toWords(command, nullptr);
 
-      int num_words = hwords.size();
+      int num_words = int(hwords.size());
 
       for (int ih = 0; ih < num_words; ih++) {
         std::string word = hwords[ih].getWord();
@@ -960,7 +960,7 @@ apply(CwshHistoryParser &parser, const std::string &line)
         std::string::size_type pos = word.rfind('/');
 
         if (pos != std::string::npos)
-          hwords.truncateWord(ih, 0, pos - 1);
+          hwords.truncateWord(ih, 0, int(pos - 1));
 
         if (! global)
           break;
@@ -971,7 +971,7 @@ apply(CwshHistoryParser &parser, const std::string &line)
     else if (type == CwshHistoryModifierType::TAIL) {
       CStrWords twords = CStrUtil::toWords(command, nullptr);
 
-      int num_words = twords.size();
+      int num_words = int(twords.size());
 
       for (int it = 0; it < num_words; it++) {
         std::string word = twords[it].getWord();
@@ -979,7 +979,7 @@ apply(CwshHistoryParser &parser, const std::string &line)
         std::string::size_type pos = word.rfind('/');
 
         if (pos != std::string::npos)
-          twords.truncateWord(it, pos + 1, twords.size() - 1);
+          twords.truncateWord(it, int(pos + 1), int(twords.size() - 1));
 
         if (! global)
           break;
@@ -1007,12 +1007,12 @@ apply(CwshHistoryParser &parser, const std::string &line, const std::vector<std:
 
   std::string rstr;
 
-  int len = line.size();
+  int len = int(line.size());
 
   if (end_pos_ < len)
     rstr = line.substr(end_pos_);
 
-  int num_words = words.size();
+  int num_words = int(words.size());
 
   if (start_arg_num_ < 0)
     start_arg_num_ += num_words;
@@ -1035,7 +1035,7 @@ apply(CwshHistoryParser &parser, const std::string &line, const std::vector<std:
       command = CStrUtil::toString(words, " ");
   }
 
-  int num_modifiers = modifiers_.size();
+  int num_modifiers = int(modifiers_.size());
 
   for (int i = 0; i < num_modifiers; i++) {
     CwshHistoryModifierType  type    = modifiers_[i].getType();
@@ -1111,7 +1111,7 @@ apply(CwshHistoryParser &parser, const std::string &line, const std::vector<std:
     else if (type == CwshHistoryModifierType::ROOT) {
       CStrWords words1 = CStrUtil::toWords(command, nullptr);
 
-      int num_words1 = words1.size();
+      int num_words1 = int(words1.size());
 
       for (int ir = 0; ir < num_words1; ir++) {
         std::string word = words1[ir].getWord();
@@ -1119,7 +1119,7 @@ apply(CwshHistoryParser &parser, const std::string &line, const std::vector<std:
         std::string::size_type pos = word.rfind('.');
 
         if (pos != std::string::npos)
-          words1.truncateWord(ir, 0, pos - 1);
+          words1.truncateWord(ir, 0, int(pos - 1));
 
         if (! global)
           break;
@@ -1130,7 +1130,7 @@ apply(CwshHistoryParser &parser, const std::string &line, const std::vector<std:
     else if (type == CwshHistoryModifierType::EXTENSION) {
       CStrWords words1 = CStrUtil::toWords(command, nullptr);
 
-      int num_words1 = words1.size();
+      int num_words1 = int(words1.size());
 
       for (int ie = 0; ie < num_words1; ie++) {
         std::string word = words1[ie].getWord();
@@ -1138,7 +1138,7 @@ apply(CwshHistoryParser &parser, const std::string &line, const std::vector<std:
         std::string::size_type pos = word.rfind('.');
 
         if (pos != std::string::npos)
-          words1.truncateWord(ie, pos + 1, words1.size() - 1);
+          words1.truncateWord(ie, int(pos + 1), int(words1.size() - 1));
 
         if (! global)
           break;
@@ -1149,7 +1149,7 @@ apply(CwshHistoryParser &parser, const std::string &line, const std::vector<std:
     else if (type == CwshHistoryModifierType::HEADER) {
       CStrWords words1 = CStrUtil::toWords(command, nullptr);
 
-      int num_words1 = words1.size();
+      int num_words1 = int(words1.size());
 
       for (int ih = 0; ih < num_words1; ih++) {
         std::string word = words1[ih].getWord();
@@ -1157,7 +1157,7 @@ apply(CwshHistoryParser &parser, const std::string &line, const std::vector<std:
         std::string::size_type pos = word.rfind('/');
 
         if (pos != std::string::npos)
-          words1.truncateWord(ih, 0, pos - 1);
+          words1.truncateWord(ih, 0, int(pos - 1));
 
         if (! global)
           break;
@@ -1168,7 +1168,7 @@ apply(CwshHistoryParser &parser, const std::string &line, const std::vector<std:
     else if (type == CwshHistoryModifierType::TAIL) {
       CStrWords words1 = CStrUtil::toWords(command, nullptr);
 
-      int num_words1 = words1.size();
+      int num_words1 = int(words1.size());
 
       for (int it = 0; it < num_words1; it++) {
         std::string word = words1[it].getWord();
@@ -1176,7 +1176,7 @@ apply(CwshHistoryParser &parser, const std::string &line, const std::vector<std:
         std::string::size_type pos = word.rfind('/');
 
         if (pos != std::string::npos)
-          words1.truncateWord(it, pos + 1, words1.size() - 1);
+          words1.truncateWord(it, int(pos + 1), int(words1.size() - 1));
 
         if (! global)
           break;
@@ -1216,7 +1216,7 @@ display(const std::string &str) const
     std::cout << "Args " << start_arg_num_ << " " << end_arg_num_ << std::endl;
   }
 
-  int num_modifiers = modifiers_.size();
+  int num_modifiers = int(modifiers_.size());
 
   for (int i = 0; i < num_modifiers; i++)
     modifiers_[i].print();

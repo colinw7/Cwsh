@@ -182,7 +182,7 @@ getSize() const
   if (! CStrUtil::isInteger(value))
     return 1;
 
-  int size = CStrUtil::toInteger(variable->getValue(0));
+  int size = int(CStrUtil::toInteger(variable->getValue(0)));
 
   if (size < 1)
     return 1;
@@ -207,7 +207,7 @@ getSaveSize() const
   if (! CStrUtil::isInteger(value))
     CWSH_THROW("Badly formed number.");
 
-  return CStrUtil::toInteger(value);
+  return int(CStrUtil::toInteger(value));
 }
 
 bool

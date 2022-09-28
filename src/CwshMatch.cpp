@@ -133,7 +133,7 @@ print(std::vector<std::string> &words)
 
   COSTerm::getCharSize(&screen_width, &screen_height);
 
-  int num_words = words.size();
+  int num_words = int(words.size());
 
   int words_per_line = std::max(screen_width / (max_len + 1), 1);
 
@@ -146,7 +146,7 @@ print(std::vector<std::string> &words)
   int j = 0;
 
   while (i < num_words && j < num_lines) {
-    int len = words[i].size();
+    int len = int(words[i].size());
 
     std::cout << words[i];
 

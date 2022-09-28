@@ -33,8 +33,8 @@ class CwshCmdLine {
 
   const CwshWordArray &getWords() const { return words_; }
 
-  int             getNumWords() const { return words_.size(); }
-  const CwshWord &getWord(int i) const { return words_[i]; }
+  int             getNumWords() const { return int(words_.size()); }
+  const CwshWord &getWord(int i) const { return words_[uint(i)]; }
 
   void addWord(const CwshWord &word);
 
@@ -53,8 +53,8 @@ class CwshCmdGroup {
 
   const CwshCmdArray &getCommands() const { return commands_; }
 
-  int            getNumCommands() const { return commands_.size(); }
-  const CwshCmd *getCommand(int i) const { return commands_[i]; }
+  int            getNumCommands() const { return int(commands_.size()); }
+  const CwshCmd *getCommand(int i) const { return commands_[uint(i)]; }
 
  private:
   CwshCmdArray commands_;
@@ -114,8 +114,8 @@ class CwshCmd {
   CwshCmd();
  ~CwshCmd();
 
-  int             getNumWords() const { return words_.size(); }
-  const CwshWord &getWord(int i) const { return words_[i]; }
+  int             getNumWords() const { return int(words_.size()); }
+  const CwshWord &getWord(int i) const { return words_[uint(i)]; }
 
   const CwshCmdSeparator &getSeparator() const { return separator_; }
 

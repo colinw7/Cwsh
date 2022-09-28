@@ -39,7 +39,7 @@ std::string
 CwshDirStack::
 pop(int pos)
 {
-  int num_dirs = dir_stack_.size();
+  int num_dirs = int(dir_stack_.size());
 
   if (num_dirs < pos) {
     CTHROW("Directory Stack underflow.");
@@ -60,7 +60,7 @@ int
 CwshDirStack::
 size()
 {
-  return dir_stack_.size();
+  return int(dir_stack_.size());
 }
 
 void
@@ -71,7 +71,7 @@ print(std::ostream &os)
 
   os << CwshString::replaceHome(dirname);
 
-  int num_dirs = dir_stack_.size();
+  int num_dirs = int(dir_stack_.size());
 
   for (int i = num_dirs - 1; i >= 0; i--) {
     os << " ";

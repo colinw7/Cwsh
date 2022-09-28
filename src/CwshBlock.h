@@ -53,8 +53,8 @@ class CwshBlock {
 
   const CwshLineArray &getLines() const { return lines_; }
 
-  int getNumLines() const { return lines_.size(); }
-  const CwshLine &getLine(int i) const { return lines_[i]; }
+  int getNumLines() const { return int(lines_.size()); }
+  const CwshLine &getLine(int i) const { return lines_[uint(i)]; }
 
   const std::string &getFilename() const { return filename_; }
   void setFilename(const std::string &v) { filename_ = v; }

@@ -225,7 +225,7 @@ Cwsh::
 init()
 {
   int   argc   = 1;
-  char *argv[] = { (char *) "cwsh", nullptr };
+  char *argv[] = { const_cast<char *>("cwsh"), nullptr };
 
   init(argc, argv);
 }
@@ -286,7 +286,7 @@ processArgs(int argc, char **argv)
   silentMode_     = cargs.getBooleanArg("--silent");
   debug_          = cargs.getBooleanArg("--debug");
 
-  defineVariable("argv", (const char **) &argv[1], argc - 1);
+  defineVariable("argv", const_cast<const char **>(&argv[1]), argc - 1);
 
   argv0_ = argv[0];
 
