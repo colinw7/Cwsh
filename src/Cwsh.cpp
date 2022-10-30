@@ -149,7 +149,7 @@ stopActiveProcesses()
 
       process->print();
 
-      std::cout << std::endl;
+      std::cout << "\n";
 
       process->tstop();
     }
@@ -452,7 +452,7 @@ Cwsh::
 term()
 {
   if (getNumActiveProcesses() > 0 && termTries_ <= 0) {
-    std::cerr << "There are suspended jobs." << std::endl;
+    std::cerr << "There are suspended jobs.\n";
     ++termTries_;
     return;
   }

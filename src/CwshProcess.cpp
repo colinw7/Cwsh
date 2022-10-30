@@ -18,7 +18,7 @@ add(CwshCommandData *command)
   if (processes_.size() > 0)
     num = processes_.back()->getNum() + 1;
 
-  CwshProcess *process = new CwshProcess(command, num);
+  auto *process = new CwshProcess(command, num);
 
   processes_.push_back(process);
 
@@ -119,7 +119,7 @@ displayActive(bool list_pids)
 
     process->print();
 
-    std::cout << std::endl;
+    std::cout << "\n";
   }
 
   deleteExited();
@@ -147,7 +147,7 @@ displayExited()
 
       process->print();
 
-      std::cout << std::endl;
+      std::cout << "\n";
 
       remove(process);
 

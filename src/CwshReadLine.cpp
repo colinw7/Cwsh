@@ -25,9 +25,9 @@ readLine()
     line = CReadLine::readLine();
 
     if (eof()) {
-      std::cout << std::endl;
+      std::cout << "\n";
 
-      CwshVariable *variable = cwsh_->lookupVariable("ignoreeof");
+      auto *variable = cwsh_->lookupVariable("ignoreeof");
 
       if (! variable)
         cwsh_->setExit(true, 0);
@@ -40,12 +40,12 @@ readLine()
       std::cerr << "[" << cthrow->file << ":" << cthrow->line << "] ";
 
     if (cthrow->qualifier != "")
-      std::cerr << cthrow->qualifier << ": " << cthrow->message << std::endl;
+      std::cerr << cthrow->qualifier << ": " << cthrow->message << "\n";
     else
-      std::cerr << cthrow->message << std::endl;
+      std::cerr << cthrow->message << "\n";
   }
   catch (...) {
-    std::cerr << "Unhandled Exception thrown" << std::endl;
+    std::cerr << "Unhandled Exception thrown\n";
   }
 
   return line;
@@ -100,7 +100,7 @@ void
 CwshReadLine::
 beep()
 {
-  CwshVariable *nobeep = cwsh_->lookupVariable("nobeep");
+  auto *nobeep = cwsh_->lookupVariable("nobeep");
 
   if (! nobeep)
     CReadLine::beep();

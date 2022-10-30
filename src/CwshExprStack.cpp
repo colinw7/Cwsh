@@ -247,10 +247,10 @@ push(const std::string &value)
 {
   if (debug_) {
     dumpStack();
-    std::cerr << "Push Value: " << value << std::endl;
+    std::cerr << "Push Value: " << value << "\n";
   }
 
-  CwshExprStackNode *stack_node = new CwshExprStackNode(value);
+  auto *stack_node = new CwshExprStackNode(value);
 
   push(stack_node);
 
@@ -264,10 +264,10 @@ push(CwshExprOperator *opr)
 {
   if (debug_) {
     dumpStack();
-    std::cerr << "Push Opr: " << opr->getToken() << std::endl;
+    std::cerr << "Push Opr: " << opr->getToken() << "\n";
   }
 
-  CwshExprStackNode *stack_node = new CwshExprStackNode(opr);
+  auto *stack_node = new CwshExprStackNode(opr);
 
   push(stack_node);
 
@@ -305,7 +305,7 @@ pop(std::string &value)
     remove(*pstack_node_);
 
     if (debug_) {
-      std::cerr << "Pop Value: " << value << std::endl;
+      std::cerr << "Pop Value: " << value << "\n";
       dumpStack();
     }
 
@@ -329,7 +329,7 @@ pop(CwshExprOperator **opr)
     remove(*pstack_node_);
 
     if (debug_) {
-      std::cerr << "Pop Opr: " << (*opr)->getToken() << std::endl;
+      std::cerr << "Pop Opr: " << (*opr)->getToken() << "\n";
       dumpStack();
     }
 
@@ -491,7 +491,7 @@ dumpStack()
     std::cerr << " ";
   }
 
-  std::cerr << std::endl;
+  std::cerr << "\n";
 
   std::cerr << "Current: ";
 
@@ -500,7 +500,7 @@ dumpStack()
   else
     std::cerr << "End";
 
-  std::cerr << std::endl;
+  std::cerr << "\n";
 }
 
 CwshExprStackNode::
@@ -525,9 +525,9 @@ CwshExprStackNode::
 print() const
 {
   if (type_ == CwshExprStackNodeType::VALUE)
-    std::cout << "Value " << value_ << std::endl;
+    std::cout << "Value " << value_ << "\n";
   else
-    std::cout << "Operator " << opr_->getToken() << std::endl;
+    std::cout << "Operator " << opr_->getToken() << "\n";
 }
 
 void

@@ -23,7 +23,7 @@ void
 CwshAutoExecMgr::
 define(const CwshAutoExecName &suffix, const CwshAutoExecValue &value)
 {
-  CwshAutoExec *alias = new CwshAutoExec(suffix, value);
+  auto *alias = new CwshAutoExec(suffix, value);
 
   auto_execs_.setValue(suffix, alias);
 }
@@ -83,7 +83,7 @@ void
 CwshAutoExec::
 display() const
 {
-  std::cout << suffix_ << " " << value_ << std::endl;
+  std::cout << suffix_ << " " << value_ << "\n";
 }
 
 bool

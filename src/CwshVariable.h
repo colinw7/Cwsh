@@ -69,7 +69,7 @@ class CwshVariable {
   const CwshVariableName &getName() const;
   CwshVariableType        getType() const;
 
-  int                           getNumValues() const;
+  uint                         getNumValues() const;
   const CwshVariableValueArray &getValues() const;
 
   const CwshVariableValue &getValue(int pos) const;

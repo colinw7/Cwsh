@@ -16,7 +16,7 @@ CwshAlias *
 CwshAliasMgr::
 define(const CwshAliasName &name, const CwshAliasValue &value)
 {
-  CwshAlias *alias = new CwshAlias(name, value);
+  auto *alias = new CwshAlias(name, value);
 
   aliases_.setValue(name, alias);
 
@@ -80,14 +80,14 @@ substitute(CwshCmd *cmd, CwshCmdArray &cmds) const
   CwshWord::toWords(line, words1);
 
   if (cwsh_->getDebug()) {
-    std::cerr << "Split String Into Words" << std::endl;
+    std::cerr << "Split String Into Words\n";
 
     CwshWord::printWords(words1);
   }
 
   //------
 
-  CwshAliasMgr *th = const_cast<CwshAliasMgr *>(this);
+  auto *th = const_cast<CwshAliasMgr *>(this);
 
   th->last_alias_ = alias;
 
@@ -99,7 +99,7 @@ substitute(CwshCmd *cmd, CwshCmdArray &cmds) const
     cmds[num_cmds - 1]->setSeparator(cmd->getSeparator());
 
   if (cwsh_->getDebug()) {
-    std::cerr << "Substitute Alias" << std::endl;
+    std::cerr << "Substitute Alias\n";
 
     CwshCmd::displayCmdArray(cmds);
   }
@@ -174,5 +174,5 @@ displayValue(bool all) const
     std::cout << "]";
   }
 
-  std::cout << std::endl;
+  std::cout << "\n";
 }

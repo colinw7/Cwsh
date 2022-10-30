@@ -87,7 +87,7 @@ bool
 CwshComplete::
 completeFile(const std::string &file, std::string &file1)
 {
-  CwshVariable *fignore = cwsh_->lookupVariable("fignore");
+  auto *fignore = cwsh_->lookupVariable("fignore");
 
   if (fignore) {
     int num_values = fignore->getNumValues();
@@ -203,7 +203,7 @@ CwshCompletionType
 CwshComplete::
 getCompletionType(std::string *word)
 {
-  CwshVariable *filec = cwsh_->lookupVariable("filec");
+  auto *filec = cwsh_->lookupVariable("filec");
 
   if (! filec)
     return CwshCompletionType::NONE;

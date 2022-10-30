@@ -29,9 +29,9 @@ struct CwshErr {
       std::cerr << "[" << file << ":" << line << "] ";
 
     if (qualifier != "")
-      std::cerr << qualifier << ": " << message << std::endl;
+      std::cerr << qualifier << ": " << message << "\n";
     else
-      std::cerr << message << std::endl;
+      std::cerr << message << "\n";
   }
 };
 

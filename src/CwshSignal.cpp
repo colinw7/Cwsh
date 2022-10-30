@@ -155,7 +155,7 @@ stopHandler(int)
 
   //printf("Exiting SIGTSTP handler\n");
 #else
-  std::cerr << "stopHandler" << std::endl;
+  std::cerr << "stopHandler\n";
 
   CwshMgrInst.stopActiveProcesses();
 #endif
@@ -170,7 +170,7 @@ genericHandler(int)
 #if 0
   CwshSignal *sig = lookup(num);
 
-  std::cerr << "Signal " << sig->name_ << "(" << sig->num_ << ") received" << std::endl;
+  std::cerr << "Signal " << sig->name_ << "(" << sig->num_ << ") received\n";
 #endif
 }
 

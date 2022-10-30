@@ -58,7 +58,7 @@ showMatch(const std::string &line)
 
   CStrUtil::uniq(words, uniq_words);
 
-  std::cout << std::endl;
+  std::cout << "\n";
 
   print(uniq_words);
 
@@ -156,7 +156,7 @@ print(std::vector<std::string> &words)
     i += num_lines;
 
     if (i >= num_words) {
-      std::cout << std::endl;
+      std::cout << "\n";
 
       ++j;
 

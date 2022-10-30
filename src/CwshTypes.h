@@ -61,8 +61,8 @@ struct CwshLine {
   std::string line;
   int         num { -1 };
 
-  CwshLine(const std::string &line, int num=-1) :
-   line(line), num(num) {
+  CwshLine(const std::string &line_, int num_=-1) :
+   line(line_), num(num_) {
   }
 };
 

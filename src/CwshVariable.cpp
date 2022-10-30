@@ -64,11 +64,11 @@ CwshVariableMgr::
 define(const CwshVariableName &name)
 {
   if (cwsh_->getDebug())
-    std::cout << "define " << name << std::endl;
+    std::cout << "define " << name << "\n";
 
   undefine(name);
 
-  CwshVariable *variable = new CwshVariable(cwsh_, name, "");
+  auto *variable = new CwshVariable(cwsh_, name, "");
 
   variables_.push_back(variable);
 
@@ -82,11 +82,11 @@ CwshVariableMgr::
 define(const CwshVariableName &name, const CwshVariableValue &value)
 {
   if (cwsh_->getDebug())
-    std::cout << "define " << name << "='" << value << "'" << std::endl;
+    std::cout << "define " << name << "='" << value << "'\n";
 
   undefine(name);
 
-  CwshVariable *variable = new CwshVariable(cwsh_, name, value);
+  auto *variable = new CwshVariable(cwsh_, name, value);
 
   variables_.push_back(variable);
 
@@ -100,14 +100,14 @@ CwshVariableMgr::
 define(const CwshVariableName &name, int value)
 {
   if (cwsh_->getDebug())
-    std::cout << "define " << name << "='" << value << "'" << std::endl;
+    std::cout << "define " << name << "='" << value << "'\n";
 
   undefine(name);
 
   if (name == "_debug")
     cwsh_->setDebug(value != 0);
 
-  CwshVariable *variable = new CwshVariable(cwsh_, name, CStrUtil::toString(value));
+  auto *variable = new CwshVariable(cwsh_, name, CStrUtil::toString(value));
 
   variables_.push_back(variable);
 
@@ -123,12 +123,12 @@ define(const CwshVariableName &name, const CwshVariableValueArray &values)
   if (cwsh_->getDebug()) {
     std::string value = CStrUtil::toString(values, " ");
 
-    std::cout << "define " << name << "='" << value << "'" << std::endl;
+    std::cout << "define " << name << "='" << value << "'\n";
   }
 
   undefine(name);
 
-  CwshVariable *variable = new CwshVariable(cwsh_, name, values);
+  auto *variable = new CwshVariable(cwsh_, name, values);
 
   variables_.push_back(variable);
 
@@ -144,12 +144,12 @@ define(const CwshVariableName &name, const char **values, int num_values)
   if (cwsh_->getDebug()) {
     std::string value = CStrUtil::toString(values, num_values, " ");
 
-    std::cout << "define " << name << "='" << value << "'" << std::endl;
+    std::cout << "define " << name << "='" << value << "'\n";
   }
 
   undefine(name);
 
-  CwshVariable *variable = new CwshVariable(cwsh_, name, values, num_values);
+  auto *variable = new CwshVariable(cwsh_, name, values, num_values);
 
   variables_.push_back(variable);
 
@@ -210,7 +210,7 @@ void
 CwshVariableMgr::
 save()
 {
-  CwshVariableMgr *copy = new CwshVariableMgr(*this);
+  auto *copy = new CwshVariableMgr(*this);
 
   stack_.push_back(copy);
 }
@@ -273,9 +273,9 @@ updateEnvironmentVariable(CwshVariable *variable)
 
   std::string value;
 
-  int num_values = variable->getNumValues();
+  auto num_values = variable->getNumValues();
 
-  for (int i = 0; i < num_values; i++) {
+  for (uint i = 0; i < num_values; i++) {
     if (i > 0)
       value += ":";
 
@@ -386,11 +386,11 @@ getType() const
   return type_;
 }
 
-int
+uint
 CwshVariable::
 getNumValues() const
 {
-  return int(values_.size());
+  return uint(values_.size());
 }
 
 const CwshVariableValueArray &
@@ -460,7 +460,7 @@ print(bool all) const
     std::cout << "]";
   }
 
-  std::cout << std::endl;
+  std::cout << "\n";
 }
 
 int

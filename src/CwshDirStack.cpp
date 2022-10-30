@@ -79,5 +79,5 @@ print(std::ostream &os)
     os << CwshString::replaceHome(dir_stack_[i]);
   }
 
-  os << std::endl;
+  os << "\n";
 }

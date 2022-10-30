@@ -12,21 +12,21 @@ bool
 CwshPattern::
 expandWordToFiles(const CwshWord &word, CwshWordArray &words)
 {
-  CwshVariable *variable = cwsh_->lookupVariable("noglob");
+  auto *variable = cwsh_->lookupVariable("noglob");
 
   if (variable)
     return false;
 
   //------
 
-  const CwshSubWordArray &sub_words = word.getSubWords();
+  const auto &sub_words = word.getSubWords();
 
   std::string word1;
 
-  int num_sub_words = int(sub_words.size());
+  auto num_sub_words = sub_words.size();
 
-  for (int i = 0; i < num_sub_words; i++) {
-    CwshSubWordType type = sub_words[i].getType();
+  for (size_t i = 0; i < num_sub_words; i++) {
+    auto type = sub_words[i].getType();
 
     if      (type == CwshSubWordType::BACK_QUOTED)
       word1 += sub_words[i].getWord();
@@ -53,7 +53,7 @@ expandWordToFiles(const CwshWord &word, CwshWordArray &words)
     return false;
 
   if (words1.size() == 0) {
-    CwshVariable *variable1 = cwsh_->lookupVariable("nonomatch");
+    auto *variable1 = cwsh_->lookupVariable("nonomatch");
 
     if (! variable1)
       CWSH_THROW("No match.");
@@ -63,10 +63,8 @@ expandWordToFiles(const CwshWord &word, CwshWordArray &words)
 
   CStrUtil::sort(words1);
 
-  int num_words1 = int(words1.size());
-
-  for (int i = 0; i < num_words1; i++)
-    words.push_back(CwshWord(words1[i]));
+  for (const auto &word1 : words1)
+    words.push_back(CwshWord(word1));
 
   return true;
 }

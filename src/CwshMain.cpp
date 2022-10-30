@@ -3,7 +3,7 @@
 int
 main(int argc, char **argv)
 {
-  Cwsh *cwsh = new Cwsh;
+  auto *cwsh = new Cwsh;
 
   try {
     cwsh->init(argc, argv);
@@ -14,7 +14,7 @@ main(int argc, char **argv)
     err->print();
   }
   catch (...) {
-    std::cerr << "Unhandled exception" << std::endl;
+    std::cerr << "Unhandled exception\n";
   }
 
   return 0;

@@ -9,7 +9,7 @@ wordsToCommandLines(const CwshWordArray &words, CwshCmdLineArray &cmds)
   int num_words = int(words.size());
 
   while (i < num_words) {
-    CwshCmdLine *cmd = new CwshCmdLine();
+    auto *cmd = new CwshCmdLine();
 
     wordsToCommandLine(words, &i, cmd);
 
@@ -62,7 +62,7 @@ wordsToCommands(const CwshWordArray &words, CwshCmdArray &cmds)
   int num_words = int(words.size());
 
   while (i < num_words) {
-    CwshCmd *cmd = new CwshCmd();
+    auto *cmd = new CwshCmd();
 
     wordsToCommand(words, &i, cmd);
 
@@ -241,7 +241,7 @@ display() const
 {
   std::string command_str = CwshWord::toString(words_);
 
-  std::cerr << command_str << " " << separator_.getName() << std::endl;
+  std::cerr << command_str << " " << separator_.getName() << "\n";
 }
 
 std::string

@@ -681,7 +681,7 @@ apply()
     str = operations_[i]->apply(*this, str);
 
   if (print_) {
-    std::cout << str << std::endl;
+    std::cout << str << "\n";
 
     throw CwshHistoryIgnore();
   }
@@ -705,7 +705,7 @@ apply(const std::vector<std::string> &words)
     str += " " + CStrUtil::toString(words, 1);
 
   if (print_) {
-    std::cout << str << std::endl;
+    std::cout << str << "\n";
 
     throw CwshHistoryIgnore();
   }
@@ -1197,23 +1197,23 @@ display(const std::string &str) const
 {
   std::string command = str.substr(start_pos_, end_pos_ - start_pos_);
 
-  std::cout << "Command " << command << std::endl;
+  std::cout << "Command " << command << "\n";
 
   if      (command_type_ == CwshHistoryCommandType::QUICK_SUBSTR)
-    std::cout << "Replace " << old_str_ << " with " << new_str_ << std::endl;
+    std::cout << "Replace " << old_str_ << " with " << new_str_ << "\n";
   else if (command_type_ == CwshHistoryCommandType::USE_RESULT)
-    std::cout << "Result " << new_str_ << std::endl;
+    std::cout << "Result " << new_str_ << "\n";
   else {
     if      (command_type_ == CwshHistoryCommandType::SEARCH_START)
-      std::cout << "Last Command with " << new_str_ << " at start" << std::endl;
+      std::cout << "Last Command with " << new_str_ << " at start\n";
     else if (command_type_ == CwshHistoryCommandType::SEARCH_IN)
-      std::cout << "Last Command with " << new_str_ << " anywhere" << std::endl;
+      std::cout << "Last Command with " << new_str_ << " anywhere\n";
     else if (command_type_ == CwshHistoryCommandType::SEARCH_ARG)
-      std::cout << "Last Arg with " << new_str_ << " anywhere" << std::endl;
+      std::cout << "Last Arg with " << new_str_ << " anywhere\n";
     else
-      std::cout << "Command Num " << command_num_ << std::endl;
+      std::cout << "Command Num " << command_num_ << "\n";
 
-    std::cout << "Args " << start_arg_num_ << " " << end_arg_num_ << std::endl;
+    std::cout << "Args " << start_arg_num_ << " " << end_arg_num_ << "\n";
   }
 
   int num_modifiers = int(modifiers_.size());
@@ -1227,18 +1227,18 @@ CwshHistoryModifier::
 print() const
 {
   if      (type_ == CwshHistoryModifierType::PRINT)
-    std::cout << "Print" << std::endl;
+    std::cout << "Print\n";
   else if (type_ == CwshHistoryModifierType::SUBSTITUTE) {
     if (global_)
       std::cout << "Globally ";
 
-    std::cout << "Substitute " << old_str_ << " with " << new_str_ << std::endl;
+    std::cout << "Substitute " << old_str_ << " with " << new_str_ << "\n";
   }
   else if (type_ == CwshHistoryModifierType::REPEAT) {
     if (global_)
       std::cout << "Globally ";
 
-    std::cout << "Repeat" << std::endl;
+    std::cout << "Repeat\n";
   }
   else if (type_ == CwshHistoryModifierType::QUOTE_WORDLIST)
     std::cout << "Quote Wordlist";
@@ -1248,24 +1248,24 @@ print() const
     if (global_)
       std::cout << "Globally ";
 
-    std::cout << "Root" << std::endl;
+    std::cout << "Root\n";
   }
   else if (type_ == CwshHistoryModifierType::EXTENSION) {
     if (global_)
       std::cout << "Globally ";
 
-    std::cout << "Extension" << std::endl;
+    std::cout << "Extension\n";
   }
   else if (type_ == CwshHistoryModifierType::HEADER) {
     if (global_)
       std::cout << "Globally ";
 
-    std::cout << "Header" << std::endl;
+    std::cout << "Header\n";
   }
   else if (type_ == CwshHistoryModifierType::TAIL) {
     if (global_)
       std::cout << "Globally ";
 
-    std::cout << "Tail" << std::endl;
+    std::cout << "Tail\n";
   }
 }

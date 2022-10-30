@@ -114,7 +114,7 @@ CwshCommandData(Cwsh *cwsh, const std::vector<std::string> &words) :
     if (! process)
       CWSH_THROW("No such job.");
 
-    std::cout << process->getCommandString() << std::endl;
+    std::cout << process->getCommandString() << "\n";
 
     process->resume();
 
@@ -182,7 +182,7 @@ setState(State state)
 
     process->print();
 
-    std::cout << std::endl;
+    std::cout << "\n";
   }
   else
     stateChanged_ = true;
@@ -201,7 +201,7 @@ parseCommandLines(Cwsh *cwsh, const std::string &str, CwshCmdLineArray &cmds)
   CwshWord::toWords(str, words);
 
   if (cwsh->getDebug()) {
-    std::cerr << "Split String Into Words" << std::endl;
+    std::cerr << "Split String Into Words\n";
 
     CwshWord::printWords(words);
   }
@@ -220,7 +220,7 @@ parseCommandGroups(Cwsh *cwsh, const std::string &str, CwshCmdGroupArray &groups
   CwshWord::toWords(str, words);
 
   if (cwsh->getDebug()) {
-    std::cerr << "Split String Into Words" << std::endl;
+    std::cerr << "Split String Into Words\n";
 
     CwshWord::printWords(words);
   }
@@ -234,7 +234,7 @@ parseCommandGroups(Cwsh *cwsh, const std::string &str, CwshCmdGroupArray &groups
   CwshCmdSplit::wordsToCommands(words, cmds);
 
   if (cwsh->getDebug()) {
-    std::cerr << "Split Words Into Commands" << std::endl;
+    std::cerr << "Split Words Into Commands\n";
 
     CwshCmd::displayCmdArray(cmds);
   }
@@ -260,7 +260,7 @@ parseCommandGroups(Cwsh *cwsh, const std::string &str, CwshCmdGroupArray &groups
   }
 
   if (cwsh->getDebug()) {
-    std::cerr << "Replace Aliased Commands" << std::endl;
+    std::cerr << "Replace Aliased Commands\n";
 
     CwshCmd::displayCmdArray(cmds1);
   }
@@ -287,7 +287,7 @@ groupCommands(CwshCmdArray cmds, CwshCmdGroupArray &groups)
 
     if (cmds[i]->getSeparator().getType() == CwshCmdSeparatorType::NORMAL) {
       if (cmds1.size() > 0) {
-        CwshCmdGroup *group = new CwshCmdGroup(cmds1);
+        auto *group = new CwshCmdGroup(cmds1);
 
         groups.push_back(group);
 
@@ -297,7 +297,7 @@ groupCommands(CwshCmdArray cmds, CwshCmdGroupArray &groups)
   }
 
   if (cmds1.size() > 0) {
-    CwshCmdGroup *group = new CwshCmdGroup(cmds1);
+    auto *group = new CwshCmdGroup(cmds1);
 
     groups.push_back(group);
   }
@@ -346,7 +346,7 @@ parseCommandGroup(Cwsh *cwsh, CwshCmdGroup *group)
   }
 
   if (cwsh->getDebug()) {
-    std::cerr << "Replace Variables" << std::endl;
+    std::cerr << "Replace Variables\n";
 
     CwshCmd::displayCmdArray(cmds);
   }
@@ -394,7 +394,7 @@ parseCommandGroup(Cwsh *cwsh, CwshCmdGroup *group)
   }
 
   if (cwsh->getDebug()) {
-    std::cerr << "Replace backquotes" << std::endl;
+    std::cerr << "Replace backquotes\n";
 
     CwshCmd::displayCmdArray(cmds);
   }
@@ -424,7 +424,7 @@ parseCommandGroup(Cwsh *cwsh, CwshCmdGroup *group)
   }
 
   if (cwsh->getDebug()) {
-    std::cerr << "Expand Tildes" << std::endl;
+    std::cerr << "Expand Tildes\n";
 
     CwshCmd::displayCmdArray(cmds);
   }
@@ -462,7 +462,7 @@ parseCommandGroup(Cwsh *cwsh, CwshCmdGroup *group)
   }
 
   if (cwsh->getDebug()) {
-    std::cerr << "Expand Braces" << std::endl;
+    std::cerr << "Expand Braces\n";
 
     CwshCmd::displayCmdArray(cmds);
   }
@@ -502,7 +502,7 @@ parseCommandGroup(Cwsh *cwsh, CwshCmdGroup *group)
   }
 
   if (cwsh->getDebug()) {
-    std::cerr << "Expand Wildcards" << std::endl;
+    std::cerr << "Expand Wildcards\n";
 
     CwshCmd::displayCmdArray(cmds);
   }
@@ -533,7 +533,7 @@ parseCommandGroup(Cwsh *cwsh, CwshCmdGroup *group)
   }
 
   if (cwsh->getDebug()) {
-    std::cerr << "Remove Quotes" << std::endl;
+    std::cerr << "Remove Quotes\n";
 
     CwshCmd::displayCmdArray(cmds);
   }

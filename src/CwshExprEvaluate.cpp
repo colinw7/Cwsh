@@ -129,7 +129,7 @@ unstack()
     CWSH_THROW("Null Expression.");
 
   if (cwsh_->getDebug() && ! value_on_stack)
-    std::cerr << "No value on stack" << std::endl;
+    std::cerr << "No value on stack\n";
 
   std::string value = backUnstack();
 

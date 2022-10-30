@@ -342,7 +342,7 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
 
   std::vector<std::string> variable_values;
 
-  CwshVariable *variable = cwsh_->lookupVariable(variable_name);
+  auto *variable = cwsh_->lookupVariable(variable_name);
 
   if (variable) {
     if (type == CwshVariableValueType::EXISTS) {

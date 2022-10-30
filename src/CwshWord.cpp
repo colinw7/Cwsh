@@ -62,14 +62,14 @@ printWords(const CwshWordArray &words)
     std::cerr << "'" << words[i] << "'";
   }
 
-  std::cerr << std::endl;
+  std::cerr << "\n";
 }
 
 void
 CwshWord::
 printWord(const CwshWord &word)
 {
-  std::cerr << word << std::endl;
+  std::cerr << word << "\n";
 }
 
 CwshWord::
@@ -83,7 +83,7 @@ CwshWord::
 getSubWords() const
 {
   if (! sub_words_created_) {
-    CwshWord *th = const_cast<CwshWord *>(this);
+    auto *th = const_cast<CwshWord *>(this);
 
     th->createSubWords();
   }

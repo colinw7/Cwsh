@@ -169,7 +169,7 @@ int
 CwshHistory::
 getSize() const
 {
-  CwshVariable *variable = cwsh_->lookupVariable("history");
+  auto *variable = cwsh_->lookupVariable("history");
 
   if (! variable)
     return 1;
@@ -194,7 +194,7 @@ int
 CwshHistory::
 getSaveSize() const
 {
-  CwshVariable *variable = cwsh_->lookupVariable("savehist");
+  auto *variable = cwsh_->lookupVariable("savehist");
 
   if (! variable)
     return 0;

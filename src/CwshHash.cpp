@@ -14,7 +14,7 @@ addFilePath(const std::string &filename, const std::string &path)
     file_path_map_[filename] = path;
 
     if (cwsh_->getDebug())
-      std::cerr << "Added (" << filename << "," << path << ") to hash." << std::endl;
+      std::cerr << "Added (" << filename << "," << path << ") to hash.\n";
   }
 }
 
@@ -27,7 +27,7 @@ getFilePath(const std::string &filename)
 
     if (p != file_path_map_.end()) {
       if (cwsh_->getDebug())
-        std::cerr << "Found (" << filename << "," << (*p).second << ") in hash." << std::endl;
+        std::cerr << "Found (" << filename << "," << (*p).second << ") in hash.\n";
 
       return (*p).second;
     }
@@ -50,9 +50,9 @@ CwshHash::
 printFilePathStats()
 {
   if (file_path_active_)
-    std::cout << file_path_map_.size() << " entries." << std::endl;
+    std::cout << file_path_map_.size() << " entries.\n";
   else
-    std::cout << "inactive." << std::endl;
+    std::cout << "inactive.\n";
 }
 
 void

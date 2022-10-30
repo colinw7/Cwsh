@@ -147,10 +147,8 @@ void
 CwshInput::
 executeBlockLines(bool interactive)
 {
-  //std::string line;
-
   while (! eof()) {
-    CwshLine cline = getLine();
+    auto cline = getLine();
 
     if (interactive && cwsh_->getSilentMode()) {
       printf("%s", CEscape::commandToEscape(cline.line, COSFile::getCurrentDir(), true).c_str());
@@ -190,7 +188,7 @@ getBlock(CwshShellCommand *shell_command, CwshLineArray &lines)
   cwsh_->setPromptCommand(shell_command->getName());
 
   while (! eof()) {
-    CwshLine line = getLine();
+    auto line = getLine();
 
     std::vector<std::string> words;
 
@@ -204,7 +202,7 @@ getBlock(CwshShellCommand *shell_command, CwshLineArray &lines)
 
       lines.push_back(line);
 
-      CwshShellCommand *shell_command1 = cwsh_->lookupShellCommand(name);
+      auto *shell_command1 = cwsh_->lookupShellCommand(name);
 
       if (shell_command1 && shell_command1->isBlockCommand()) {
         CwshLineArray lines1;
@@ -235,7 +233,7 @@ skipBlock(const CwshLine &line)
   if (words.size() == 0)
     return;
 
-  CwshShellCommand *shell_command = cwsh_->lookupShellCommand(words[0]);
+  auto *shell_command = cwsh_->lookupShellCommand(words[0]);
 
   if (! shell_command || ! shell_command->isBlockCommand())
     return;
@@ -352,13 +350,13 @@ processLine(const CwshLine &line)
 
     // Output Line if Verbose
 
-    CwshVariable *variable = cwsh_->lookupVariable("verbose");
+    auto *variable = cwsh_->lookupVariable("verbose");
 
     if (variable)
       output = true;
 
     if (output)
-      std::cout << line1 << std::endl;
+      std::cout << line1 << "\n";
 
     //------
 
@@ -420,12 +418,12 @@ processLine(const CwshLine &line)
       std::cerr << "[" << cthrow->file << ":" << cthrow->line << "] ";
 
     if (qualifier != "")
-      std::cerr << qualifier << ": " << cthrow->message << std::endl;
+      std::cerr << qualifier << ": " << cthrow->message << "\n";
     else
-      std::cerr << cthrow->message << std::endl;
+      std::cerr << cthrow->message << "\n";
   }
   catch (...) {
-    std::cerr << "Unhandled Exception thrown" << std::endl;
+    std::cerr << "Unhandled Exception thrown\n";
   }
 }
 
@@ -457,7 +455,7 @@ executeCommands(const CwshCmdArray &cmds)
     for (int j = 0; j < num_words; j++)
       words.push_back(cmds[i]->getWord(j).getWord());
 
-    CwshCommandData *command = new CwshCommandData(cwsh_, words);
+    auto *command = new CwshCommandData(cwsh_, words);
 
     CwshCommand *ccommand = command->getCommand();
 
@@ -472,10 +470,10 @@ executeCommands(const CwshCmdArray &cmds)
 
     // Echo Command
 
-    CwshVariable *variable = cwsh_->lookupVariable("echo");
+    auto *variable = cwsh_->lookupVariable("echo");
 
     if (variable)
-      std::cout << ccommand->getCommandString() << std::endl;
+      std::cout << ccommand->getCommandString() << "\n";
 
     //-----
 
@@ -494,7 +492,7 @@ executeCommands(const CwshCmdArray &cmds)
     if (cmds[i]->hasStdOutFile()) {
       ccommand->addFileDest(cmds[i]->getStdOutFile(), 1);
 
-      CwshVariable *variable1 = cwsh_->lookupVariable("noclobber");
+      auto *variable1 = cwsh_->lookupVariable("noclobber");
 
       if (cmds[i]->getStdOutClobber() || ! variable1)
         ccommand->setFileDestOverwrite(true, 1);
@@ -509,7 +507,7 @@ executeCommands(const CwshCmdArray &cmds)
       if (! cmds[i]->hasStdOutFile()) {
         ccommand->addFileDest(cmds[i]->getStdErrFile(), 1);
 
-        CwshVariable *variable1 = cwsh_->lookupVariable("noclobber");
+        auto *variable1 = cwsh_->lookupVariable("noclobber");
 
         if (cmds[i]->getStdErrClobber() || ! variable1)
           ccommand->setFileDestOverwrite(true, 1);
@@ -522,7 +520,7 @@ executeCommands(const CwshCmdArray &cmds)
 
       ccommand->addFileDest(cmds[i]->getStdErrFile(), 2);
 
-      CwshVariable *variable2 = cwsh_->lookupVariable("noclobber");
+      auto *variable2 = cwsh_->lookupVariable("noclobber");
 
       if (cmds[i]->getStdErrClobber() || ! variable2)
         ccommand->setFileDestOverwrite(true, 2);
@@ -622,7 +620,7 @@ executeCommands(const CwshCmdArray &cmds)
             std::cout << " " << pccommand1->getPid();
           }
 
-          std::cout << " " << ccommand->getPid() << std::endl;
+          std::cout << " " << ccommand->getPid() << "\n";
         }
 
         pcommands.clear();
@@ -663,13 +661,13 @@ executeCommands(const CwshCmdArray &cmds)
           else {
             int pid = ccommand->getPid();
 
-            std::cout << "[" << process->getNum() << "] " << pid << std::endl;
+            std::cout << "[" << process->getNum() << "] " << pid << "\n";
           }
         }
         else {
           int pid = ccommand->getPid();
 
-          std::cout << "[" << process->getNum() << "] " << pid << std::endl;
+          std::cout << "[" << process->getNum() << "] " << pid << "\n";
         }
       }
     }
@@ -731,7 +729,7 @@ processStdInLine(const CwshLine &line)
   CwshWord::toWords(line.line, words);
 
   if (cwsh_->getDebug()) {
-    std::cerr << "Std In Line to Words" << std::endl;
+    std::cerr << "Std In Line to Words\n";
 
     CwshWord::printWords(words);
   }
@@ -794,7 +792,7 @@ processExprLine(const CwshLine &line)
   CwshWord::toWords(line.line, words);
 
   if (cwsh_->getDebug()) {
-    std::cerr << "Expr Line to Words" << std::endl;
+    std::cerr << "Expr Line to Words\n";
 
     CwshWord::printWords(words);
   }
@@ -906,7 +904,7 @@ getPrompt()
   else
     prompt_var = cwsh_->lookupVariable("prompt1");
 
-  CwshVariable *color_var = cwsh_->lookupVariable("prompt_color");
+  auto *color_var = cwsh_->lookupVariable("prompt_color");
 
   std::string prompt_string;
 

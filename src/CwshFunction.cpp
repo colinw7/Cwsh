@@ -10,7 +10,7 @@ CwshFunction *
 CwshFunctionMgr::
 define(const CwshFunctionName &name, const CwshLineArray &lines)
 {
-  CwshFunction *function = new CwshFunction(cwsh_, name, lines);
+  auto *function = new CwshFunction(cwsh_, name, lines);
 
   function_list_.setValue(name, function);
 
@@ -104,6 +104,6 @@ list(bool all)
     std::cout << "]";
   }
 
-  std::cout << std::endl;
+  std::cout << "\n";
 }
 

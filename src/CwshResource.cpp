@@ -113,7 +113,7 @@ print(CwshResourceLimit *rlimit, bool hard)
     std::cout << " ";
 
   if (COSLimit::isLimitValueInfinity(value)) {
-    std::cout << "unlimited" << std::endl;
+    std::cout << "unlimited\n";
     return;
   }
 
@@ -123,14 +123,14 @@ print(CwshResourceLimit *rlimit, bool hard)
     int value3 = int(value - value1*3600 - value2*60);
 
     if (value1 > 0)
-      std::cout << value1 << value2 << value3 << std::endl;
+      std::cout << value1 << value2 << value3 << "\n";
     else
-      std::cout << value2 << value3 << std::endl;
+      std::cout << value2 << value3 << "\n";
   }
   else if (rlimit->type == CwshResourceType::SIZE)
-    std::cout << int(value/1024) << " kbytes" << std::endl;
+    std::cout << int(value/1024) << " kbytes\n";
   else
-    std::cout << value << std::endl;
+    std::cout << value << "\n";
 }
 
 int

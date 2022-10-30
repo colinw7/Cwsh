@@ -31,7 +31,7 @@ processSet(const std::string &name, int index, CwshVariableType type,
            std::vector<std::string> &values)
 {
   if (index != -1) {
-    int num_values = int(values.size());
+    auto num_values = values.size();
 
     if (num_values != 1)
       CWSH_THROW("Syntax Error.");
@@ -39,12 +39,12 @@ processSet(const std::string &name, int index, CwshVariableType type,
     if (type == CwshVariableType::WORDLIST || num_values != 1)
       CWSH_THROW("Expression Syntax.");
 
-    CwshVariable *variable = cwsh_->lookupVariable(name);
+    auto *variable = cwsh_->lookupVariable(name);
 
     if (! variable)
       CWSH_THROW("Undefined variable");
 
-    if (index >= variable->getNumValues())
+    if (index >= int(variable->getNumValues()))
       CWSH_THROW("Subscript out of range.");
 
     variable->setValue(index - 1, values[0]);
@@ -86,7 +86,7 @@ processAssign(const std::string &name, int index,
     integer = expr.process();
   }
 
-  CwshVariable *variable = cwsh_->lookupVariable(name);
+  auto *variable = cwsh_->lookupVariable(name);
 
   int integer1 = 0;
 
@@ -94,7 +94,7 @@ processAssign(const std::string &name, int index,
     if (! variable)
       CWSH_THROW("Undefined variable.");
 
-    if (index >= variable->getNumValues())
+    if (index >= int(variable->getNumValues()))
       CWSH_THROW("Subscript out of range.");
 
     std::string str = variable->getValue(index - 1);

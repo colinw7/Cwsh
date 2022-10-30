@@ -49,7 +49,7 @@ expand(CwshWordArray &words)
     CwshWord::toWords(str1, words);
 
     if (cwsh_->getDebug()) {
-      std::cerr << "Expand In Place String to Words" << std::endl;
+      std::cerr << "Expand In Place String to Words\n";
 
       CwshWord::printWords(words);
     }
@@ -121,7 +121,7 @@ expandCommand(const std::string &str)
   //------
 
   if (cwsh_->getDebug()) {
-    std::cerr << "Expand Command '" << str << "' to '" << output << "'" << std::endl;
+    std::cerr << "Expand Command '" << str << "' to '" << output << "'\n";
   }
 
   return output;
@@ -176,7 +176,7 @@ executeCommands(const CwshCmdArray &cmds)
     if (cmds[i]->hasStdOutFile()) {
       command1->addFileDest(cmds[i]->getStdOutFile(), 1);
 
-      CwshVariable *variable = cwsh_->lookupVariable("noclobber");
+      auto *variable = cwsh_->lookupVariable("noclobber");
 
       if (cmds[i]->getStdOutClobber() || ! variable)
         command1->setFileDestOverwrite(true, 1);
@@ -191,7 +191,7 @@ executeCommands(const CwshCmdArray &cmds)
       if (! cmds[i]->hasStdOutFile()) {
         command1->addFileDest(cmds[i]->getStdErrFile(), 1);
 
-        CwshVariable *variable = cwsh_->lookupVariable("noclobber");
+        auto *variable = cwsh_->lookupVariable("noclobber");
 
         if (cmds[i]->getStdErrClobber() || ! variable)
           command1->setFileDestOverwrite(true, 1);
@@ -204,7 +204,7 @@ executeCommands(const CwshCmdArray &cmds)
 
       command1->addFileDest(cmds[i]->getStdErrFile(), 2);
 
-      CwshVariable *variable = cwsh_->lookupVariable("noclobber");
+      auto *variable = cwsh_->lookupVariable("noclobber");
 
       if (cmds[i]->getStdErrClobber() || ! variable)
         command1->setFileDestOverwrite(true, 2);
@@ -263,7 +263,7 @@ executeCommands(const CwshCmdArray &cmds)
 
           int pid = command1->getPid();
 
-          std::cout << "[" << process->getNum() << "] " << pid << std::endl;
+          std::cout << "[" << process->getNum() << "] " << pid << "\n";
         }
 
         pcommands.clear();
@@ -297,7 +297,7 @@ executeCommands(const CwshCmdArray &cmds)
 
           int pid = command1->getPid();
 
-          std::cout << "[" << process->getNum() << "] " << pid << std::endl;
+          std::cout << "[" << process->getNum() << "] " << pid << "\n";
         }
       }
     }
