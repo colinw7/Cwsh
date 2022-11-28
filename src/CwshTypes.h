@@ -1,4 +1,6 @@
-enum class CwshBlockType {
+namespace Cwsh {
+
+enum class BlockType {
   FOREACH,
   FILE,
   FUNCTION,
@@ -7,44 +9,145 @@ enum class CwshBlockType {
   WHILE
 };
 
-class  Cwsh;
-class  CwshAlias;
-class  CwshAliasMgr;
-class  CwshAutoExec;
-class  CwshAutoExecMgr;
-class  CwshBlock;
-class  CwshBlockMgr;
-class  CwshCommand;
-class  CwshCommandData;
-class  CwshCmd;
-class  CwshCmdLine;
-class  CwshCmdGroup;
-class  CwshDirStack;
-class  CwshExprStackStack;
-class  CwshExprStack;
-class  CwshExprStackNode;
-class  CwshExprOperator;
-class  CwshFunctionMgr;
-class  CwshFunction;
-class  CwshHash;
-class  CwshHistory;
-class  CwshHistoryCmdData;
-class  CwshHistoryOperation;
-class  CwshInput;
-class  CwshProcessMgr;
-class  CwshProcess;
-class  CwshReadLine;
-class  CwshResource;
-struct CwshResourceLimit;
-class  CwshServer;
-class  CwshShellCommandMgr;
-class  CwshShellCommand;
-class  CwshState;
-class  CwshStateMgr;
-class  CwshVariable;
-class  CwshVariableMgr;
-class  CwshWord;
-class  CwshSubWord;
+}
+
+//---
+
+#include <memory>
+#include <map>
+#include <list>
+#include <vector>
+
+//---
+
+namespace Cwsh {
+
+class hApp;
+
+class AliasMgr;
+class Alias;
+
+using AliasP    = std::shared_ptr<Alias>;
+using AliasMgrP = std::unique_ptr<AliasMgr>;
+
+class AutoExecMgr;
+class AutoExec;
+
+using AutoExecP    = std::shared_ptr<AutoExec>;
+using AutoExecMgrP = std::unique_ptr<AutoExecMgr>;
+
+class BlockMgr;
+class Block;
+
+using BlockMgrP = std::unique_ptr<BlockMgr>;
+using BlockP    = std::shared_ptr<Block>;
+
+using BlockArray = std::vector<BlockP>;
+
+class Cmd;
+class CmdLine;
+class CmdGroup;
+
+using CmdArray      = std::vector<Cmd *>;
+using CmdLineArray  = std::vector<CmdLine *>;
+using CmdGroupP     = std::shared_ptr<CmdGroup>;
+using CmdGroupArray = std::vector<CmdGroupP>;
+
+class Command;
+class CommandData;
+
+class DirStack;
+
+using DirStackP = std::unique_ptr<DirStack>;
+
+class ExprStackStack;
+class ExprStack;
+class ExprStackNode;
+class ExprOperator;
+
+using ExprStackP        = std::shared_ptr<ExprStack>;
+using ExprStackArray    = std::vector<ExprStackP>;
+using ExprStackNodeList = std::list<ExprStackNode *>;
+
+class FunctionMgr;
+class Function;
+
+using FunctionMgrP = std::unique_ptr<FunctionMgr>;
+
+class Hash;
+
+using HashP = std::unique_ptr<Hash>;
+
+using HashFilePathMap = std::map<std::string, std::string>;
+
+class History;
+class HistoryCmdData;
+class HistoryOperation;
+
+using HistoryP = std::unique_ptr<History>;
+
+using HistoryCmdDataList = std::list<HistoryCmdData *>;
+
+using HistoryOperationArray = std::vector<HistoryOperation *>;
+
+class Input;
+
+using InputP = std::unique_ptr<Input>;
+
+class ProcessMgr;
+class Process;
+
+using ProcessMgrP = std::unique_ptr<ProcessMgr>;
+
+class ReadLine;
+
+using ReadLineP = std::unique_ptr<ReadLine>;
+
+class  Resource;
+struct ResourceLimit;
+
+using ResourceP = std::unique_ptr<Resource>;
+
+class Server;
+
+using ServerP = std::unique_ptr<Server>;
+
+class ShellCommandMgr;
+class ShellCommand;
+
+using ShellCommandMgrP = std::unique_ptr<ShellCommandMgr>;
+
+#ifdef USE_SHM
+class ShMem;
+
+using ShMemP = std::unique_ptr<ShMem>;
+#endif
+
+class StateMgr;
+class State;
+
+using StateMgrP = std::unique_ptr<StateMgr>;
+
+class VariableMgr;
+class Variable;
+
+using VariableMgrP = std::unique_ptr<VariableMgr>;
+
+using VariableMgrArray = std::vector<VariableMgr *>;
+
+using VariableList = std::list<Variable *>;
+
+using VariableValueArray = std::vector<std::string>;
+
+class Word;
+class SubWord;
+
+using WordArray    = std::vector<Word>;
+using SubWordArray = std::vector<SubWord>;
+
+}
+
+//---
 
 #include <string>
 #include <vector>
@@ -52,44 +155,23 @@ class  CwshSubWord;
 #include <list>
 #include <set>
 
-typedef std::string           CwshArg;
-typedef std::vector<CwshArg>  CwshArgArray;
+//---
+
+namespace Cwsh {
+
+using ArgArray = std::vector<std::string>;
 
 //---
 
-struct CwshLine {
+struct Line {
   std::string line;
   int         num { -1 };
 
-  CwshLine(const std::string &line_, int num_=-1) :
+  Line(const std::string &line_, int num_=-1) :
    line(line_), num(num_) {
   }
 };
 
-typedef std::vector<CwshLine> CwshLineArray;
+using LineArray = std::vector<Line>;
 
-//---
-
-typedef std::string                         CwshAliasName;
-typedef std::string                         CwshAliasValue;
-typedef std::string                         CwshAutoExecName;
-typedef std::string                         CwshAutoExecValue;
-typedef std::vector<CwshBlock *>            CwshBlockArray;
-typedef std::vector<CwshCmd *>              CwshCmdArray;
-typedef std::vector<CwshCmdLine *>          CwshCmdLineArray;
-typedef std::vector<CwshCmdGroup *>         CwshCmdGroupArray;
-typedef std::vector<CwshExprStack *>        CwshExprStackArray;
-typedef std::list<CwshExprStackNode *>      CwshExprStackNodeList;
-typedef std::string                         CwshFunctionName;
-typedef std::map<std::string,std::string>   CwshHashFilePathMap;
-typedef std::vector<CwshHistoryOperation *> CwshHistoryOperationArray;
-typedef std::list<CwshVariable *>           CwshVariableList;
-typedef std::vector<CwshVariableMgr *>      CwshVariableMgrArray;
-typedef std::string                         CwshVariableName;
-typedef std::string                         CwshVariableValue;
-typedef std::vector<CwshVariableValue>      CwshVariableValueArray;
-typedef std::vector<CwshWord>               CwshWordArray;
-typedef std::vector<CwshSubWord>            CwshSubWordArray;
-typedef std::list<CwshHistoryCmdData *>     CwshHistoryCmdDataList;
-
-typedef void (*CwshShellCommandProc)(Cwsh *cwsh, const CwshArgArray &args);
+}

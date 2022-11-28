@@ -1,8 +1,10 @@
 #include <CwshI.h>
 
+namespace Cwsh {
+
 std::string
-CwshDir::
-lookup(Cwsh *cwsh, const std::string &dirname, bool required)
+Dir::
+lookup(App *cwsh, const std::string &dirname, bool required)
 {
   if (CFile::exists(dirname) && CFile::isDirectory(dirname))
     return dirname;
@@ -31,7 +33,7 @@ lookup(Cwsh *cwsh, const std::string &dirname, bool required)
     std::string dirname1 = variable->getValue(i) + "/" + dirname;
 
     if (CFile::exists(dirname1) && CFile::isDirectory(dirname1)) {
-      std::cout << CwshString::replaceHome(dirname1) << "\n";
+      std::cout << String::replaceHome(dirname1) << "\n";
       return dirname1;
     }
   }
@@ -40,4 +42,6 @@ lookup(Cwsh *cwsh, const std::string &dirname, bool required)
     CWSH_THROWQ(dirname, "No such file or directory.");
   else
     return "";
+}
+
 }

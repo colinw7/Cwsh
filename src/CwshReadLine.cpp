@@ -2,17 +2,19 @@
 #include <CReadLine.h>
 #include <cstdio>
 
-CwshReadLine::
-CwshReadLine(Cwsh *cwsh) :
+namespace Cwsh {
+
+ReadLine::
+ReadLine(App *cwsh) :
  cwsh_(cwsh)
 {
 }
 
 std::string
-CwshReadLine::
+ReadLine::
 readLine()
 {
-  std::string prompt = cwsh_->getInputPrompt();
+  auto prompt = cwsh_->getInputPrompt();
 
   setPrompt(prompt);
 
@@ -35,7 +37,7 @@ readLine()
         CWSH_THROW("Use \"exit\" to leave shell.");
     }
   }
-  catch (struct CwshErr *cthrow) {
+  catch (struct Err *cthrow) {
     if (cwsh_->getDebug())
       std::cerr << "[" << cthrow->file << ":" << cthrow->line << "] ";
 
@@ -52,10 +54,10 @@ readLine()
 }
 
 bool
-CwshReadLine::
+ReadLine::
 completeLine(const std::string &line, std::string &line1)
 {
-  CwshComplete complete(cwsh_, line);
+  Complete complete(cwsh_, line);
 
   if (! complete.complete(line1))
     cwsh_->beep();
@@ -64,16 +66,16 @@ completeLine(const std::string &line, std::string &line1)
 }
 
 bool
-CwshReadLine::
+ReadLine::
 showComplete(const std::string &line)
 {
-  CwshMatch match(cwsh_);
+  Match match(cwsh_);
 
   return match.showMatch(line);
 }
 
 bool
-CwshReadLine::
+ReadLine::
 getPrevCommand(std::string &line)
 {
   if (! cwsh_->hasPrevHistoryCommand())
@@ -85,7 +87,7 @@ getPrevCommand(std::string &line)
 }
 
 bool
-CwshReadLine::
+ReadLine::
 getNextCommand(std::string &line)
 {
   if (! cwsh_->hasNextHistoryCommand())
@@ -97,7 +99,7 @@ getNextCommand(std::string &line)
 }
 
 void
-CwshReadLine::
+ReadLine::
 beep()
 {
   auto *nobeep = cwsh_->lookupVariable("nobeep");
@@ -107,15 +109,17 @@ beep()
 }
 
 void
-CwshReadLine::
+ReadLine::
 interrupt()
 {
   CReadLine::interrupt();
 }
 
 void
-CwshReadLine::
+ReadLine::
 timeout()
 {
   cwsh_->readTimeout();
+}
+
 }

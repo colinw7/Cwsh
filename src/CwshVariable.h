@@ -1,30 +1,26 @@
 #ifndef CWSH_VARIABLE_H
 #define CWSH_VARIABLE_H
 
-class CwshVariableMgr {
+namespace Cwsh {
+
+class VariableMgr {
  public:
-  CwshVariableMgr(Cwsh *cwsh);
-  CwshVariableMgr(const CwshVariableMgr &mgr);
+  VariableMgr(App *cwsh);
+  VariableMgr(const VariableMgr &mgr);
 
- ~CwshVariableMgr();
+ ~VariableMgr();
 
-  CwshVariable *define(const CwshVariableName &name);
-  CwshVariable *define(const CwshVariableName &name, const CwshVariableValue &value);
-  CwshVariable *define(const CwshVariableName &name, int value);
-  CwshVariable *define(const CwshVariableName &name, const CwshVariableValueArray &values);
-  CwshVariable *define(const CwshVariableName &name, const char **values, int num_values);
+  Variable *define(const std::string &name);
+  Variable *define(const std::string &name, const std::string &value);
+  Variable *define(const std::string &name, int value);
+  Variable *define(const std::string &name, const VariableValueArray &values);
+  Variable *define(const std::string &name, const char **values, int numValues);
 
-  void undefine(const CwshVariableName &name);
+  void undefine(const std::string &name);
 
-  CwshVariable *lookup(const CwshVariableName &name) const;
+  Variable *lookup(const std::string &name) const;
 
-  CwshVariableList::iterator variablesBegin() {
-    return variables_.begin();
-  }
-
-  CwshVariableList::iterator variablesEnd() {
-    return variables_.end();
-  }
+  const auto &variables() const { return variables_; }
 
   void listVariables(bool all) const;
 
@@ -34,46 +30,47 @@ class CwshVariableMgr {
   bool isEnvironmentVariableLower(const std::string &name);
   bool isEnvironmentVariableUpper(const std::string &name);
 
-  void updateEnvironmentVariable(CwshVariable *variable);
+  void updateEnvironmentVariable(Variable *variable);
 
  private:
   void clear();
 
  private:
-  CPtr<Cwsh>           cwsh_;
-  CwshVariableList     variables_;
-  CwshVariableMgrArray stack_;
+  CPtr<App>        cwsh_;
+  VariableList     variables_;
+  VariableMgrArray stack_;
 
-  static std::string lower_env_names_[];
-  static std::string upper_env_names_[];
+  static std::string lowerEnvNames_[];
+  static std::string upperEnvNames_[];
 };
 
 //---
 
-enum class CwshVariableType {
+enum class VariableType {
+  NONE,
   WORD,
   WORDLIST
 };
 
-class CwshVariable {
-  CINST_COUNT_MEMBER(CwshVariable);
+class Variable {
+  CINST_COUNT_MEMBER(Variable);
 
  public:
-  CwshVariable(Cwsh *cwsh, const CwshVariableName &name, const CwshVariableValue &value);
-  CwshVariable(Cwsh *cwsh, const CwshVariableName &name, int value);
-  CwshVariable(Cwsh *cwsh, const CwshVariableName &name, const CwshVariableValueArray &values);
-  CwshVariable(Cwsh *cwsh, const CwshVariableName &name, const char **values, int num_values);
-  CwshVariable(const CwshVariable &variable);
- ~CwshVariable();
+  Variable(App *cwsh, const std::string &name, const std::string &value);
+  Variable(App *cwsh, const std::string &name, int value);
+  Variable(App *cwsh, const std::string &name, const VariableValueArray &values);
+  Variable(App *cwsh, const std::string &name, const char **values, int numValues);
+  Variable(const Variable &variable);
+ ~Variable();
 
-  const CwshVariableName &getName() const;
-  CwshVariableType        getType() const;
+  const std::string &getName() const;
+  VariableType       getType() const;
 
-  uint                         getNumValues() const;
-  const CwshVariableValueArray &getValues() const;
+  uint                     getNumValues() const;
+  const VariableValueArray &getValues() const;
 
-  const CwshVariableValue &getValue(int pos) const;
-  void                     setValue(int pos, const CwshVariableValue &value);
+  const std::string &getValue(int pos) const;
+  void               setValue(int pos, const std::string &value);
 
   bool isEnvVar() const { return envVar_; }
 
@@ -93,20 +90,22 @@ class CwshVariable {
   void checkName();
 
  private:
-  CPtr<Cwsh>             cwsh_;
-  CwshVariableName       name_;
-  CwshVariableType       type_;
-  CwshVariableValueArray values_;
-  bool                   envVar_ { false };
-  std::string            filename_;
-  int                    lineNum_ { -1 };
+  CPtr<App>          cwsh_;
+  std::string        name_;
+  VariableType       type_ { VariableType::NONE };
+  VariableValueArray values_;
+  bool               envVar_ { false };
+  std::string        filename_;
+  int                lineNum_ { -1 };
 };
 
 //---
 
-class CwshVariablesCmp {
+class VariablesCmp {
  public:
-  int operator()(const CwshVariable *variable1, const CwshVariable *variable2);
+  int operator()(const Variable *variable1, const Variable *variable2);
 };
+
+}
 
 #endif

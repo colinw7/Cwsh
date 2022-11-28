@@ -4,11 +4,19 @@
 #include <CStrParse.h>
 #include <CFile.h>
 #include <CFileMatch.h>
+#include <CPathList.h>
 #include <CDir.h>
 #include <CGlob.h>
 #include <CStrUtil.h>
+#include <CPrintF.h>
+
+#include <COSFile.h>
 #include <COSProcess.h>
+#include <COSSignal.h>
+#include <COSTerm.h>
+#include <COSTime.h>
 #include <COSUser.h>
+
 #include <CEnv.h>
 #include <CExpr.h>
 
@@ -17,7 +25,8 @@ namespace CBash {
 App::
 App()
 {
-  readLine_ = std::make_unique<CReadLine>();
+  readLine_ = std::make_unique<ReadLine>(this);
+  history_  = std::make_unique<History >(this);
 }
 
 App::
@@ -27,21 +36,87 @@ App::
 
 void
 App::
-init(int, char **)
+init(int argc, char **argv)
 {
+  StringArray args;
+
+  for (int i = 1; i < argc; ++i) {
+    if (argv[i][1] == '-') {
+      auto opt = std::string(&argv[i][1]);
+
+      if (opt == "-debug")
+        debug_ = true;
+      else
+        std::cerr << "Invalid option '-" << opt << "\n";
+    }
+    else
+      args.push_back(argv[i]);
+  }
+
   addShellCommands();
+
+  //---
+
+  addVariable("PS1", "$ ");
+  addVariable("PS2", "> ");
 
   for (const auto &env : CEnvInst)
     addVariable(env.first, env.second, /*export*/true);
+
+  //---
+
+  addSignalHandlers();
 }
 
 void
 App::
 addShellCommands()
 {
-  shellCommands_["cd"   ] = std::make_shared<CdCommand   >(this);
-  shellCommands_["alias"] = std::make_shared<AliasCommand>(this);
-  shellCommands_["exit" ] = std::make_shared<ExitCommand >(this);
+//shellCommands_[":"        ] = std::make_shared<ColonCommand    >(this);
+//shellCommands_["."        ] = std::make_shared<DotCommand      >(this);
+  shellCommands_["alias"    ] = std::make_shared<AliasCommand    >(this);
+//shellCommands_["bind"     ] = std::make_shared<BindCommand     >(this);
+//shellCommands_["break"    ] = std::make_shared<BreakCommand    >(this);
+//shellCommands_["builtin"  ] = std::make_shared<BuiltinCommand  >(this);
+//shellCommands_["caller"   ] = std::make_shared<CallerCommand   >(this);
+  shellCommands_["cd"       ] = std::make_shared<CdCommand       >(this);
+//shellCommands_["command"  ] = std::make_shared<CommandCommand  >(this);
+//shellCommands_["compgen"  ] = std::make_shared<CommandCommand  >(this);
+//shellCommands_["continue" ] = std::make_shared<ContinueCommand >(this);
+//shellCommands_["declare"  ] = std::make_shared<DeclareCommand  >(this);
+//shellCommands_["echo"     ] = std::make_shared<EchoCommand     >(this);
+//shellCommands_["enable"   ] = std::make_shared<EnableCommand   >(this);
+//shellCommands_["eval"     ] = std::make_shared<EvalCommand     >(this);
+//shellCommands_["exec"     ] = std::make_shared<ExecCommand     >(this);
+  shellCommands_["exit"     ] = std::make_shared<ExitCommand     >(this);
+//shellCommands_["export"   ] = std::make_shared<ExportCommand   >(this);
+//shellCommands_["getopts"  ] = std::make_shared<GetoptsCommand  >(this);
+//shellCommands_["hash"     ] = std::make_shared<HashCommand     >(this);
+//shellCommands_["help"     ] = std::make_shared<HelpCommand     >(this);
+  shellCommands_["history"  ] = std::make_shared<HistoryCommand  >(this);
+//shellCommands_["let"      ] = std::make_shared<LetCommand      >(this);
+//shellCommands_["local"    ] = std::make_shared<LocalCommand    >(this);
+//shellCommands_["logout"   ] = std::make_shared<LogoutCommand   >(this);
+//shellCommands_["mapfile"  ] = std::make_shared<MapfileCommand  >(this);
+  shellCommands_["printf"   ] = std::make_shared<PrintfCommand   >(this);
+//shellCommands_["pwd"      ] = std::make_shared<PwdCommand      >(this);
+//shellCommands_["read"     ] = std::make_shared<ReadCommand     >(this);
+//shellCommands_["readarray"] = std::make_shared<ReadArrayCommand>(this);
+//shellCommands_["readonly" ] = std::make_shared<ReadonlyCommand >(this);
+//shellCommands_["return"   ] = std::make_shared<ReturnCommand   >(this);
+  shellCommands_["set"      ] = std::make_shared<SetCommand      >(this);
+//shellCommands_["shift"    ] = std::make_shared<ShiftCommand    >(this);
+//shellCommands_["shopt"    ] = std::make_shared<ShoptCommand    >(this);
+//shellCommands_["source"   ] = std::make_shared<SourceCommand   >(this);
+//shellCommands_["test"     ] = std::make_shared<TestCommand     >(this);
+//shellCommands_["times"    ] = std::make_shared<TimesCommand    >(this);
+//shellCommands_["trap"     ] = std::make_shared<TrapCommand     >(this);
+//shellCommands_["type"     ] = std::make_shared<TypeCommand     >(this);
+//shellCommands_["typeset"  ] = std::make_shared<TypesetCommand  >(this);
+//shellCommands_["ulimit"   ] = std::make_shared<UlimitCommand   >(this);
+//shellCommands_["unalias"  ] = std::make_shared<UnaliasCommand  >(this);
+//shellCommands_["umask"    ] = std::make_shared<UmaskCommand    >(this);
+//shellCommands_["unset"    ] = std::make_shared<UnsetCommand    >(this);
 }
 
 BuiltinCommand *
@@ -58,12 +133,34 @@ void
 App::
 mainLoop()
 {
+  std::string lastLine;
+
+  complete_ = true;
+
   while (! eof()) {
-    auto line = getLine();
+    checkBgCommands();
+
+    //---
+
+    setReturnCode(0);
+
+    //---
+
+    auto line = getLine(complete_);
+
+    line = lastLine + " " + line;
+
+    if (! complete_) {
+      lastLine = line;
+      continue;
+    }
+
+    lastLine = "";
 
     Cmds cmds;
 
-    parseLine(line, cmds);
+    if (! parseLine(line, cmds))
+      continue;
 
     //---
 
@@ -83,21 +180,48 @@ mainLoop()
 
     for (const auto &cmd : cmds)
       waitCommand(cmd);
+
+    //---
+
+    addHistory(line);
+
+    ++commandNum_;
   }
 }
 
-void
+bool
 App::
 parseLine(const std::string &line, Cmds &cmds) const
 {
+  // Skip if comment as first character
+  uint i = 0;
+
+  CStrUtil::skipSpace(line, &i);
+
+  uint len = uint(line.size());
+
+  if (i < len && line[i] == '#')
+    return true;
+
+  //---
+
   Tokens tokens;
 
-  lineToTokens(line, tokens);
+  try {
+    if (! lineToTokens(line, tokens))
+      return false;
 
-  tokensToCmds(tokens, cmds);
+    if (! tokensToCmds(tokens, cmds))
+      return false;
+  }
+  catch (...) {
+    return false;
+  }
+
+  return true;
 }
 
-void
+bool
 App::
 lineToTokens(const std::string &line, Tokens &tokens) const
 {
@@ -109,30 +233,35 @@ lineToTokens(const std::string &line, Tokens &tokens) const
   parse.skipSpace();
 
   if (parse.eof())
-    return;
+    return false;
 
-  auto type    = TokenType::NONE;
-  auto subType = TokenSubType::NONE;
-  auto pos     = parse.getPos();
+  auto        type    = TokenType::NONE;
+  int         subType = 0;
+  auto        pos     = parse.getPos();
+  std::string word    = "";
 
   //---
 
   auto flushToken = [&](bool skip=true) {
-    auto word = parse.getBefore(pos);
-
     if (word != "") {
-      if (type == TokenType::NONE && isKeyword(word))
-        type = TokenType::KEYWORD;
+      Keyword keyword;
 
-      Token token(type, word);
+      if (type == TokenType::NONE && isKeyword(word, keyword)) {
+        type    = TokenType::KEYWORD;
+        subType = int(keyword);
+      }
+
+      Token token(type, word, pos);
 
       token.setSubType(subType);
 
       tokens.push_back(token);
 
-      std::cerr << "Token: ";
+      if (isDebug()) {
+        std::cerr << "Token: ";
 
-      tokens.back().print(std::cerr);
+        tokens.back().print(std::cerr);
+      }
     }
 
     if (skip)
@@ -140,6 +269,7 @@ lineToTokens(const std::string &line, Tokens &tokens) const
 
     type = TokenType::NONE;
     pos  = parse.getPos();
+    word = "";
   };
 
   //---
@@ -152,18 +282,25 @@ lineToTokens(const std::string &line, Tokens &tokens) const
         break;
       else if (parse.isChar(';'))
         break;
-      else if (parse.isChar('|') && parse.isChar('&'))
+      else if (parse.isChar('|') || parse.isChar('&'))
         break;
       else if (parse.isChar('(') || parse.isChar(')'))
         break;
       else if (parse.isChar('<') || parse.isChar('>'))
         break;
-      else
-        parse.skipChar();
+      else if (parse.isChar('\\')) {
+        word += parse.readChar();
+
+        if (! parse.eof())
+          word += parse.readChar();
+      }
+      else {
+        word += parse.readChar();
+      }
     }
 
     if (parse.getPos() > pos)
-      type = TokenType::STRING;
+      type = TokenType::WORD;
   };
 
   //---
@@ -172,36 +309,54 @@ lineToTokens(const std::string &line, Tokens &tokens) const
     if      (parse.isChar('"')) {
       flushToken(/*skip*/false);
 
-      type = TokenType::STRING;
+      type = TokenType::DQUOTE_STRING;
+
+      int pos1 = parse.getPos();
 
       if (! parse.skipString()) {
         throw "Invalid string";
         break; // error
       }
+
+      auto str = parse.getBefore(pos1);
+
+      word += str.substr(1, str.size() - 2);
 
       flushToken();
     }
     else if (parse.isChar('\'')) {
       flushToken(/*skip*/false);
 
-      type = TokenType::STRING;
+      type = TokenType::SQUOTE_STRING;
+
+      int pos1 = parse.getPos();
 
       if (! parse.skipString()) {
         throw "Invalid string";
         break; // error
       }
+
+      auto str = parse.getBefore(pos1);
+
+      word += str.substr(1, str.size() - 2);
 
       flushToken();
     }
     else if (parse.isChar('`')) {
       flushToken(/*skip*/false);
 
-      type = TokenType::STRING;
+      type = TokenType::BACKQUOTE_STRING;
+
+      int pos1 = parse.getPos();
 
       if (! parse.skipString()) {
         throw "Invalid string";
         break; // error
       }
+
+      auto str = parse.getBefore(pos1);
+
+      word += str.substr(1, str.size() - 2);
 
       flushToken();
     }
@@ -210,9 +365,10 @@ lineToTokens(const std::string &line, Tokens &tokens) const
 
       type = TokenType::OPERATOR;
 
-      subType = (parse.isChar('(') ? TokenSubType::OPEN_RBRACKETS : TokenSubType::CLOSE_RBRACKETS);
+      subType = int(parse.isChar('(') ? Operator::OPEN_RBRACKETS :
+                                        Operator::CLOSE_RBRACKETS);
 
-      parse.skipChar();
+      word += parse.readChar();
 
       flushToken();
     }
@@ -222,31 +378,31 @@ lineToTokens(const std::string &line, Tokens &tokens) const
 
       type = TokenType::OPERATOR;
 
-      parse.skipChar();
+      word += parse.readChar();
 
       if      (parse.isChar('<')) {
-        parse.skipChar();
+        word += parse.readChar();
 
         if (parse.isChar('-')) {
-          parse.skipChar();
+          word += parse.readChar();
 
-          subType = TokenSubType::LESS_LESS_MINUS;
+          subType = int(Operator::LESS_LESS_MINUS);
         }
         else
-          subType = TokenSubType::LESS_LESS;
+          subType = int(Operator::LESS_LESS);
       }
       else if (parse.isChar('&')) {
-        parse.skipChar();
+        word += parse.readChar();
 
-        subType = TokenSubType::FILE_INPUT_ERR;
+        subType = int(Operator::FILE_INPUT_ERR);
       }
       else if (parse.isChar('>')) {
-        parse.skipChar();
+        word += parse.readChar();
 
-        subType = TokenSubType::LESS_GREATER;
+        subType = int(Operator::LESS_GREATER);
       }
       else
-        subType = TokenSubType::FILE_INPUT;
+        subType = int(Operator::FILE_INPUT);
 
       flushToken();
     }
@@ -256,25 +412,25 @@ lineToTokens(const std::string &line, Tokens &tokens) const
 
       type = TokenType::OPERATOR;
 
-      parse.skipChar();
+      word += parse.readChar();
 
       if      (parse.isChar('>')) {
-        parse.skipChar();
+        word += parse.readChar();
 
-        subType = TokenSubType::FILE_OUTPUT_APPEND;
+        subType = int(Operator::FILE_OUTPUT_APPEND);
       }
       else if (parse.isChar('&')) {
-        parse.skipChar();
+        word += parse.readChar();
 
-        subType = TokenSubType::FILE_OUTPUT_ERR;
+        subType = int(Operator::FILE_OUTPUT_ERR);
       }
       else if (parse.isChar('|')) {
-        parse.skipChar();
+        word += parse.readChar();
 
-        subType = TokenSubType::FILE_OUTPUT_PIPE;
+        subType = int(Operator::FILE_OUTPUT_PIPE);
       }
       else
-        subType = TokenSubType::FILE_OUTPUT;
+        subType = int(Operator::FILE_OUTPUT);
 
       flushToken();
 
@@ -288,20 +444,20 @@ lineToTokens(const std::string &line, Tokens &tokens) const
 
       type = TokenType::OPERATOR;
 
-      parse.skipChar();
+      word += parse.readChar();
 
       if      (parse.isChar('|')) {
-        parse.skipChar();
+        word += parse.readChar();
 
-        subType = TokenSubType::PIPE_PIPE;
+        subType = int(Operator::OR);
       }
       else if (parse.isChar('&')) {
-        parse.skipChar();
+        word += parse.readChar();
 
-        subType = TokenSubType::PIPE_ERR;
+        subType = int(Operator::PIPE_ERR);
       }
       else
-        subType = TokenSubType::PIPE;
+        subType = int(Operator::PIPE);
 
       flushToken();
     }
@@ -311,16 +467,26 @@ lineToTokens(const std::string &line, Tokens &tokens) const
 
       type = TokenType::OPERATOR;
 
-      parse.skipChar();
+      word += parse.readChar();
 
-      if      (parse.isChar('&'))
-        parse.skipChar();
-      else if (parse.isChar('>')) {
-        parse.skipChar();
+      if      (parse.isChar('&')) {
+        word += parse.readChar();
 
-        if (parse.isChar('>'))
-          parse.skipChar();
+        subType = int(Operator::AND);
       }
+      else if (parse.isChar('>')) {
+        word += parse.readChar();
+
+        if (parse.isChar('>')) {
+          word += parse.readChar();
+
+          subType = int(Operator::BG_GREATER_GREATER);
+        }
+        else
+          subType = int(Operator::BG_GREATER);
+      }
+      else
+        subType = int(Operator::BG);
 
       flushToken();
     }
@@ -330,68 +496,217 @@ lineToTokens(const std::string &line, Tokens &tokens) const
 
       type = TokenType::OPERATOR;
 
-      parse.skipChar();
+      word += parse.readChar();
 
       if      (parse.isChar(';')) {
-        parse.skipChar();
+        word += parse.readChar();
 
         if (parse.isChar('&')) {
-          parse.skipChar();
+          word += parse.readChar();
 
-          subType = TokenSubType::DOUBLE_SEMI_COLON_BG;
+          subType = int(Operator::DOUBLE_SEMI_COLON_BG); // case end (test and continue)
         }
         else
-          subType = TokenSubType::DOUBLE_SEMI_COLON;
+          subType = int(Operator::DOUBLE_SEMI_COLON); // case end (continue - no test)
       }
       else if (parse.isChar('&')) {
-        parse.skipChar();
+        word += parse.readChar();
 
-        subType = TokenSubType::SEMI_COLON_BG;
+        subType = int(Operator::SEMI_COLON_BG); // case end
       }
       else
-        subType = TokenSubType::SEMI_COLON;
+        subType = int(Operator::SEMI_COLON);
 
       flushToken();
     }
     else if (parse.isChar('$')) {
-      parse.skipChar();
+      if      (parse.isString("$'")) {
+        flushToken(/*skip*/false);
 
-      if (parse.isChar('(')) {
         parse.skipChar();
 
-        int brackets = 1;
+        type = TokenType::SQUOTE_STRING;
 
-        while (! parse.eof()) {
-          if      (parse.isChar('(')) {
-            parse.skipChar();
+        int pos1 = parse.getPos();
 
-            ++brackets;
+        if (! parse.skipString()) {
+          throw "Invalid string";
+          break; // error
+        }
+
+        auto str = parse.getBefore(pos1);
+
+        auto str1 = str.substr(1, str.size() - 2);
+
+        CStrParse parse1(str1);
+
+        std::string str2;
+
+        while (! parse1.eof()) {
+          if (parse1.isChar('\\')) {
+            parse1.skipChar();
+
+            auto c = parse1.readChar();
+
+            switch (c) {
+              case 'a' : str2 += '\a'; break;
+              case 'b' : str2 += '\b'; break;
+              case 'e' : case 'E' : str2 += '\033'; break;
+              case 'f' : str2 += '\f'; break;
+              case 'n' : str2 += '\n'; break;
+              case 'r' : str2 += '\r'; break;
+              case 't' : str2 += '\t'; break;
+              case 'v' : str2 += '\v'; break;
+              case '\\': str2 += '\\'; break;
+              case '\'': str2 += '\''; break;
+              case '\"': str2 += '\"'; break;
+              case '?' : str2 += '?'; break;
+
+              // \nnn
+              case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': {
+                uint n = (c - '0');
+
+                for (uint j = 0; j < 2; ++j) {
+                  if (! parse1.eof() && CStrUtil::isodigit(parse1.getCharAt()))
+                    n += 8*n + (parse1.readChar() - '0');
+                }
+
+                str2 += char(n);
+
+                break;
+              }
+              // \xHH
+              case 'x': {
+                if (! parse1.eof()) {
+                  uint n = 0;
+
+                  uint hex_value;
+
+                  for (uint j = 0; j < 2; ++j) {
+                    if (! parse1.eof() && CStrUtil::isxdigit(parse1.getCharAt())) {
+                      if (CStrUtil::decodeHexChar(parse1.readChar(), &hex_value))
+                        n += 16*n + hex_value;
+                    }
+                  }
+
+                  if (n < 255)
+                    str2 += char(n);
+                }
+                else
+                 str2 += c;
+
+                break;
+              }
+              // \uHHHH
+              case 'u': {
+                if (! parse1.eof()) {
+                  uint n = 0;
+
+                  for (uint j = 0; j < 4; ++j) {
+                    uint hex_value;
+
+                    if (! parse1.eof() && CStrUtil::isxdigit(parse1.getCharAt())) {
+                      if (CStrUtil::decodeHexChar(parse1.readChar(), &hex_value))
+                        n += 16*n + hex_value;
+                    }
+                  }
+
+                  if (n < 255)
+                    str2 += char(n);
+                }
+                else
+                  str2 += c;
+
+                break;
+              }
+              // \UHHHHHHHH
+              case 'U': {
+                if (! parse1.eof()) {
+                  uint n = 0;
+
+                  for (uint j = 0; j < 8; ++j) {
+                    uint hex_value;
+
+                    if (! parse1.eof() && CStrUtil::isxdigit(parse1.getCharAt())) {
+                      if (CStrUtil::decodeHexChar(parse1.readChar(), &hex_value))
+                        n += 16*n + hex_value;
+                    }
+                  }
+
+                  if (n < 255)
+                    str2 += char(n);
+                }
+                else
+                  str2 += c;
+
+                break;
+              }
+              // \cx
+              case 'c': {
+                if (! parse1.eof()) {
+                  int n = 0;
+
+                  auto c1 = parse1.readChar();
+
+                  if      (std::islower(c1))
+                    n += c1 - 'a';
+                  else if (std::isupper(c1))
+                    n += c1 - 'A';
+                }
+                else
+                  str2 += c;
+
+                break;
+              }
+            }
           }
-          else if (parse.isChar(')')) {
-            parse.skipChar();
-
-            if (brackets == 1)
-              break;
-
-            --brackets;
+          else {
+            str2 += parse1.readChar();
           }
-          else
-            parse.skipChar();
+        }
+
+        word += str2;
+
+        flushToken();
+      }
+      else {
+        word += parse.readChar();
+
+        if (parse.isChar('(')) {
+          word += parse.readChar();
+
+          int brackets = 1;
+
+          while (! parse.eof()) {
+            if      (parse.isChar('(')) {
+              word += parse.readChar();
+
+              ++brackets;
+            }
+            else if (parse.isChar(')')) {
+              word += parse.readChar();
+
+              if (brackets == 1)
+                break;
+
+              --brackets;
+            }
+            else
+              word += parse.readChar();
+          }
         }
       }
     }
     else if (parse.isChar('=')) {
-      if (type == TokenType::STRING) {
-        flushToken();
-
-        type = TokenType::OPERATOR;
-
+      if (type == TokenType::WORD) {
         parse.skipChar();
+
+        subType = int(Operator::ASSIGN);
 
         flushToken();
       }
       else
-        parse.skipChar();
+        word += parse.readChar();
     }
     else if (parse.isSpace()) {
       flushToken();
@@ -401,31 +716,46 @@ lineToTokens(const std::string &line, Tokens &tokens) const
     else if (parse.isAlpha() || parse.isChar('_')) {
       if (type == TokenType::NONE) {
         while (parse.isAlnum() || parse.isChar('_'))
-          parse.skipChar();
+          word += parse.readChar();
 
-        type = TokenType::STRING;
+        type = TokenType::WORD;
       }
       else {
-        parse.skipChar();
+        word += parse.readChar();
       }
     }
     else if (parse.isDigit()) {
       if (type == TokenType::NONE) {
         while (parse.isDigit())
-          parse.skipChar();
+          word += parse.readChar();
 
         type = TokenType::NUMBER;
       }
     }
-    else {
+    else if (parse.isChar('\\')) {
       parse.skipChar();
+
+      if (! parse.eof()) {
+        flushToken();
+
+        word += parse.readChar();
+
+        type = TokenType::SQUOTE_STRING;
+
+        flushToken();
+      }
+    }
+    else {
+      word += parse.readChar();
     }
   }
 
   flushToken();
+
+  return true;
 }
 
-void
+bool
 App::
 tokensToCmds(const Tokens &tokens, Cmds &cmds) const
 {
@@ -439,7 +769,8 @@ tokensToCmds(const Tokens &tokens, Cmds &cmds) const
     if (cmd->name() != "") {
       cmds.push_back(cmd);
 
-      cmd->print(std::cerr);
+      if (isDebug())
+        cmd->print(std::cerr);
     }
 
     cmd = std::make_shared<Cmd>(th);
@@ -453,13 +784,23 @@ tokensToCmds(const Tokens &tokens, Cmds &cmds) const
 
     const std::string &str = token.str();
 
-    if (token.type() == TokenType::OPERATOR) {
-      auto subType = token.subType();
+    if      (token.type() == TokenType::WORD && token.opType() == Operator::ASSIGN) {
+      if (it >= nt)
+        throw "missing value";
 
-      if      (subType == TokenSubType::OPEN_RBRACKETS) {
+      const auto &token1 = tokens[it++];
+
+      const std::string &value = token1.str();
+
+      th->addVariable(str, value);
+    }
+    else if (token.type() == TokenType::OPERATOR) {
+      auto subType = token.opType();
+
+      if      (subType == Operator::OPEN_RBRACKETS) {
         ++brackets;
       }
-      else if (subType == TokenSubType::CLOSE_RBRACKETS) {
+      else if (subType == Operator::CLOSE_RBRACKETS) {
         if (brackets == 0) {
           throw "bad ()";
           break; // error
@@ -467,20 +808,28 @@ tokensToCmds(const Tokens &tokens, Cmds &cmds) const
 
         --brackets;
       }
-      else if (subType == TokenSubType::SEMI_COLON) {
+      else if (subType == Operator::SEMI_COLON) {
+        cmd->addOpt(token, "");
+
         if (brackets == 0)
           flushCmd();
       }
-      else if (subType == TokenSubType::FILE_INPUT || subType == TokenSubType::FILE_INPUT_ERR ||
-               subType == TokenSubType::FILE_OUTPUT || subType == TokenSubType::FILE_OUTPUT_ERR) {
+      else if (subType == Operator::FILE_INPUT || subType == Operator::FILE_INPUT_ERR ||
+               subType == Operator::FILE_OUTPUT || subType == Operator::FILE_OUTPUT_ERR) {
         auto fileStr = (it < nt ? tokens[it++].str() : "");
 
         cmd->addOpt(token, fileStr);
       }
+      else if (subType == Operator::OR || subType == Operator::AND) {
+        cmd->addOpt(token, "");
+
+        if (brackets == 0)
+          flushCmd();
+      }
       else {
         cmd->addOpt(token, "");
 
-        if (subType == TokenSubType::PIPE)
+        if (subType == Operator::PIPE || subType == Operator::PIPE_ERR)
           flushCmd();
       }
     }
@@ -502,20 +851,24 @@ tokensToCmds(const Tokens &tokens, Cmds &cmds) const
       else {
         Tokens tokens1;
 
-        expandToken(token, tokens1);
-
-        for (const auto &token1 : tokens1)
-          cmd->addArg(token1);
-       }
+        if (expandToken(token, tokens1)) {
+          for (const auto &token1 : tokens1)
+            cmd->addArg(token1);
+        }
+        else
+          cmd->addArg(token);
+      }
     }
   }
 
   if (brackets != 0) {
     throw "bad ()";
-    return;
+    return false;
   }
 
   flushCmd();
+
+  return true;
 }
 
 bool
@@ -530,7 +883,8 @@ expandAlias(const std::string &name, StringArray &args) const
   for (const auto &value : alias->values()) {
     Tokens tokens1;
 
-    lineToTokens(value, tokens1);
+    if (! lineToTokens(value, tokens1))
+      return false;
 
     for (const auto &token1 : tokens1)
       args.push_back(token1.str());
@@ -539,18 +893,30 @@ expandAlias(const std::string &name, StringArray &args) const
   return true;
 }
 
-void
+bool
 App::
 expandToken(const Token &token, Tokens &tokens) const
 {
+  bool changed = false;
+
+  //---
+
+  // no expansion in single quote string
+  if (token.type() == TokenType::SQUOTE_STRING)
+    return changed;
+
+  //---
+
   const std::string &str = token.str();
 
-  // brace expansion
+  // 1) brace expansion
   CFileMatch fm;
 
   StringArray args1;
 
   if (fm.expandBraces(str, args1)) {
+    changed = true;
+
     for (const auto &arg1 : args1) {
       StringArray args2;
 
@@ -563,13 +929,19 @@ expandToken(const Token &token, Tokens &tokens) const
     }
   }
   else {
+    args1.clear();
+
     if (expandArg(token, args1)) {
+      changed = true;
+
       for (const auto &arg1 : args1)
         tokens.push_back(arg1);
     }
     else
       tokens.push_back(token);
   }
+
+  return changed;
 }
 
 bool
@@ -578,11 +950,19 @@ expandArg(const Token &token, StringArray &args) const
 {
   bool changed = false;
 
+  //---
+
+  // no expansion in single quote string
+  if (token.type() == TokenType::SQUOTE_STRING)
+    return changed;
+
+  //---
+
   auto token1 = token;
 
   //---
 
-  // expand tilde (~)
+  // 2) expand tilde (~)
   {
   auto str1 = token1.str();
 
@@ -596,26 +976,24 @@ expandArg(const Token &token, StringArray &args) const
 
   //---
 
-  // expand variables
+  // 3) expand variables
   {
   auto str1 = token1.str();
 
-  if (token1.type() == TokenType::STRING) {
-    if (str1[0] == '\"') {
-      std::string str2;
+  if (token1.type() == TokenType::DQUOTE_STRING) {
+    std::string str2;
 
-      if (expandStringVariable(str1, str2)) {
-        token1 = str2;
+    if (expandStringVariable(str1, str2)) {
+      token1 = str2;
 
-        changed = true;
-      }
+      changed = true;
     }
   }
   else {
     if (str1[0] == '$') {
       std::string arg2;
 
-      if (expandVariable(token1, arg2)) {
+      if (expandVariableToken(token1, arg2)) {
         token1 = arg2;
 
         changed = true;
@@ -625,6 +1003,24 @@ expandArg(const Token &token, StringArray &args) const
   }
 
   //---
+
+  // 4) command subsitution
+
+  //---
+
+  // 5) arithmetic expansion
+
+  //---
+
+  // 6) process subsitution
+
+  //---
+
+  // 7) word splitting
+
+  //---
+
+  // 8 filename expansion
 
   {
   auto str1 = token1.str();
@@ -661,7 +1057,7 @@ expandArg(const Token &token, StringArray &args) const
 
 bool
 App::
-expandVariable(const Token &token, std::string &arg1) const
+expandVariableToken(const Token &token, std::string &arg1) const
 {
   bool changed = false;
 
@@ -682,10 +1078,11 @@ expandVariable(const Token &token, std::string &arg1) const
 
     changed = true;
   }
-  // $(<var>)
+  // $(<var>) , $((<var>))
   else if (arg[i] == '(') {
     ++i;
 
+    // $((<var>))
     if (arg[i] == '(') {
       ++i;
 
@@ -716,6 +1113,7 @@ expandVariable(const Token &token, std::string &arg1) const
 
       changed = true;
     }
+    // $(<var>)
     else {
       auto j = i;
 
@@ -766,7 +1164,13 @@ expandStringVariable(const std::string &str, std::string &str1) const
   CStrParse parse(str);
 
   while (! parse.eof()) {
-    if (parse.isChar('$')) {
+    if      (parse.isChar('\\')) {
+      str1 += parse.readChar();
+
+      if (! parse.eof())
+        str1 += parse.readChar();
+    }
+    else if (parse.isChar('$')) {
       parse.skipChar();
 
       if (parse.isChar('(')) {
@@ -884,8 +1288,10 @@ expandVarName(const std::string &name, bool bracketed) const
   else {
     std::string value;
 
-    if (getVariable(name, value))
-      return value;
+    if (! getVariable(name, value))
+      return "";
+
+    return value;
   }
 
   return name;
@@ -900,11 +1306,240 @@ eof() const
 
 std::string
 App::
-getLine() const
+getLine(bool &complete) const
 {
   auto line = readLine_->readLine();
 
+  complete = (line.empty() || line[line.size() - 1] != '\\');
+
+  if (! complete)
+    line = line.substr(0, line.size() - 1);
+
   return line;
+}
+
+std::string
+App::
+getInputPrompt() const
+{
+  std::string prompt;
+
+  if (complete_) {
+    if (! getVariable("PS1", prompt))
+      prompt = "$ ";
+  }
+  else {
+    if (! getVariable("PS2", prompt))
+      prompt = "> ";
+  }
+
+  auto prompt1 = adjustPrompt(prompt);
+
+  return prompt1;
+}
+
+std::string
+App::
+adjustPrompt(const std::string &prompt) const
+{
+  std::string prompt1;
+
+  CStrParse parse(prompt);
+
+  int non_print = 0; // not counted to prompt width ?
+
+  while (! parse.eof()) {
+    if (parse.isChar('\\')) {
+      parse.skipChar();
+
+      if (! parse.eof()) {
+        // date
+        if      (parse.isChar('d')) {
+          prompt1 += COSTime::getTimeString("%a %m %d");
+
+          parse.skipChar();
+        }
+        // general date
+        else if (parse.isString("D{")) {
+          parse.skipChars(2);
+
+          std::string tstr;
+
+          while (! parse.eof() && ! parse.isChar('}'))
+            tstr += parse.readChar();
+
+          if (! parse.eof())
+            parse.skipChar();
+
+          prompt1 += COSTime::getTimeString(tstr);
+        }
+        // histname
+        else if (parse.isChar('e')) {
+          prompt1 += "";
+
+          parse.skipChar();
+        }
+        // short hostname
+        else if (parse.isChar('h')) {
+          prompt1 += COSUser::getHostName(); // up to first '.'
+
+          parse.skipChar();
+        }
+        // full hostname
+        else if (parse.isChar('H')) {
+          prompt1 += COSUser::getHostName();
+
+          parse.skipChar();
+        }
+        // number of jobs
+        else if (parse.isChar('j')) {
+          // TODO
+
+          parse.skipChar();
+        }
+        // basename of shell device
+        else if (parse.isChar('l')) {
+          // TODO
+
+          parse.skipChar();
+        }
+        // newline
+        else if (parse.isChar('n')) {
+          prompt1 += "\n";
+
+          parse.skipChar();
+        }
+        // carriage return
+        else if (parse.isChar('r')) {
+          prompt1 += "\r";
+
+          parse.skipChar();
+        }
+        // shell (TODO: variable, executable base name)
+        else if (parse.isChar('s')) {
+          prompt1 += "bash";
+
+          parse.skipChar();
+        }
+        // time (12 hr)
+        else if (parse.isChar('t')) {
+          prompt1 += COSTime::getTimeString("%H:%M:%S");
+
+          parse.skipChar();
+        }
+        // time (24 hr)
+        else if (parse.isChar('T')) {
+          prompt1 += COSTime::getTimeString("%H:%M:%S");
+
+          parse.skipChar();
+        }
+        // time (am/pm)
+        else if (parse.isChar('@')) {
+          prompt1 += COSTime::getTimeString("%H:%M:%S"); // TODO
+
+          parse.skipChar();
+        }
+        // time (24 hr)
+        else if (parse.isChar('A')) {
+          prompt1 += COSTime::getTimeString("%H:%M");
+
+          parse.skipChar();
+        }
+        // user name
+        else if (parse.isChar('u')) {
+          prompt1 += COSUser::getUserName();
+
+          parse.skipChar();
+        }
+        // version (short)
+        else if (parse.isChar('v')) {
+          // TODO
+          parse.skipChar();
+        }
+        // version (long)
+        else if (parse.isChar('V')) {
+          // TODO
+          parse.skipChar();
+        }
+        // current working dir
+        else if (parse.isChar('w')) {
+          prompt1 += COSFile::getCurrentDir();
+
+          parse.skipChar();
+        }
+        // basename of current working dir
+        else if (parse.isChar('W')) {
+          std::string dir, base;
+          COSFile::splitPath(COSFile::getCurrentDir(), dir, base);
+          prompt1 += base;
+
+          parse.skipChar();
+        }
+        // history number
+        else if (parse.isChar('!')) {
+          prompt1 += std::to_string(history_->commandNum());
+
+          parse.skipChar();
+        }
+        // command number
+        else if (parse.isChar('#')) {
+          prompt1 += std::to_string(commandNum()); // TODO
+
+          parse.skipChar();
+        }
+        // uid char
+        else if (parse.isChar('$')) {
+          uint uid;
+          COSUser::getUserId(&uid);
+          prompt1 += (uid ? '$' : '#');
+
+          parse.skipChar();
+        }
+        // octal char : \nnn
+        else if (parse.isChar('\\')) {
+          parse.skipChar();
+
+          int n = 0;
+
+          for (uint j = 0; j < 3; ++j) {
+            if (! parse.eof() && CStrUtil::isodigit(parse.getCharAt()))
+              n += 8*n + (parse.readChar() - '0');
+          }
+
+          prompt1 += char(n);
+        }
+        // backslash
+        else if (parse.isChar('\\')) {
+          prompt1 += "\\";
+
+          parse.skipChar();
+        }
+        // \[ : start escaped text
+        else if (parse.isChar('[')) {
+          ++non_print;
+
+          parse.skipChar();
+        }
+        // \] : end escaped text
+        else if (parse.isChar(']')) {
+          if (non_print)
+            --non_print;
+
+          parse.skipChar();
+        }
+        else {
+          prompt1 += "//";
+          prompt1 += parse.readChar();
+        }
+      }
+      else
+        prompt1 += "//";
+    }
+    else
+      prompt1 += parse.readChar();
+  }
+
+  return prompt1;
 }
 
 bool
@@ -920,7 +1555,11 @@ connectCommand(const CmdP & /*lastCmd*/, const CmdP &cmd, const CmdP &nextCmd)
     nextCmd->init();
 
     if (cmd->command() && nextCmd->command()) {
-      cmd    ->command()->addPipeDest(1);
+      cmd->command()->addPipeDest(1);
+
+      if (cmd->isPipeErr())
+        cmd->command()->addPipeDest(2);
+
       nextCmd->command()->addPipeSrc();
     }
   }
@@ -951,8 +1590,78 @@ void
 App::
 waitCommand(const CmdP &cmd)
 {
-  cmd->wait();
+  if (cmd->isWait()) {
+    if (cmd->command()->isState(CCommand::State::RUNNING))
+      cmd->wait();
+  }
+  else {
+     int n = 1; // TODO
+
+     int pid = cmd->command()->getPid();
+
+     std::cout << "[" << n << "] " << pid << "\n";
+
+     bgCommands_.insert(cmd->commandp());
+  }
 }
+
+void
+App::
+checkBgCommands()
+{
+  int count = 0;
+
+  auto p1 = bgCommands_.begin();
+
+  while (p1 != bgCommands_.end()) {
+    auto cmd = *p1;
+
+    auto state = cmd->getState();
+
+    if (state == CCommand::State::RUNNING || state == CCommand::State::STOPPED ||
+        state == CCommand::State::EXITED)
+      count++;
+
+    if (state == CCommand::State::EXITED) {
+      int n = 1; // TODO
+
+      std::cout << "[" << n << "]    Done                  ";
+
+      std::cout << " " << cmd->getCommandString();
+
+      std::cout << "\n";
+
+      bgCommands_.erase(cmd);
+
+      p1 = bgCommands_.begin();
+    }
+    else
+      ++p1;
+  }
+}
+
+//---
+
+void
+App::
+addHistory(const std::string &line)
+{
+  history_->addCommand(line);
+}
+
+void
+App::
+listHistory() const
+{
+  int  num         = 0;
+  bool showNumbers = false;
+  bool showTime    = true;
+  bool reverse     = false;
+
+  history_->display(num, showNumbers, showTime, reverse);
+}
+
+//---
 
 std::string
 App::
@@ -997,41 +1706,216 @@ getVariable(const std::string &name, std::string &value) const
   return true;
 }
 
+bool
+App::
+completeVariable(const std::string &name, std::string &expandedName) const
+{
+  CGlob glob(name + "*");
+
+  glob.setAllowOr(false);
+  glob.setAllowNonPrintable(true);
+
+  StringArray names;
+
+  for (const auto &pv : variableMap_) {
+    if (glob.compare(pv.first))
+      names.push_back(pv.first);
+  }
+
+  if (names.empty())
+    return false;
+
+  expandedName = CStrUtil::mostMatch(names);
+
+  if (expandedName.size() <= name.size())
+    return false;
+
+  return true;
+}
+
+bool
+App::
+showMatchingVariables(const std::string &name)  const
+{
+  CGlob glob(name + "*");
+
+  glob.setAllowOr(false);
+  glob.setAllowNonPrintable(true);
+
+  StringArray words;
+
+  for (const auto &pv : variableMap_) {
+    if (glob.compare(pv.first))
+      words.push_back(pv.first);
+  }
+
+  if (words.empty())
+    return false;
+
+  CStrUtil::sort(words);
+
+  StringArray uniqWords;
+
+  CStrUtil::uniq(words, uniqWords);
+
+  std::cout << "\n";
+
+  printWords(uniqWords);
+
+  return true;
+}
+
+void
+App::
+listVariables() const
+{
+  for (const auto &pv : variableMap_) {
+    std::cout << pv.first << "=" << pv.second.value() << "\n";
+  }
+}
+
+//---
+
+void
+App::
+addSignalHandlers()
+{
+  COSSignal::addSignalHandler(SIGTERM,
+    reinterpret_cast<COSSignal::SignalHandler>(genericHandler));
+  COSSignal::addSignalHandler(SIGINT ,
+    reinterpret_cast<COSSignal::SignalHandler>(interruptHandler));
+  COSSignal::addSignalHandler(SIGQUIT,
+    reinterpret_cast<COSSignal::SignalHandler>(genericHandler));
+  COSSignal::addSignalHandler(SIGTTIN,
+    reinterpret_cast<COSSignal::SignalHandler>(genericHandler));
+  COSSignal::addSignalHandler(SIGTTOU,
+    reinterpret_cast<COSSignal::SignalHandler>(genericHandler));
+  COSSignal::addSignalHandler(SIGTSTP,
+    reinterpret_cast<COSSignal::SignalHandler>(genericHandler));
+  COSSignal::addSignalHandler(SIGHUP,
+    reinterpret_cast<COSSignal::SignalHandler>(termHandler));
+}
+
+void
+App::
+genericHandler(int /*num*/)
+{
+#if 0
+  std::cerr << "Signal " << signalName(num) << "(" << num << ") received\n";
+#endif
+}
+
+void
+App::
+interruptHandler(int)
+{
+  // break out of any loops
+  //std::cerr << "interruptHandler\n";
+}
+
+void
+App::
+termHandler(int)
+{
+  // resend SIGHUP to all jobs (SIGCONT then SIGHUP to stopped jobs)
+
+  // quit
+}
+
+//---
+
+void
+App::
+printWords(const StringArray &words) const
+{
+  int maxLen = CStrUtil::maxLen(words);
+
+  int screenRows, screenCols;
+
+  COSTerm::getCharSize(&screenRows, &screenCols);
+
+  int numWords = int(words.size());
+
+  int wordsPerLine = std::max(screenCols / (maxLen + 1), 1);
+
+  int numLines = numWords / wordsPerLine;
+
+  if ((numWords % wordsPerLine) != 0)
+    ++numLines;
+
+  int i = 0;
+  int j = 0;
+
+  while (i < numWords && j < numLines) {
+    int len = int(words[i].size());
+
+    std::cout << words[i];
+
+    for (int k = 0; k <= maxLen - len; ++k)
+      std::cout << " ";
+
+    i += numLines;
+
+    if (i >= numWords) {
+      std::cout << "\n";
+
+      ++j;
+
+      i = j;
+    }
+  }
+}
+
 //---
 
 bool
 App::
-isKeyword(const std::string &name) const
+isKeyword(const std::string &name, Keyword &keyword) const
 {
-  static StringSet keywords;
+  using KeywordMap = std::map<std::string, Keyword>;
 
-  if (keywords.empty()) {
-    keywords.insert("if");
-    keywords.insert("then");
-    keywords.insert("else");
-    keywords.insert("elif");
-    keywords.insert("fi");
+  static KeywordMap keywordMap;
 
-    keywords.insert("case");
-    keywords.insert("esac");
+  if (keywordMap.empty()) {
+    auto addKeyword =[&](const std::string &keyname, Keyword keytype) {
+      keywordMap[keyname] = keytype;
+    };
 
-    keywords.insert("for");
-    keywords.insert("while");
-    keywords.insert("until");
-    keywords.insert("do");
-    keywords.insert("done");
+    addKeyword("if"  , Keyword::IF);
+    addKeyword("then", Keyword::THEN);
+    addKeyword("else", Keyword::ELSE);
+    addKeyword("elif", Keyword::ELIF);
+    addKeyword("fi"  , Keyword::FI);
 
-    keywords.insert("function");
-    keywords.insert("in");
+    addKeyword("case", Keyword::CASE);
+    addKeyword("esac", Keyword::ESAC);
 
-    keywords.insert("select");
+    addKeyword("for"  , Keyword::FOR);
+    addKeyword("while", Keyword::WHILE);
+    addKeyword("until", Keyword::UNTIL);
+    addKeyword("do"   , Keyword::DO); // if third word of for
+    addKeyword("done" , Keyword::DONE);
 
-    keywords.insert("!");
-    keywords.insert("{");
-    keywords.insert("}");
+    addKeyword("function", Keyword::FUNCTION);
+    addKeyword("in"      , Keyword::IN); // if third word of case/select/for
+
+    addKeyword("select", Keyword::SELECT);
+
+    addKeyword("!" , Keyword::NOT);
+    addKeyword("{" , Keyword::OPEN_BRACE);
+    addKeyword("}" , Keyword::CLOSE_BRACE);
+    addKeyword("[[", Keyword::OPEN_BLOCK);
+    addKeyword("]]", Keyword::CLOSE_BLOCK);
   }
 
-  return (keywords.find(name) != keywords.end());
+  auto p = keywordMap.find(name);
+
+  if (p == keywordMap.end())
+    return false;
+
+  keyword = (*p).second;
+
+  return true;
 }
 
 //---
@@ -1043,12 +1927,12 @@ listAliases() const
   for (const auto &pa : aliases_) {
     const auto &alias = pa.second;
 
-    std::cerr << alias->name() << " =";
+    std::cout << alias->name() << " =";
 
     for (const auto &value : alias->values())
-      std::cerr << " " << value;
+      std::cout << " " << value;
 
-    std::cerr << "\n";
+    std::cout << "\n";
   }
 }
 
@@ -1061,12 +1945,12 @@ listAlias(const std::string &name) const
 
   const auto &alias = (*pa).second;
 
-  std::cerr << alias->name() << " =";
+  std::cout << alias->name() << " =";
 
   for (const auto &value : alias->values())
-    std::cerr << " " << value;
+    std::cout << " " << value;
 
-  std::cerr << "\n";
+  std::cout << "\n";
 }
 
 void
@@ -1076,21 +1960,323 @@ addAlias(const std::string &name, const StringArray &values)
   aliases_[name] = std::make_shared<Alias>(name, values);
 }
 
+//------
+
+ReadLine::
+ReadLine(App *app) :
+ app_(app)
+{
+}
+
+std::string
+ReadLine::
+readLine()
+{
+  auto prompt = app_->getInputPrompt();
+
+  setPrompt(prompt);
+
+  fflush(stdout);
+  fflush(stderr);
+
+  std::string line;
+
+  try {
+    line = CReadLine::readLine();
+
+    if (eof()) {
+      std::cout << "\n";
+
+      //auto *variable = app_->lookupVariable("ignoreeof");
+
+      //if (! variable)
+      //  app_->setExit(true, 0);
+
+      std::cerr << "Use \"exit\" to leave shell.\n";
+    }
+  }
+#if 0
+  catch (struct Err *err) {
+    if (app_->isDebug())
+      std::cerr << "[" << err->file << ":" << err->line << "] ";
+
+    if (err->qualifier != "")
+      std::cerr << err->qualifier << ": " << err->message << "\n";
+    else
+      std::cerr << err->message << "\n";
+  }
+#endif
+  catch (...) {
+    std::cerr << "Unhandled Exception thrown\n";
+  }
+
+  return line;
+}
+
+bool
+ReadLine::
+completeLine(const std::string &line, std::string &completedLine)
+{
+  Tokens tokens;
+
+  try {
+    if (! app_->lineToTokens(line, tokens))
+      return false;
+  }
+  catch (...) {
+  }
+
+  if (tokens.empty())
+    return false;
+
+  const auto &token = tokens.back();
+
+  const auto &str= token.str();
+
+  if (! str.empty() && str[0] == '$') {
+    auto str1 = str.substr(1);
+
+    std::string str2;
+
+    if (! app_->completeVariable(str1, str2))
+      return false;
+
+    completedLine = str2.substr(str1.size());
+  }
+  else {
+    return false;
+  }
+
+  return true;
+}
+
+bool
+ReadLine::
+showComplete(const std::string &line)
+{
+  Tokens tokens;
+
+  try {
+    if (! app_->lineToTokens(line, tokens))
+      return false;
+  }
+  catch (...) {
+  }
+
+  if (tokens.empty())
+    return false;
+
+  const auto &token = tokens.back();
+
+  const auto &str= token.str();
+
+  if (! str.empty() && str[0] == '$') {
+    auto str1 = str.substr(1);
+
+    app_->showMatchingVariables(str1);
+  }
+  else {
+    return false;
+  }
+
+  return true;
+}
+
+bool
+ReadLine::
+getPrevCommand(std::string &line)
+{
+  auto *history = app_->history();
+
+  if (! history->hasPrevCommand())
+    return false;
+
+  line = history->getPrevCommand();
+
+  return true;
+}
+
+bool
+ReadLine::
+getNextCommand(std::string &line)
+{
+  auto *history = app_->history();
+
+  if (! history->hasNextCommand())
+    return false;
+
+  line = history->getNextCommand();
+
+  return true;
+}
+
+void
+ReadLine::
+beep()
+{
+#if 0
+  auto *nobeep = app_->lookupVariable("nobeep");
+
+  if (! nobeep)
+    CReadLine::beep();
+#else
+  CReadLine::beep();
+#endif
+}
+
+void
+ReadLine::
+interrupt()
+{
+  CReadLine::interrupt();
+}
+
+void
+ReadLine::
+timeout()
+{
+#if 0
+  app_->readTimeout();
+#endif
+}
+
+//------
+
+History::
+History(App *app) :
+ app_(app)
+{
+}
+
+void
+History::
+addCommand(const std::string &line)
+{
+  auto sline = CStrUtil::stripSpaces(line);
+  if (sline == "") return;
+
+  //setCurrent(sline);
+
+  history_.addCommand(sline);
+
+  //updateSize();
+
+  commandNum_ = history_.getLastCommandNum() + 1;
+}
+
+bool
+History::
+hasPrevCommand()
+{
+  std::string command;
+
+  if (commandNum_ <= 0 || ! history_.getCommand(commandNum_ - 1, command))
+    return false;
+
+  return true;
+}
+
+bool
+History::
+hasNextCommand()
+{
+  return true;
+}
+
+std::string
+History::
+getPrevCommand()
+{
+  std::string command;
+
+  if      (  history_.getCommand(commandNum_ - 1, command))
+    --commandNum_;
+  else if (! history_.getCommand(commandNum_, command))
+    command = "";
+
+  return command;
+}
+
+std::string
+History::
+getNextCommand()
+{
+  std::string command;
+
+  if (! history_.getCommand(commandNum_ + 1, command))
+    return "";
+
+  ++commandNum_;
+
+  return command;
+}
+
+void
+History::
+display(int num, bool showNumbers, bool showTime, bool reverse)
+{
+  //updateSize();
+
+  //if (num > getSize())
+  //  num = -1;
+
+  history_.display(num, showNumbers, showTime, reverse);
+}
+
+//------
+
+void
+AliasCommand::
+exec(const Cmd *cmd)
+{
+  auto numArgs = cmd->numArgs();
+
+  if (numArgs == 0) {
+    cmd->app()->listAliases();
+  }
+  else {
+    const auto &token = cmd->arg(0);
+
+    const auto &arg = token.str();
+
+    if (arg[arg.size() - 1] == '=') {
+      auto name = arg.substr(0, arg.size() - 1);
+
+      StringArray values;
+
+      for (uint i = 1; i < numArgs; ++i) {
+        const auto &token1 = cmd->arg(i);
+
+        values.push_back(token1.str());
+      }
+
+      cmd->app()->addAlias(name, values);
+    }
+    else {
+      for (uint i = 0; i < numArgs; ++i) {
+        const auto &token1 = cmd->arg(i);
+
+        cmd->app()->listAlias(token1.str());
+      }
+    }
+  }
+}
+
 //---
 
 void
 CdCommand::
-exec(const CmdP &cmd)
+exec(const Cmd *cmd)
 {
-  auto num_args = cmd->numArgs();
+  auto numArgs = cmd->numArgs();
 
-  if (num_args == 0) {
+  if (numArgs == 0) {
     auto dirname = COSUser::getUserHome();
 
     app_->changeDir(dirname);
   }
   else {
-    for (uint i = 0; i < num_args; ++i) {
+    for (uint i = 0; i < numArgs; ++i) {
       const auto &token = cmd->arg(i);
 
       auto dirname = CStrUtil::stripSpaces(token.str());
@@ -1108,55 +2294,100 @@ exec(const CmdP &cmd)
 //---
 
 void
-AliasCommand::
-exec(const CmdP &cmd)
-{
-  auto num_args = cmd->numArgs();
-
-  if (num_args == 0) {
-    cmd->app()->listAliases();
-  }
-  else {
-    const auto &token = cmd->arg(0);
-
-    const auto &arg = token.str();
-
-    if (arg[arg.size() - 1] == '=') {
-      auto name = arg.substr(0, arg.size() - 1);
-
-      StringArray values;
-
-      for (uint i = 1; i < num_args; ++i) {
-        const auto &token1 = cmd->arg(i);
-
-        if (token1.type() == TokenType::STRING)
-          values.push_back(token1.sstr());
-        else
-          values.push_back(token1.str());
-      }
-
-      cmd->app()->addAlias(name, values);
-    }
-    else {
-      for (uint i = 0; i < num_args; ++i) {
-        const auto &token1 = cmd->arg(i);
-
-        cmd->app()->listAlias(token1.str());
-      }
-    }
-  }
-}
-
-//---
-
-void
 ExitCommand::
-exec(const CmdP &)
+exec(const Cmd *)
 {
   exit(0);
 }
 
 //---
+
+void
+HistoryCommand::
+exec(const Cmd *)
+{
+  app_->listHistory();
+}
+
+//---
+
+void
+PrintfCommand::
+exec(const Cmd *cmd)
+{
+  auto numArgs = cmd->numArgs();
+
+  std::string format;
+  StringArray args;
+  bool        first = true;
+
+  for (uint i = 0; i < numArgs; ++i) {
+    const auto &token = cmd->arg(i);
+
+    const auto &str = token.str();
+
+    if (str == "-v") {
+      // TODO
+      ++i;
+    }
+    else {
+      if (first) {
+        format = str;
+
+        first = false;
+      }
+      else
+        args.push_back(str);
+    }
+  }
+
+  if (format == "")
+    return;
+
+  format = CStrUtil::replaceEscapeCodes(format);
+
+  class PrintF : public CPrintF {
+   public:
+    PrintF(const std::string &format, const StringArray &args) :
+     CPrintF(format), args_(args) {
+    }
+
+    int         getInt     () const { if (! getArg()) return 0; return std::stoi(arg_); }
+    long        getLong    () const { if (! getArg()) return 0; return std::stoi(arg_); }
+    long        getLongLong() const { if (! getArg()) return 0; return std::stoi(arg_); }
+    double      getDouble  () const { if (! getArg()) return 0; return std::stod(arg_); }
+    std::string getString  () const { if (! getArg()) return 0; return arg_; }
+
+  private:
+    bool getArg() const {
+      if (argNum_ >= args_.size()) return false;
+      arg_ = args_[argNum_++];
+      return true;
+    }
+
+   private:
+    StringArray         args_;
+    mutable uint        argNum_ { 0 };
+    mutable std::string arg_;
+  };
+
+  PrintF printf(format, args);
+
+  std::cout << printf.format();
+
+  return;
+}
+
+//---
+
+void
+SetCommand::
+exec(const Cmd *)
+{
+  app_->listVariables();
+}
+
+//------
 
 Cmd::
 Cmd(App *app) :
@@ -1168,16 +2399,24 @@ void
 Cmd::
 addOpt(const Token &token, const std::string &arg)
 {
-  auto subType = token.subType();
+  auto subType = token.opType();
 
-  assert(subType != TokenSubType::NONE);
+  assert(subType != Operator::NONE);
 
-  if      (subType == TokenSubType::PIPE || subType == TokenSubType::PIPE_ERR)
-    pipe_ = true;
-  else if (subType == TokenSubType::FILE_OUTPUT || subType == TokenSubType::FILE_OUTPUT_ERR)
+  if      (subType == Operator::PIPE || subType == Operator::PIPE_ERR) {
+    pipe_    = true;
+    pipeErr_ = (subType == Operator::PIPE_ERR);
+  }
+  else if (subType == Operator::FILE_OUTPUT || subType == Operator::FILE_OUTPUT_ERR)
     output_ = arg;
-  else if (subType == TokenSubType::FILE_INPUT || subType == TokenSubType::FILE_INPUT_ERR)
+  else if (subType == Operator::FILE_INPUT || subType == Operator::FILE_INPUT_ERR)
     input_ = arg;
+  else if (subType == Operator::BG)
+    wait_ = false;
+  else if (subType == Operator::AND)
+    isAnd_ = true;
+  else if (subType == Operator::OR)
+    isOr_ = true;
 
   auto str = token.str();
 
@@ -1194,12 +2433,23 @@ init() const
     th->builtin_ = app_->getShellCommand(name_);
 
     if (! builtin_) {
+      CPathList pathList;
+
+      pathList.addEnvValue("PATH");
+
+      std::string path;
+
+      if (! pathList.search(name_, path)) {
+        std::cerr << name_ + ": Command not found." << "\n";
+        return;
+      }
+
       StringArray args;
 
       for (const auto &arg : args_)
         args.push_back(arg.str());
 
-      th->command_ = std::make_unique<CCommand>(name_, name_, args);
+      th->command_ = std::make_unique<CCommand>(name_, path, args);
     }
   }
 }
@@ -1208,16 +2458,43 @@ void
 Cmd::
 start() const
 {
-  if (command_)
-    command_->start();
+  bool stop = false;
+
+  if      (isAnd()) {
+    if (app_->returnCode() != 0)
+      stop = true;
+  }
+  else if (isOr()) {
+    if (app_->returnCode() == 0)
+      stop = true;
+  }
+
+  if      (builtin_) {
+    if (! stop)
+      builtin_->exec(this);
+  }
+  else if (command_) {
+    try {
+      if (! stop)
+        command_->start();
+      else
+        command_->stop();
+    }
+    catch (const std::string message) {
+      std::cerr << message << "\n";
+    }
+  }
 }
 
 void
 Cmd::
 wait() const
 {
-  if (command_)
+  if (command_) {
     command_->wait();
+
+    app_->setReturnCode(command_->getReturnCode());
+  }
 }
 
 void

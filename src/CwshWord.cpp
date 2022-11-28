@@ -1,31 +1,33 @@
 #include <CwshI.h>
 
+namespace Cwsh {
+
 void
-CwshWord::
-toWords(const std::string &line, CwshWordArray &words)
+Word::
+toWords(const std::string &line, WordArray &words)
 {
   std::vector<std::string> words1;
 
-  CwshString::addWords(line, words1);
+  String::addWords(line, words1);
 
-  int num_words1 = int(words1.size());
+  auto numWords1 = words1.size();
 
-  for (int i = 0; i < num_words1; i++) {
-    const std::string &word = words1[i];
+  for (uint i = 0; i < numWords1; i++) {
+    const auto &word = words1[i];
 
-    words.push_back(CwshWord(word));
+    words.push_back(Word(word));
   }
 }
 
 std::string
-CwshWord::
-toString(const CwshWordArray &words)
+Word::
+toString(const WordArray &words)
 {
   std::string str;
 
-  int num_words = int(words.size());
+  auto numWords = words.size();
 
-  for (int i = 0; i < num_words; i++) {
+  for (uint i = 0; i < numWords; i++) {
     if (i > 0)
       str += " ";
 
@@ -36,26 +38,26 @@ toString(const CwshWordArray &words)
 }
 
 std::string
-CwshWord::
-toString(const CwshSubWordArray &sub_words)
+Word::
+toString(const SubWordArray &subWords)
 {
   std::string str;
 
-  int num_sub_words = int(sub_words.size());
+  auto numSubWords = subWords.size();
 
-  for (int i = 0; i < num_sub_words; i++)
-    str += sub_words[i].getString();
+  for (uint i = 0; i < numSubWords; i++)
+    str += subWords[i].getString();
 
   return str;
 }
 
 void
-CwshWord::
-printWords(const CwshWordArray &words)
+Word::
+printWords(const WordArray &words)
 {
-  int num_words = int(words.size());
+  auto numWords = words.size();
 
-  for (int i = 0; i < num_words; i++) {
+  for (uint i = 0; i < numWords; i++) {
     if (i > 0)
       std::cerr << " ";
 
@@ -66,36 +68,36 @@ printWords(const CwshWordArray &words)
 }
 
 void
-CwshWord::
-printWord(const CwshWord &word)
+Word::
+printWord(const Word &word)
 {
   std::cerr << word << "\n";
 }
 
-CwshWord::
-CwshWord(const std::string &word) :
+Word::
+Word(const std::string &word) :
  word_(word)
 {
 }
 
-const CwshSubWordArray &
-CwshWord::
+const SubWordArray &
+Word::
 getSubWords() const
 {
-  if (! sub_words_created_) {
-    auto *th = const_cast<CwshWord *>(this);
+  if (! subWordsCreated_) {
+    auto *th = const_cast<Word *>(this);
 
     th->createSubWords();
   }
 
-  return sub_words_;
+  return subWords_;
 }
 
 void
-CwshWord::
+Word::
 createSubWords()
 {
-  uint len = uint(word_.size());
+  auto len = word_.size();
 
   std::string sub_word;
 
@@ -110,7 +112,7 @@ createSubWords()
     if (i > i1) {
       sub_word = word_.substr(i1, i - i1);
 
-      sub_words_.push_back(CwshSubWord(sub_word));
+      subWords_.push_back(SubWord(sub_word));
     }
 
     if (i >= len)
@@ -124,8 +126,7 @@ createSubWords()
 
       sub_word = word_.substr(i2, i - i2 - 1);
 
-      sub_words_.push_back(
-       CwshSubWord(sub_word, CwshSubWordType::DOUBLE_QUOTED));
+      subWords_.push_back(SubWord(sub_word, SubWordType::DOUBLE_QUOTED));
     }
     else if (word_[i] == '\'') {
       uint i2 = i + 1;
@@ -135,8 +136,7 @@ createSubWords()
 
       sub_word = word_.substr(i2, i - i2 - 1);
 
-      sub_words_.push_back(
-       CwshSubWord(sub_word, CwshSubWordType::SINGLE_QUOTED));
+      subWords_.push_back(SubWord(sub_word, SubWordType::SINGLE_QUOTED));
     }
     else if (word_[i] == '`') {
       uint i2 = i + 1;
@@ -146,66 +146,67 @@ createSubWords()
 
       sub_word = word_.substr(i2, i - i2 - 1);
 
-      sub_words_.push_back(
-       CwshSubWord(sub_word, CwshSubWordType::BACK_QUOTED));
+      subWords_.push_back(SubWord(sub_word, SubWordType::BACK_QUOTED));
     }
   }
 
-  sub_words_created_ = true;
+  subWordsCreated_ = true;
 }
 
 void
-CwshWord::
+Word::
 removeQuotes()
 {
-  const CwshSubWordArray &sub_words = getSubWords();
+  const auto &subWords = getSubWords();
 
   std::string str;
 
-  int num_sub_words = int(sub_words.size());
+  auto numSubWords = subWords.size();
 
-  for (int i = 0; i < num_sub_words; i++)
-    str += sub_words[i].getWord();
+  for (uint i = 0; i < numSubWords; i++)
+    str += subWords[i].getWord();
 
   word_ = str;
 
-  sub_words_.clear();
+  subWords_.clear();
 
-  sub_words_created_ = false;
+  subWordsCreated_ = false;
 }
 
 std::ostream &
-operator<<(std::ostream &os, const CwshWord &word)
+operator<<(std::ostream &os, const Word &word)
 {
   os << ">>" << word.word_ << "<<";
 
   return os;
 }
 
-CwshSubWord::
-CwshSubWord(const std::string &word, CwshSubWordType type) :
+SubWord::
+SubWord(const std::string &word, SubWordType type) :
  word_(word), type_(type)
 {
 }
 
 std::string
-CwshSubWord::
+SubWord::
 getString() const
 {
-  if      (type_ == CwshSubWordType::SINGLE_QUOTED)
+  if      (type_ == SubWordType::SINGLE_QUOTED)
     return "'" + word_ + "'";
-  else if (type_ == CwshSubWordType::DOUBLE_QUOTED)
+  else if (type_ == SubWordType::DOUBLE_QUOTED)
     return "\"" + word_ + "\"";
-  else if (type_ == CwshSubWordType::BACK_QUOTED)
+  else if (type_ == SubWordType::BACK_QUOTED)
     return "`" + word_ + "`";
   else
     return word_;
 }
 
 std::ostream &
-operator<<(std::ostream &os, const CwshSubWord &sub_word)
+operator<<(std::ostream &os, const SubWord &sub_word)
 {
   os << ">>" << sub_word.getString() << "<<";
 
   return os;
+}
+
 }

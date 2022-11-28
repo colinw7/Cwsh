@@ -1,7 +1,11 @@
 #ifndef CWSH_COMMAND_H
 #define CWSH_COMMAND_H
 
-enum class CwshCommandType {
+#include <CCommand.h>
+
+namespace Cwsh {
+
+enum class CommandType {
   SUBSHELL,
   PROCESS,
   LABEL,
@@ -10,56 +14,58 @@ enum class CwshCommandType {
   UNIX
 };
 
-#include <CCommand.h>
+namespace CommandUtil {
+  bool parseCommandLines (App *cwsh, const std::string &str, CmdLineArray &cmds);
+  bool parseCommandGroups(App *cwsh, const std::string &str, CmdGroupArray &groups);
 
-namespace CwshCommandUtil {
-  bool parseCommandLines (Cwsh *cwsh, const std::string &str, CwshCmdLineArray &cmds);
-  bool parseCommandGroups(Cwsh *cwsh, const std::string &str, CwshCmdGroupArray &groups);
+  bool groupCommands(CmdArray cmds, CmdGroupArray &groups);
 
-  bool groupCommands(CwshCmdArray cmds, CwshCmdGroupArray &groups);
+  CmdArray parseCommandGroup(App *cwsh, CmdGroup *group);
 
-  CwshCmdArray parseCommandGroup(Cwsh *cwsh, CwshCmdGroup *group);
+  CommandType getType(App *cwsh, const std::vector<std::string> &words);
 
-  CwshCommandType getType(Cwsh *cwsh, const std::vector<std::string> &words);
-
-  void processLineProc(const CwshArgArray &args, CCommand::CallbackData data);
+  void processLineProc(const ArgArray &args, CCommand::CallbackData data);
 }
 
 //---
 
-class CwshCommand : public CCommand {
+class Command : public CCommand {
  public:
-  CwshCommand(Cwsh *cwsh, const std::string &name, const std::string &path,
-              const StringVectorT &args=StringVectorT(), bool do_fork=true);
-  CwshCommand(Cwsh *cwsh, const std::string &name, CallbackProc proc, CallbackData data,
-              const StringVectorT &args=StringVectorT(), bool do_fork=false);
+  Command(App *cwsh, const std::string &name, const std::string &path,
+          const StringVectorT &args=StringVectorT(), bool doFork=true);
+  Command(App *cwsh, const std::string &name, CallbackProc proc, CallbackData data,
+          const StringVectorT &args=StringVectorT(), bool doFork=false);
 
- ~CwshCommand();
+ ~Command();
 
   void setNotify(bool notify) { notify_ = notify; }
 
   void setState(State state);
 
  private:
-  CPtr<Cwsh> cwsh_;
-  bool       notify_       { false };
-  bool       stateChanged_ { false };
+  CPtr<App> cwsh_;
+  bool      notify_       { false };
+  bool      stateChanged_ { false };
 };
 
 //---
 
-class CwshCommandData {
+class CommandData {
  public:
-  CwshCommandData(Cwsh *cwsh, const std::vector<std::string> &words);
- ~CwshCommandData();
+  CommandData(App *cwsh, const std::vector<std::string> &words);
+ ~CommandData();
 
-  CwshCommandType  getType   () const { return type_; }
-  CwshCommand     *getCommand() const { return command_; }
+  CommandType  getType   () const { return type_; }
+  Command     *getCommand() const;
 
  private:
-  CPtr<Cwsh>            cwsh_;
-  CwshCommandType       type_;
-  CAutoPtr<CwshCommand> command_;
+  using CommandP = std::shared_ptr<Command>;
+
+  CPtr<App>   cwsh_;
+  CommandType type_;
+  CommandP    command_;
 };
+
+}
 
 #endif

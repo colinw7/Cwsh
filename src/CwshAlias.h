@@ -3,50 +3,54 @@
 
 #include <CPtr.h>
 
-class CwshAliasMgr {
-  CINST_COUNT_MEMBER(CwshAliasMgr);
+namespace Cwsh {
+
+//---
+
+class AliasMgr {
+  CINST_COUNT_MEMBER(AliasMgr);
 
  public:
-  typedef CAutoPtrMap<std::string,CwshAlias> AliasList;
+  using AliasList = std::map<std::string, AliasP>;
 
  public:
-  CwshAliasMgr(Cwsh *cwsh);
- ~CwshAliasMgr();
+  AliasMgr(App *cwsh);
+ ~AliasMgr();
 
-  CwshAlias *define(const CwshAliasName &name, const CwshAliasValue &value);
+  Alias *define(const std::string &name, const std::string &value);
 
-  void undefine(const CwshAliasName &name);
+  void undefine(const std::string &name);
 
-  CwshAlias *lookup(const CwshAliasName &name) const;
+  Alias *lookup(const std::string &name) const;
 
-  bool substitute(CwshCmd *cmd, CwshCmdArray &cmds) const;
+  bool substitute(Cmd *cmd, CmdArray &cmds) const;
 
   void display(bool all) const;
 
   std::string getAliasesMsg() const;
 
  private:
-  CPtr<Cwsh>      cwsh_;
-  AliasList       aliases_;
-  CPtr<CwshAlias> last_alias_;
+  CPtr<App>   cwsh_;
+  AliasList   aliases_;
+  CPtr<Alias> lastAlias_;
 };
 
 //---
 
-class CwshAlias {
-  CINST_COUNT_MEMBER(CwshAlias);
+class Alias {
+  CINST_COUNT_MEMBER(Alias);
 
  public:
-  CwshAlias(const CwshAliasName &name, const CwshAliasValue &value);
- ~CwshAlias();
+  Alias(const std::string &name, const std::string &value);
+ ~Alias();
 
-  const CwshAliasName &getName () const { return name_; }
+  const std::string &getName() const { return name_; }
 
-  const CwshAliasValue &getValue() const { return value_; }
-  void setValue(const CwshAliasValue &value) { value_ = value; }
+  const std::string &getValue() const { return value_; }
+  void setValue(const std::string &value) { value_ = value; }
 
   const std::string &getFilename() const { return filename_; }
-  void setFilename(const std::string &v) { filename_ = v; }
+  void setFilename(const std::string &s) { filename_ = s; }
 
   int getLineNum() const { return lineNum_; }
   void setLineNum(int i) { lineNum_ = i; }
@@ -56,22 +60,26 @@ class CwshAlias {
   void displayValue(bool all) const;
 
  private:
-  CwshAliasName  name_;
-  CwshAliasValue value_;
-  std::string    filename_;
-  int            lineNum_ { -1 };
+  std::string name_;
+  std::string value_;
+  std::string filename_;
+  int         lineNum_ { -1 };
 };
 
 //---
 
-class CwshAliasEq {
+class AliasEq {
  public:
-  CwshAliasEq(const std::string &name) : name_(name) { }
+  AliasEq(const std::string &name) : name_(name) { }
 
-  bool operator()(const CwshAlias *alias) { return name_ == alias->getName(); }
+  bool operator()(const Alias *alias) { return name_ == alias->getName(); }
 
  private:
   const std::string name_;
 };
+
+//---
+
+}
 
 #endif

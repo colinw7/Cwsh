@@ -3,25 +3,27 @@
 
 #include <CHistory.h>
 
-struct CwshHistoryIgnore {
+namespace Cwsh {
+
+struct HistoryIgnore {
   void *dummy { nullptr };
 };
 
 //---
 
-class CwshHistory {
+class History {
  public:
-  CwshHistory(Cwsh *cwsh);
- ~CwshHistory();
+  History(App *cwsh);
+ ~History();
 
-  int getCommandNum() const { return command_num_; }
+  int getCommandNum() const { return commandNum_; }
 
-  bool findCommandStart(const std::string &text, int &command_num);
-  bool findCommandIn(const std::string &text, int &command_num);
-  bool findCommandArg(const std::string &text, int &command_num, int &arg_num);
+  bool findCommandStart(const std::string &text, int &commandNum);
+  bool findCommandIn(const std::string &text, int &commandNum);
+  bool findCommandArg(const std::string &text, int &commandNum, int &argNum);
 
   std::string getCommand(int num);
-  std::string getCommandArg(int num, int arg_num);
+  std::string getCommandArg(int num, int argNum);
 
   void addFile(const std::string &filename);
 
@@ -29,7 +31,7 @@ class CwshHistory {
 
   void setCurrent(const std::string &text);
 
-  void display(int num, bool show_numbers, bool show_time, bool reverse);
+  void display(int num, bool showNumbers, bool showTime, bool reverse) const;
 
   bool hasPrevCommand();
   bool hasNextCommand();
@@ -45,15 +47,17 @@ class CwshHistory {
   int getSize() const;
   int getSaveSize() const;
 
-  void updateSize();
+  void updateSize() const;
 
   static std::string getFilename();
 
  private:
-  CPtr<Cwsh> cwsh_;
-  CHistory   history1_;
-  CHistory   history_;
-  int        command_num_ { 0 };
+  CPtr<App> cwsh_;
+  CHistory  history1_;
+  CHistory  history_;
+  int       commandNum_ { 0 };
 };
+
+}
 
 #endif

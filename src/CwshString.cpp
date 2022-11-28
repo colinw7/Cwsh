@@ -1,8 +1,10 @@
 #include <CwshI.h>
 #include <CGlob.h>
 
+namespace Cwsh {
+
 std::string
-CwshString::
+String::
 replaceHome(const std::string &str)
 {
   std::string str1;
@@ -14,7 +16,7 @@ replaceHome(const std::string &str)
 }
 
 void
-CwshString::
+String::
 skipWordsToChar(const std::string &str, uint *i, int c)
 {
   uint len = uint(str.size());
@@ -62,7 +64,7 @@ skipWordsToChar(const std::string &str, uint *i, int c)
 }
 
 void
-CwshString::
+String::
 skipWord(const std::string &str, uint *i)
 {
   uint len = uint(str.size());
@@ -103,7 +105,7 @@ skipWord(const std::string &str, uint *i)
 }
 
 void
-CwshString::
+String::
 addWords(const std::string &str, std::vector<std::string> &words)
 {
   uint len = uint(str.size());
@@ -269,7 +271,7 @@ addWords(const std::string &str, std::vector<std::string> &words)
 }
 
 std::string
-CwshString::
+String::
 readLineFromFile(CFile *file)
 {
   if (file->eof())
@@ -293,7 +295,7 @@ readLineFromFile(CFile *file)
 }
 
 bool
-CwshString::
+String::
 matchUsers(const std::string &pattern, std::vector<std::string> &names)
 {
   CGlob glob(pattern);
@@ -316,4 +318,6 @@ matchUsers(const std::string &pattern, std::vector<std::string> &names)
     return false;
 
   return true;
+}
+
 }

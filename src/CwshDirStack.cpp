@@ -1,83 +1,87 @@
 #include <CwshI.h>
 
-CwshDirStack::
-CwshDirStack()
+namespace Cwsh {
+
+DirStack::
+DirStack()
 {
 }
 
 void
-CwshDirStack::
+DirStack::
 push()
 {
-  dir_stack_.push_back(COSFile::getCurrentDir());
+  dirStack_.push_back(COSFile::getCurrentDir());
 }
 
 void
-CwshDirStack::
+DirStack::
 push(const std::string &dirname)
 {
-  dir_stack_.push_back(dirname);
+  dirStack_.push_back(dirname);
 }
 
 std::string
-CwshDirStack::
+DirStack::
 pop()
 {
-  if (dir_stack_.size() == 0) {
+  if (dirStack_.size() == 0) {
     CTHROW("Directory Stack underflow.");
     return COSFile::getCurrentDir();
   }
 
-  std::string dirname = dir_stack_[dir_stack_.size() - 1];
+  std::string dirname = dirStack_[dirStack_.size() - 1];
 
-  dir_stack_.pop_back();
+  dirStack_.pop_back();
 
   return dirname;
 }
 
 std::string
-CwshDirStack::
+DirStack::
 pop(int pos)
 {
-  int num_dirs = int(dir_stack_.size());
+  int num_dirs = int(dirStack_.size());
 
   if (num_dirs < pos) {
     CTHROW("Directory Stack underflow.");
     return COSFile::getCurrentDir();
   }
 
-  std::string dirname = dir_stack_[num_dirs - pos - 1];
+  std::string dirname = dirStack_[num_dirs - pos - 1];
 
   for (int i = num_dirs - pos - 1; i < num_dirs - 2; ++i)
-    dir_stack_[i] = dir_stack_[i + 1];
+    dirStack_[i] = dirStack_[i + 1];
 
-  dir_stack_.pop_back();
+  dirStack_.pop_back();
 
   return dirname;
 }
 
 int
-CwshDirStack::
+DirStack::
 size()
 {
-  return int(dir_stack_.size());
+  return int(dirStack_.size());
 }
 
 void
-CwshDirStack::
+DirStack::
 print(std::ostream &os)
 {
   std::string dirname = COSFile::getCurrentDir();
 
-  os << CwshString::replaceHome(dirname);
+  os << String::replaceHome(dirname);
 
-  int num_dirs = int(dir_stack_.size());
+  int num_dirs = int(dirStack_.size());
 
   for (int i = num_dirs - 1; i >= 0; i--) {
     os << " ";
 
-    os << CwshString::replaceHome(dir_stack_[i]);
+    os << String::replaceHome(dirStack_[i]);
   }
 
   os << "\n";
+}
+
 }

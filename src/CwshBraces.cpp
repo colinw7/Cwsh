@@ -1,12 +1,13 @@
 #include <CwshI.h>
 
-bool
-CwshBraces::
-expand(const CwshWord &word, CwshWordArray &words)
-{
-  std::string str = word.getWord();
+namespace Cwsh {
 
-  uint len = uint(str.size());
+bool
+Braces::
+expand(const Word &word, WordArray &words)
+{
+  auto str = word.getWord();
+  auto len = uint(str.size());
 
   uint i = 0;
 
@@ -72,10 +73,10 @@ expand(const CwshWord &word, CwshWordArray &words)
 
   /* Get Comma Separated Strings */
 
-  CwshWordArray words1;
+  WordArray words1;
 
-  std::string str1 = str.substr(0, i1 - 1);
-  std::string str2 = str.substr(i2 + 2);
+  auto str1 = str.substr(0, i1 - 1);
+  auto str2 = str.substr(i2 + 2);
 
   int j = i1;
   int k = j;
@@ -90,7 +91,7 @@ expand(const CwshWord &word, CwshWordArray &words)
     else if (str[j] == ',') {
       std::string word1 = str1 + str.substr(k, j - k) + str2;
 
-      words1.push_back(CwshWord(word1));
+      words1.push_back(Word(word1));
 
       j++;
 
@@ -100,18 +101,18 @@ expand(const CwshWord &word, CwshWordArray &words)
       j++;
   }
 
-  std::string word1 = str1 + str.substr(k, j - k) + str2;
+  auto word1 = str1 + str.substr(k, j - k) + str2;
 
-  words1.push_back(CwshWord(word1));
+  words1.push_back(Word(word1));
 
   //------
 
-  uint num_words = uint(words1.size());
+  auto num_words = uint(words1.size());
 
   for (i = 0; i < num_words; i++) {
-    const CwshWord &cword1 = words1[i];
+    const auto &cword1 = words1[i];
 
-    CwshWordArray words2;
+    WordArray words2;
 
     if (expand(cword1, words2))
       copy(words2.begin(), words2.end(), back_inserter(words));
@@ -122,4 +123,6 @@ expand(const CwshWord &word, CwshWordArray &words)
   //------
 
   return true;
+}
+
 }

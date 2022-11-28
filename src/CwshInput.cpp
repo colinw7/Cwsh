@@ -3,21 +3,24 @@
 #include <CRGBName.h>
 #include <CEscapeColors.h>
 #include <CEscape.h>
+#include <CStrParse.h>
 #include <unistd.h>
 
-CwshInput::
-CwshInput(Cwsh *cwsh) :
+namespace Cwsh {
+
+Input::
+Input(App *cwsh) :
  cwsh_(cwsh)
 {
 }
 
-CwshInput::
-~CwshInput()
+Input::
+~Input()
 {
 }
 
 bool
-CwshInput::
+Input::
 execute(const std::string &filename)
 {
   CFile file(filename);
@@ -29,14 +32,14 @@ execute(const std::string &filename)
 }
 
 bool
-CwshInput::
+Input::
 execute(CFile *file)
 {
   return executeFile(file);
 }
 
 bool
-CwshInput::
+Input::
 executeFile(CFile *file)
 {
   bool rc = true;
@@ -63,10 +66,10 @@ executeFile(CFile *file)
 }
 
 bool
-CwshInput::
+Input::
 executeCurrentFile()
 {
-  CwshLineArray lines;
+  LineArray lines;
 
   std::string line, line1;
 
@@ -94,7 +97,7 @@ executeCurrentFile()
     if (line1 != "")
       line = line1 + " " + line;
 
-    lines.push_back(CwshLine(line, lineNum));
+    lines.push_back(Line(line, lineNum));
 
     line1 = "";
   }
@@ -109,7 +112,7 @@ executeCurrentFile()
 }
 
 bool
-CwshInput::
+Input::
 executeStdIn()
 {
   historyActive_ = true;
@@ -120,21 +123,21 @@ executeStdIn()
 }
 
 void
-CwshInput::
+Input::
 executeLine(std::string &line)
 {
-  CwshLineArray lines;
+  LineArray lines;
 
-  lines.push_back(CwshLine(line));
+  lines.push_back(Line(line));
 
   executeLines(lines);
 }
 
 void
-CwshInput::
-executeLines(const CwshLineArray &lines)
+Input::
+executeLines(const LineArray &lines)
 {
-  CwshBlock *block = cwsh_->startBlock(CwshBlockType::FILE, lines);
+  auto *block = cwsh_->startBlock(BlockType::FILE, lines);
 
   block->setFilename(inputFile_->getPath());
 
@@ -144,7 +147,7 @@ executeLines(const CwshLineArray &lines)
 }
 
 void
-CwshInput::
+Input::
 executeBlockLines(bool interactive)
 {
   while (! eof()) {
@@ -168,7 +171,7 @@ executeBlockLines(bool interactive)
 }
 
 bool
-CwshInput::
+Input::
 eof()
 {
   if (cwsh_->inBlock())
@@ -178,73 +181,73 @@ eof()
 }
 
 void
-CwshInput::
-getBlock(CwshShellCommand *shell_command, CwshLineArray &lines)
+Input::
+getBlock(ShellCommand *shellCommand, LineArray &lines)
 {
-  CwshPromptType prompt_type    = cwsh_->getPromptType();
-  std::string    prompt_command = cwsh_->getPromptCommand();
+  auto promptType    = cwsh_->getPromptType();
+  auto promptCommand = cwsh_->getPromptCommand();
 
-  cwsh_->setPromptType   (CwshPromptType::EXTRA);
-  cwsh_->setPromptCommand(shell_command->getName());
+  cwsh_->setPromptType   (PromptType::EXTRA);
+  cwsh_->setPromptCommand(shellCommand->getName());
 
   while (! eof()) {
     auto line = getLine();
 
     std::vector<std::string> words;
 
-    CwshString::addWords(line.line, words);
+    String::addWords(line.line, words);
 
     if (words.size() > 0) {
-      std::string name = words[0];
+      auto name = words[0];
 
-      if (name == shell_command->getEndName())
+      if (name == shellCommand->getEndName())
         break;
 
       lines.push_back(line);
 
-      auto *shell_command1 = cwsh_->lookupShellCommand(name);
+      auto *shellCommand1 = cwsh_->lookupShellCommand(name);
 
-      if (shell_command1 && shell_command1->isBlockCommand()) {
-        CwshLineArray lines1;
+      if (shellCommand1 && shellCommand1->isBlockCommand()) {
+        LineArray lines1;
 
-        getBlock(shell_command1, lines1);
+        getBlock(shellCommand1, lines1);
 
         copy(lines1.begin(), lines1.end(), back_inserter(lines));
 
-        lines.push_back(CwshLine(shell_command1->getEndName()));
+        lines.push_back(Line(shellCommand1->getEndName()));
       }
     }
     else
       lines.push_back(line);
   }
 
-  cwsh_->setPromptType   (prompt_type);
-  cwsh_->setPromptCommand(prompt_command);
+  cwsh_->setPromptType   (promptType);
+  cwsh_->setPromptCommand(promptCommand);
 }
 
 void
-CwshInput::
-skipBlock(const CwshLine &line)
+Input::
+skipBlock(const Line &line)
 {
   std::vector<std::string> words;
 
-  CwshString::addWords(line.line, words);
+  String::addWords(line.line, words);
 
   if (words.size() == 0)
     return;
 
-  auto *shell_command = cwsh_->lookupShellCommand(words[0]);
+  auto *shellCommand = cwsh_->lookupShellCommand(words[0]);
 
-  if (! shell_command || ! shell_command->isBlockCommand())
+  if (! shellCommand || ! shellCommand->isBlockCommand())
     return;
 
-  CwshLineArray lines;
+  LineArray lines;
 
-  getBlock(shell_command, lines);
+  getBlock(shellCommand, lines);
 }
 
-CwshLine
-CwshInput::
+Line
+Input::
 getLine()
 {
   if (cwsh_->inBlock())
@@ -256,29 +259,29 @@ getLine()
     line = cwsh_->readLine();
 
     if (line.size() > 0 && line[line.size() - 1] == '\\') {
-      CwshPromptType prompt_type    = cwsh_->getPromptType();
-      std::string    prompt_command = cwsh_->getPromptCommand();
+      auto promptType    = cwsh_->getPromptType();
+      auto promptCommand = cwsh_->getPromptCommand();
 
-      cwsh_->setPromptType   (CwshPromptType::EXTRA);
+      cwsh_->setPromptType   (PromptType::EXTRA);
       cwsh_->setPromptCommand("");
 
       while (line.size() > 0 && line[line.size() - 1] == '\\') {
-        std::string line1 = cwsh_->readLine();
+        auto line1 = cwsh_->readLine();
 
         line = line.substr(0, line.size() - 1) + "\n" + line1;
       }
 
-      cwsh_->setPromptType   (prompt_type);
-      cwsh_->setPromptCommand(prompt_command);
+      cwsh_->setPromptType   (promptType);
+      cwsh_->setPromptCommand(promptCommand);
     }
 
     cwsh_->displayExitedProcesses();
   }
   else {
-    line = CwshString::readLineFromFile(inputFile_);
+    line = String::readLineFromFile(inputFile_);
 
     while (line.size() > 0 && line[line.size() - 1] == '\\') {
-      std::string line1 = CwshString::readLineFromFile(inputFile_);
+      auto line1 = String::readLineFromFile(inputFile_);
 
       line = line.substr(0, line.size() - 1) + "\n" + line1;
     }
@@ -288,7 +291,7 @@ getLine()
 }
 
 std::string
-CwshInput::
+Input::
 getFilename() const
 {
   if (! inputFile_)
@@ -298,8 +301,8 @@ getFilename() const
 }
 
 void
-CwshInput::
-processLine(const CwshLine &line)
+Input::
+processLine(const Line &line)
 {
   cwsh_->setFilename(getFilename());
   cwsh_->setLineNum (line.num);
@@ -326,9 +329,9 @@ processLine(const CwshLine &line)
 
     bool output = false;
 
-    CwshHistoryParser parser(cwsh_);
+    HistoryParser parser(cwsh_);
 
-    std::string line2 = parser.parseLine(line1);
+    auto line2 = parser.parseLine(line1);
 
     if (line2 != line1) {
       output = true;
@@ -342,7 +345,7 @@ processLine(const CwshLine &line)
 
     std::vector<std::string> words1;
 
-    CwshString::addWords(line1, words1);
+    String::addWords(line1, words1);
 
     line1 = CStrUtil::toString(words1, " ");
 
@@ -382,34 +385,29 @@ processLine(const CwshLine &line)
 
     // Convert Line to Command Lines
 
-    CwshCmdGroupArray groups;
+    CmdGroupArray groups;
 
-    CwshCommandUtil::parseCommandGroups(cwsh_, line1, groups);
+    CommandUtil::parseCommandGroups(cwsh_, line1, groups);
 
     //------
 
-    uint num_groups = uint(groups.size());
+    uint numGroups = uint(groups.size());
 
-    for (uint ig = 0; ig < num_groups; ig++) {
+    for (uint ig = 0; ig < numGroups; ig++) {
       // Parse Command
 
-      CwshCmdArray cmds = CwshCommandUtil::parseCommandGroup(cwsh_, groups[ig]);
+      auto cmds = CommandUtil::parseCommandGroup(cwsh_, groups[ig].get());
 
       // Execute Commands
 
       executeCommands(cmds);
     }
-
-    //------
-
-    for (auto &group : groups)
-      delete group;
   }
-  catch (CwshHistoryIgnore i) {
+  catch (HistoryIgnore i) {
     ;
   }
-  catch (struct CwshErr *cthrow) {
-    std::string qualifier = cthrow->qualifier;
+  catch (struct Err *cthrow) {
+    auto qualifier = cthrow->qualifier;
 
     if (qualifier == "" && currentCommand_)
       qualifier = currentCommand_->getCommand()->getName();
@@ -428,16 +426,16 @@ processLine(const CwshLine &line)
 }
 
 void
-CwshInput::
-executeCommands(const CwshCmdArray &cmds)
+Input::
+executeCommands(const CmdArray &cmds)
 {
-  std::vector<CwshCommandData *> pcommands;
-  std::vector<std::string>       delete_files;
-  CwshCommandData*               first_command = nullptr;
+  std::vector<CommandData *> pcommands;
+  std::vector<std::string>   deleteFiles;
+  CommandData*               firstCommand = nullptr;
 
-  int num_cmds = int(cmds.size());
+  int numCmds = int(cmds.size());
 
-  for (int i = 0; i < num_cmds; i++) {
+  for (int i = 0; i < numCmds; i++) {
     if (cwsh_->getDebug()) {
       std::cerr << "Execute Command: ";
 
@@ -450,14 +448,14 @@ executeCommands(const CwshCmdArray &cmds)
 
     std::vector<std::string> words;
 
-    int num_words = cmds[i]->getNumWords();
+    int numWords = cmds[i]->getNumWords();
 
-    for (int j = 0; j < num_words; j++)
+    for (int j = 0; j < numWords; j++)
       words.push_back(cmds[i]->getWord(j).getWord());
 
-    auto *command = new CwshCommandData(cwsh_, words);
+    auto *command = new CommandData(cwsh_, words);
 
-    CwshCommand *ccommand = command->getCommand();
+    auto *ccommand = command->getCommand();
 
     if (! ccommand) {
       delete command;
@@ -480,11 +478,11 @@ executeCommands(const CwshCmdArray &cmds)
     // Set Redirection
 
     if      (cmds[i]->hasStdInToken()) {
-      const std::string &filename = readStdInToken(cmds[i]->getStdInToken());
+      const auto &filename = readStdInToken(cmds[i]->getStdInToken());
 
       ccommand->addFileSrc(filename);
 
-      delete_files.push_back(filename);
+      deleteFiles.push_back(filename);
     }
     else if (cmds[i]->hasStdInFile())
       ccommand->addFileSrc(cmds[i]->getStdInFile());
@@ -533,61 +531,60 @@ executeCommands(const CwshCmdArray &cmds)
 
     // Run Command
 
-    CwshCmdSeparatorType separator = cmds[i]->getSeparator().getType();
+    auto separator = cmds[i]->getSeparator().getType();
 
-    if (separator != CwshCmdSeparatorType::PIPE &&
-        separator != CwshCmdSeparatorType::PIPE_ERR) {
-      int num_pcommands = int(pcommands.size());
+    if (separator != CmdSeparatorType::PIPE && separator != CmdSeparatorType::PIPE_ERR) {
+      auto numPCommands = pcommands.size();
 
-      if (num_pcommands > 0) {
+      if (numPCommands > 0) {
         ccommand->addPipeSrc();
 
-        for (int k = 0; k < num_pcommands - 1; k++) {
-          CwshCommand *pccommand = pcommands[k]->getCommand();
+        for (uint k = 0; k < numPCommands - 1; k++) {
+          auto *pccommand = pcommands[k]->getCommand();
 
-          if (! first_command) {
-            first_command = pcommands[k];
+          if (! firstCommand) {
+            firstCommand = pcommands[k];
 
             pccommand->setProcessGroupLeader();
           }
           else
-            pccommand->setProcessGroup(first_command->getCommand());
+            pccommand->setProcessGroup(firstCommand->getCommand());
 
           pccommand->start();
         }
 
-        CwshCommand *pccommand = pcommands[num_pcommands - 1]->getCommand();
+        auto *pccommand = pcommands[numPCommands - 1]->getCommand();
 
-        if (! first_command) {
-          first_command = pcommands[num_pcommands - 1];
+        if (! firstCommand) {
+          firstCommand = pcommands[numPCommands - 1];
 
           pccommand->setProcessGroupLeader();
         }
         else
-          pccommand->setProcessGroup(first_command->getCommand());
+          pccommand->setProcessGroup(firstCommand->getCommand());
 
         pccommand->start();
 
-        ccommand->setProcessGroup(first_command->getCommand());
+        ccommand->setProcessGroup(firstCommand->getCommand());
 
         ccommand->start();
 
         //------
 
-        CwshProcess *process = cwsh_->addProcess(first_command);
+        auto *process = cwsh_->addProcess(firstCommand);
 
-        for (int k = 0; k < num_pcommands; k++)
-          if (pcommands[k] != first_command)
+        for (uint k = 0; k < numPCommands; k++)
+          if (pcommands[k] != firstCommand)
             process->addSubCommand(pcommands[k]);
 
-        if (first_command != command)
+        if (firstCommand != command)
           process->addSubCommand(command);
 
         //------
 
-        if (separator != CwshCmdSeparatorType::BACKGROUND) {
-          for (int k = 0; k < num_pcommands; k++) {
-            CwshCommand *pccommand1 = pcommands[k]->getCommand();
+        if (separator != CmdSeparatorType::BACKGROUND) {
+          for (uint k = 0; k < numPCommands; k++) {
+            auto *pccommand1 = pcommands[k]->getCommand();
 
             pccommand1->wait();
           }
@@ -605,17 +602,17 @@ executeCommands(const CwshCmdArray &cmds)
 
           currentCommand_ = nullptr;
 
-          if (separator == CwshCmdSeparatorType::AND && status != 0)
+          if (separator == CmdSeparatorType::AND && status != 0)
             break;
 
-          if (separator == CwshCmdSeparatorType::OR && status == 0)
+          if (separator == CmdSeparatorType::OR && status == 0)
             break;
         }
         else {
           std::cout << "[" << process->getNum() << "]";
 
-          for (int k = 0; k < num_pcommands; k++) {
-            CwshCommand *pccommand1 = pcommands[k]->getCommand();
+          for (uint k = 0; k < numPCommands; k++) {
+            auto *pccommand1 = pcommands[k]->getCommand();
 
             std::cout << " " << pccommand1->getPid();
           }
@@ -627,20 +624,20 @@ executeCommands(const CwshCmdArray &cmds)
       }
       else {
         if (ccommand->getDoFork()) {
-          if (! first_command) {
-            first_command = command;
+          if (! firstCommand) {
+            firstCommand = command;
 
             ccommand->setProcessGroupLeader();
           }
           else
-            ccommand->setProcessGroup(first_command->getCommand());
+            ccommand->setProcessGroup(firstCommand->getCommand());
         }
 
         ccommand->start();
 
-        CwshProcess *process = cwsh_->addProcess(first_command);
+        auto *process = cwsh_->addProcess(firstCommand);
 
-        if (separator != CwshCmdSeparatorType::BACKGROUND) {
+        if (separator != CmdSeparatorType::BACKGROUND) {
           ccommand->wait();
 
           if (ccommand->getState() == CCommand::State::EXITED) {
@@ -652,10 +649,10 @@ executeCommands(const CwshCmdArray &cmds)
 
             currentCommand_ = nullptr;
 
-            if (separator == CwshCmdSeparatorType::AND && status != 0)
+            if (separator == CmdSeparatorType::AND && status != 0)
               break;
 
-            if (separator == CwshCmdSeparatorType::OR && status == 0)
+            if (separator == CmdSeparatorType::OR && status == 0)
               break;
           }
           else {
@@ -677,258 +674,296 @@ executeCommands(const CwshCmdArray &cmds)
 
       ccommand->addPipeDest(1);
 
-      if (separator == CwshCmdSeparatorType::PIPE_ERR)
+      if (separator == CmdSeparatorType::PIPE_ERR)
         ccommand->addPipeDest(2);
 
       pcommands.push_back(command);
     }
   }
 
-  int num_delete_files = int(delete_files.size());
+  auto numDeleteFiles = deleteFiles.size();
 
-  for (int i = 0; i < num_delete_files; i++)
-    unlink(delete_files[i].c_str());
+  for (uint i = 0; i < numDeleteFiles; i++)
+    unlink(deleteFiles[i].c_str());
 }
 
 std::string
-CwshInput::
+Input::
 readStdInToken(const std::string &token)
 {
-  CTempFile temp_file;
+  CTempFile tempFile;
 
-  cwsh_->setPromptType(CwshPromptType::EXTRA);
+  cwsh_->setPromptType(PromptType::EXTRA);
 
   while (1) {
-    std::string line = cwsh_->readLine();
+    auto line = cwsh_->readLine();
 
     if (line == token)
       break;
 
     if (token[0] != '"') {
-      std::string line1 = processStdInLine(line);
+      auto line1 = processStdInLine(line);
 
-      temp_file.getFile()->write(line1 + "\n");
+      tempFile.getFile()->write(line1 + "\n");
     }
     else
-      temp_file.getFile()->write(line + "\n");
+      tempFile.getFile()->write(line + "\n");
   }
 
-  temp_file.getFile()->close();
+  tempFile.getFile()->close();
 
-  cwsh_->setPromptType(CwshPromptType::NORMAL);
+  cwsh_->setPromptType(PromptType::NORMAL);
 
-  return temp_file.getFile()->getPath();
+  return tempFile.getFile()->getPath();
 }
 
 std::string
-CwshInput::
-processStdInLine(const CwshLine &line)
+Input::
+processStdInLine(const Line &line)
 {
-  CwshWordArray words;
+  WordArray words;
 
-  CwshWord::toWords(line.line, words);
+  Word::toWords(line.line, words);
 
   if (cwsh_->getDebug()) {
     std::cerr << "Std In Line to Words\n";
 
-    CwshWord::printWords(words);
+    Word::printWords(words);
   }
 
-  int num_words = int(words.size());
+  int numWords = int(words.size());
 
   //------
 
   // Replace Variables
 
-  CwshWordArray variable_words;
+  WordArray variableWords;
 
-  for (int i = 0; i < num_words; i++) {
-    CwshWordArray words2;
+  for (int i = 0; i < numWords; i++) {
+    WordArray words2;
 
-    CwshVariableParser vparser(cwsh_, words[i]);
+    VariableParser vparser(cwsh_, words[i]);
 
     if (vparser.expandVariables(words2))
-      copy(words2.begin(), words2.end(), back_inserter(variable_words));
+      copy(words2.begin(), words2.end(), back_inserter(variableWords));
     else
-      variable_words.push_back(words[i]);
+      variableWords.push_back(words[i]);
   }
 
-  int num_variable_words = int(variable_words.size());
+  int numVariableWords = int(variableWords.size());
 
   //------
 
   // Replace backquotes
 
-  CwshWordArray cmd_words;
+  WordArray cmdWords;
 
-  for (int i = 0; i < num_variable_words; i++) {
-    const CwshWord &word = variable_words[i];
+  for (int i = 0; i < numVariableWords; i++) {
+    const auto &word = variableWords[i];
 
-    CwshWordArray in_place_words;
+    WordArray inPlaceWords;
 
-    CwshInPlaceCommand icmd(cwsh_, word);
+    InPlaceCommand icmd(cwsh_, word);
 
-    if (icmd.expand(in_place_words)) {
-      int num_in_place_words = int(in_place_words.size());
+    if (icmd.expand(inPlaceWords)) {
+      auto numInPlaceWords = inPlaceWords.size();
 
-      for (int k = 0; k < num_in_place_words; ++k)
-        cmd_words.push_back(in_place_words[k]);
+      for (uint k = 0; k < numInPlaceWords; ++k)
+        cmdWords.push_back(inPlaceWords[k]);
     }
     else
-      cmd_words.push_back(word);
+      cmdWords.push_back(word);
   }
 
   //------
 
-  return CwshWord::toString(cmd_words);
+  return Word::toString(cmdWords);
 }
 
 std::string
-CwshInput::
-processExprLine(const CwshLine &line)
+Input::
+processExprLine(const Line &line)
 {
-  CwshWordArray words;
+  WordArray words;
 
-  CwshWord::toWords(line.line, words);
+  Word::toWords(line.line, words);
 
   if (cwsh_->getDebug()) {
     std::cerr << "Expr Line to Words\n";
 
-    CwshWord::printWords(words);
+    Word::printWords(words);
   }
 
-  int num_words = int(words.size());
+  int numWords = int(words.size());
 
   //------
 
   // Replace Variables
 
-  CwshWordArray variable_words;
+  WordArray variableWords;
 
-  for (int i = 0; i < num_words; i++) {
-    CwshWordArray twords;
+  for (int i = 0; i < numWords; i++) {
+    WordArray twords;
 
-    CwshVariableParser vparser(cwsh_, words[i]);
+    VariableParser vparser(cwsh_, words[i]);
 
     if (vparser.expandVariables(twords))
-      copy(twords.begin(), twords.end(), back_inserter(variable_words));
+      copy(twords.begin(), twords.end(), back_inserter(variableWords));
     else
-      variable_words.push_back(words[i]);
+      variableWords.push_back(words[i]);
   }
 
-  int num_variable_words = int(variable_words.size());
+  int numVariableWords = int(variableWords.size());
 
   //------
 
   // Replace backquotes
 
-  CwshWordArray cmd_words;
+  WordArray cmdWords;
 
-  for (int i = 0; i < num_variable_words; i++) {
-    const CwshWord &word = variable_words[i];
+  for (int i = 0; i < numVariableWords; i++) {
+    const auto &word = variableWords[i];
 
-    CwshWordArray twords;
+    WordArray twords;
 
-    CwshInPlaceCommand icmd(cwsh_, variable_words[i]);
+    InPlaceCommand icmd(cwsh_, variableWords[i]);
 
     if (icmd.expand(twords))
-      copy(twords.begin(), twords.end(), back_inserter(cmd_words));
+      copy(twords.begin(), twords.end(), back_inserter(cmdWords));
     else
-      cmd_words.push_back(word);
+      cmdWords.push_back(word);
   }
 
-  int num_cmd_words = int(cmd_words.size());
+  int numCmdWords = int(cmdWords.size());
 
   //------
 
   // Expand Tildes
 
-  for (int i = 0; i < num_cmd_words; i++) {
+  for (int i = 0; i < numCmdWords; i++) {
     std::string str;
 
-    if (CFile::expandTilde(cmd_words[i].getWord(), str))
-      cmd_words[i] = CwshWord(str);
+    if (CFile::expandTilde(cmdWords[i].getWord(), str))
+      cmdWords[i] = Word(str);
   }
 
   //------
 
   // Expand Braces
 
-  CwshWordArray brace_words;
+  WordArray braceWords;
 
-  for (int i = 0; i < num_cmd_words; i++) {
-    const CwshWord &word = cmd_words[i];
+  for (int i = 0; i < numCmdWords; i++) {
+    const auto &word = cmdWords[i];
 
-    CwshWordArray twords;
+    WordArray twords;
 
-    if (CwshBraces::expand(word, twords))
-      copy(twords.begin(), twords.end(), back_inserter(brace_words));
+    if (Braces::expand(word, twords))
+      copy(twords.begin(), twords.end(), back_inserter(braceWords));
     else
-      brace_words.push_back(word);
+      braceWords.push_back(word);
   }
 
-  int num_brace_words = int(brace_words.size());
+  int numBraceWords = int(braceWords.size());
 
   //------
 
   // Expand Wildcards
 
-  CwshWordArray wildcard_words;
+  WordArray wildcardWords;
 
-  for (int i = 0; i < num_brace_words; i++) {
-    const CwshWord &word = brace_words[i];
+  for (int i = 0; i < numBraceWords; i++) {
+    const auto &word = braceWords[i];
 
-    CwshWordArray twords;
+    WordArray twords;
 
-    CwshPattern pattern(cwsh_);
+    Pattern pattern(cwsh_);
 
     if (pattern.expandWordToFiles(word, twords))
-      copy(twords.begin(), twords.end(), back_inserter(wildcard_words));
+      copy(twords.begin(), twords.end(), back_inserter(wildcardWords));
     else
-      wildcard_words.push_back(word);
+      wildcardWords.push_back(word);
   }
 
   //------
 
-  return CwshWord::toString(wildcard_words);
+  return Word::toString(wildcardWords);
 }
 
 std::string
-CwshInput::
+Input::
 getPrompt()
 {
-  CwshVariable *prompt_var;
+  Variable *promptVar;
 
-  if (cwsh_->getPromptType() == CwshPromptType::NORMAL)
-    prompt_var = cwsh_->lookupVariable("prompt");
+  if (cwsh_->getPromptType() == PromptType::NORMAL)
+    promptVar = cwsh_->lookupVariable("prompt");
   else
-    prompt_var = cwsh_->lookupVariable("prompt1");
+    promptVar = cwsh_->lookupVariable("prompt1");
 
-  auto *color_var = cwsh_->lookupVariable("prompt_color");
+  auto *colorVar = cwsh_->lookupVariable("prompt_color");
 
-  std::string prompt_string;
+  std::string promptString;
 
-  if (cwsh_->getPromptType() != CwshPromptType::NORMAL)
-    prompt_string += cwsh_->getPromptCommand();
+  if (cwsh_->getPromptType() != PromptType::NORMAL)
+    promptString += cwsh_->getPromptCommand();
 
-  if (prompt_var)
-    prompt_string += prompt_var->getValue(0);
+  if (promptVar)
+    promptString += promptVar->getValue(0);
   else {
-    if (cwsh_->getPromptType() == CwshPromptType::NORMAL)
-      prompt_string += "> ";
+    if (cwsh_->getPromptType() == PromptType::NORMAL)
+      promptString += "> ";
     else
-      prompt_string += "? ";
+      promptString += "? ";
   }
 
-  if (color_var) {
+  std::string promptString1;
+
+  CStrParse parse(promptString);
+
+  while (! parse.eof()) {
+    if (parse.isChar('%')) {
+      bool processed = false;
+
+      parse.skipChar();
+
+      auto c = parse.readChar();
+
+      if (parse.isChar('%')) {
+        parse.skipChar();
+
+        processed = true;
+
+        if      (c == 'B')
+          promptString1 += "[1m";
+        else if (c == 'b')
+          promptString1 += "[0m";
+        else
+          processed = false;
+
+        if (! processed) {
+          promptString1 += "%" + c;
+          promptString1 += "%";
+        }
+      }
+      else
+        promptString1 += "%" + c;
+    }
+    else
+      promptString1 += parse.readChar();
+  }
+
+  if (colorVar) {
     CRGBA c;
 
-    if (CRGBName::toRGBA(color_var->getValue(0), c)) {
-      std::string colorStr = CEscapeColorsInst->colorFgStr(c);
+    if (CRGBName::toRGBA(colorVar->getValue(0), c)) {
+      auto colorStr = CEscapeColorsInst->colorFgStr(c);
 
-      prompt_string = colorStr + prompt_string + "[0m";
+      promptString1 = colorStr + promptString1 + "[0m";
     }
   }
 
-  return prompt_string;
+  return promptString1;
+}
+
 }

@@ -1,36 +1,38 @@
 #include <CwshI.h>
 
-CwshExprProcess::
-CwshExprProcess()
+namespace Cwsh {
+
+ExprProcess::
+ExprProcess()
 {
 }
 
 std::string
-CwshExprProcess::
-process(CwshExprOperator *opr, const std::string &value)
+ExprProcess::
+process(ExprOperator *opr, const std::string &value)
 {
   int integer;
 
-  CwshExprProcessValueType type = getValueType(value, &integer);
+  auto type = getValueType(value, &integer);
 
   switch (opr->getType()) {
-    case CwshExprOperatorType::UNARY_PLUS:
-    case CwshExprOperatorType::UNARY_MINUS:
-    case CwshExprOperatorType::LOGICAL_NOT:
-    case CwshExprOperatorType::BIT_NOT:
-      if (type != CwshExprProcessValueType::INTEGER)
+    case ExprOperatorType::UNARY_PLUS:
+    case ExprOperatorType::UNARY_MINUS:
+    case ExprOperatorType::LOGICAL_NOT:
+    case ExprOperatorType::BIT_NOT:
+      if (type != ExprProcessValueType::INTEGER)
         CWSH_THROW("Invalid Type for Operator.");
 
       break;
-    case CwshExprOperatorType::IS_DIRECTORY:
-    case CwshExprOperatorType::IS_FILE:
-    case CwshExprOperatorType::IS_PLAIN:
-    case CwshExprOperatorType::IS_OWNER:
-    case CwshExprOperatorType::IS_READABLE:
-    case CwshExprOperatorType::IS_WRITABLE:
-    case CwshExprOperatorType::IS_EXECUTABLE:
-    case CwshExprOperatorType::IS_ZERO:
-      if (type != CwshExprProcessValueType::STRING)
+    case ExprOperatorType::IS_DIRECTORY:
+    case ExprOperatorType::IS_FILE:
+    case ExprOperatorType::IS_PLAIN:
+    case ExprOperatorType::IS_OWNER:
+    case ExprOperatorType::IS_READABLE:
+    case ExprOperatorType::IS_WRITABLE:
+    case ExprOperatorType::IS_EXECUTABLE:
+    case ExprOperatorType::IS_ZERO:
+      if (type != ExprProcessValueType::STRING)
         CWSH_THROW("Invalid Type for Operator.");
 
       break;
@@ -39,52 +41,52 @@ process(CwshExprOperator *opr, const std::string &value)
   }
 
   switch (opr->getType()) {
-    case CwshExprOperatorType::UNARY_PLUS:
+    case ExprOperatorType::UNARY_PLUS:
       break;
-    case CwshExprOperatorType::UNARY_MINUS:
+    case ExprOperatorType::UNARY_MINUS:
       integer = -integer;
 
       break;
-    case CwshExprOperatorType::LOGICAL_NOT:
+    case ExprOperatorType::LOGICAL_NOT:
       if (! integer)
         integer = true;
       else
         integer = false;
 
       break;
-    case CwshExprOperatorType::BIT_NOT:
+    case ExprOperatorType::BIT_NOT:
       integer = ~integer;
 
       break;
-    case CwshExprOperatorType::IS_DIRECTORY:
+    case ExprOperatorType::IS_DIRECTORY:
       integer = (CFile::exists(value) && CFile::isDirectory(value));
 
       break;
-    case CwshExprOperatorType::IS_FILE:
+    case ExprOperatorType::IS_FILE:
       integer = CFile::exists(value);
 
       break;
-    case CwshExprOperatorType::IS_PLAIN:
+    case ExprOperatorType::IS_PLAIN:
       integer = (CFile::exists(value) && CFile::isRegular(value));
 
       break;
-    case CwshExprOperatorType::IS_OWNER:
+    case ExprOperatorType::IS_OWNER:
       integer = (CFile::exists(value) && CFile::isOwner(value));
 
       break;
-    case CwshExprOperatorType::IS_READABLE:
+    case ExprOperatorType::IS_READABLE:
       integer = (CFile::exists(value) && CFile::isReadable(value));
 
       break;
-    case CwshExprOperatorType::IS_WRITABLE:
+    case ExprOperatorType::IS_WRITABLE:
       integer = (CFile::exists(value) && CFile::isWritable(value));
 
       break;
-    case CwshExprOperatorType::IS_EXECUTABLE:
+    case ExprOperatorType::IS_EXECUTABLE:
       integer = (CFile::exists(value) && CFile::isExecutable(value));
 
       break;
-    case CwshExprOperatorType::IS_ZERO:
+    case ExprOperatorType::IS_ZERO:
       integer = (CFile::exists(value) && CFile::getSize(value) == 0);
 
       break;
@@ -98,48 +100,46 @@ process(CwshExprOperator *opr, const std::string &value)
 }
 
 std::string
-CwshExprProcess::
-process(const std::string &value1, CwshExprOperator *opr, const std::string &value2)
+ExprProcess::
+process(const std::string &value1, ExprOperator *opr, const std::string &value2)
 {
   int integer1;
   int integer2;
 
-  CwshExprProcessValueType type1 = getValueType(value1, &integer1);
-  CwshExprProcessValueType type2 = getValueType(value2, &integer2);
+  auto type1 = getValueType(value1, &integer1);
+  auto type2 = getValueType(value2, &integer2);
 
   switch (opr->getType()) {
-    case CwshExprOperatorType::PLUS:
-    case CwshExprOperatorType::MINUS:
-    case CwshExprOperatorType::TIMES:
-    case CwshExprOperatorType::DIVIDE:
-    case CwshExprOperatorType::MODULUS:
-    case CwshExprOperatorType::LOGICAL_AND:
-    case CwshExprOperatorType::LOGICAL_OR:
-    case CwshExprOperatorType::BIT_AND:
-    case CwshExprOperatorType::BIT_OR:
-    case CwshExprOperatorType::BIT_XOR:
-    case CwshExprOperatorType::BIT_LSHIFT:
-    case CwshExprOperatorType::BIT_RSHIFT:
-      if (type1 != CwshExprProcessValueType::INTEGER ||
-          type2 != CwshExprProcessValueType::INTEGER)
+    case ExprOperatorType::PLUS:
+    case ExprOperatorType::MINUS:
+    case ExprOperatorType::TIMES:
+    case ExprOperatorType::DIVIDE:
+    case ExprOperatorType::MODULUS:
+    case ExprOperatorType::LOGICAL_AND:
+    case ExprOperatorType::LOGICAL_OR:
+    case ExprOperatorType::BIT_AND:
+    case ExprOperatorType::BIT_OR:
+    case ExprOperatorType::BIT_XOR:
+    case ExprOperatorType::BIT_LSHIFT:
+    case ExprOperatorType::BIT_RSHIFT:
+      if (type1 != ExprProcessValueType::INTEGER || type2 != ExprProcessValueType::INTEGER)
         CWSH_THROW("Invalid Type for Operator.");
 
       break;
 
-    case CwshExprOperatorType::MATCH_EQUAL:
-    case CwshExprOperatorType::NO_MATCH_EQUAL:
-      if (type1 != CwshExprProcessValueType::STRING ||
-          type2 != CwshExprProcessValueType::STRING)
+    case ExprOperatorType::MATCH_EQUAL:
+    case ExprOperatorType::NO_MATCH_EQUAL:
+      if (type1 != ExprProcessValueType::STRING || type2 != ExprProcessValueType::STRING)
         CWSH_THROW("Invalid Type for Operator.");
 
       break;
 
-    case CwshExprOperatorType::LESS:
-    case CwshExprOperatorType::LESS_OR_EQUAL:
-    case CwshExprOperatorType::GREATER:
-    case CwshExprOperatorType::GREATER_OR_EQUAL:
-    case CwshExprOperatorType::EQUAL:
-    case CwshExprOperatorType::NOT_EQUAL:
+    case ExprOperatorType::LESS:
+    case ExprOperatorType::LESS_OR_EQUAL:
+    case ExprOperatorType::GREATER:
+    case ExprOperatorType::GREATER_OR_EQUAL:
+    case ExprOperatorType::EQUAL:
+    case ExprOperatorType::NOT_EQUAL:
       if (type1 != type2)
         CWSH_THROW("Invalid Type Mix.");
 
@@ -152,113 +152,113 @@ process(const std::string &value1, CwshExprOperator *opr, const std::string &val
   int integer = 0;
 
   switch (opr->getType()) {
-    case CwshExprOperatorType::PLUS:
+    case ExprOperatorType::PLUS:
       integer = integer1 + integer2;
 
       break;
-    case CwshExprOperatorType::MINUS:
+    case ExprOperatorType::MINUS:
       integer = integer1 - integer2;
 
       break;
-    case CwshExprOperatorType::TIMES:
+    case ExprOperatorType::TIMES:
       integer = integer1 * integer2;
 
       break;
-    case CwshExprOperatorType::DIVIDE:
+    case ExprOperatorType::DIVIDE:
       if (integer2 == 0)
         CWSH_THROW("Divide By Zero.");
 
       integer = integer1 / integer2;
 
       break;
-    case CwshExprOperatorType::MODULUS:
+    case ExprOperatorType::MODULUS:
       if (integer2 == 0)
         CWSH_THROW("Divide By Zero.");
 
       integer = integer1 % integer2;
 
       break;
-    case CwshExprOperatorType::LESS:
-      if (type1 == CwshExprProcessValueType::INTEGER)
+    case ExprOperatorType::LESS:
+      if (type1 == ExprProcessValueType::INTEGER)
         integer = (integer1 < integer2);
       else
         integer = (value1 < value2);
 
       break;
-    case CwshExprOperatorType::LESS_OR_EQUAL:
-      if (type1 == CwshExprProcessValueType::INTEGER)
+    case ExprOperatorType::LESS_OR_EQUAL:
+      if (type1 == ExprProcessValueType::INTEGER)
         integer = (integer1 <= integer2);
       else
         integer = (value1 <= value2);
 
       break;
-    case CwshExprOperatorType::GREATER:
-      if (type1 == CwshExprProcessValueType::INTEGER)
+    case ExprOperatorType::GREATER:
+      if (type1 == ExprProcessValueType::INTEGER)
         integer = (integer1 > integer2);
       else
         integer = (value1 > value2);
 
       break;
-    case CwshExprOperatorType::GREATER_OR_EQUAL:
-      if (type1 == CwshExprProcessValueType::INTEGER)
+    case ExprOperatorType::GREATER_OR_EQUAL:
+      if (type1 == ExprProcessValueType::INTEGER)
         integer = (integer1 >= integer2);
       else
         integer = (value1 >= value2);
 
       break;
-    case CwshExprOperatorType::EQUAL:
-      if (type1 == CwshExprProcessValueType::INTEGER)
+    case ExprOperatorType::EQUAL:
+      if (type1 == ExprProcessValueType::INTEGER)
         integer = (integer1 == integer2);
       else
         integer = (value1 == value2);
 
       break;
-    case CwshExprOperatorType::NOT_EQUAL:
-      if (type1 == CwshExprProcessValueType::INTEGER)
+    case ExprOperatorType::NOT_EQUAL:
+      if (type1 == ExprProcessValueType::INTEGER)
         integer = (integer1 != integer2);
       else
         integer = (value1 != value2);
 
       break;
-    case CwshExprOperatorType::MATCH_EQUAL: {
-      CwshWildCard wildcard(value2);
+    case ExprOperatorType::MATCH_EQUAL: {
+      WildCard wildcard(value2);
 
       integer = wildcard.checkMatch(value1);
 
       break;
     }
-    case CwshExprOperatorType::NO_MATCH_EQUAL: {
-      CwshWildCard wildcard(value2);
+    case ExprOperatorType::NO_MATCH_EQUAL: {
+      WildCard wildcard(value2);
 
       integer = ! wildcard.checkMatch(value1);
 
       break;
     }
-    case CwshExprOperatorType::LOGICAL_AND:
+    case ExprOperatorType::LOGICAL_AND:
       integer = (integer1 && integer2);
 
       break;
-    case CwshExprOperatorType::LOGICAL_OR:
+    case ExprOperatorType::LOGICAL_OR:
       integer = (integer1 || integer2);
 
       break;
-    case CwshExprOperatorType::BIT_AND:
+    case ExprOperatorType::BIT_AND:
       integer = (integer1 & integer2);
 
       break;
-    case CwshExprOperatorType::BIT_OR:
+    case ExprOperatorType::BIT_OR:
       integer = (integer1 | integer2);
 
       break;
-    case CwshExprOperatorType::BIT_XOR:
+    case ExprOperatorType::BIT_XOR:
       integer = (integer1 ^ integer2);
 
       break;
-    case CwshExprOperatorType::BIT_LSHIFT:
+    case ExprOperatorType::BIT_LSHIFT:
       integer = (integer1 << integer2);
 
       break;
-    case CwshExprOperatorType::BIT_RSHIFT:
+    case ExprOperatorType::BIT_RSHIFT:
       integer = (integer1 >> integer2);
 
       break;
@@ -271,15 +271,17 @@ process(const std::string &value1, CwshExprOperator *opr, const std::string &val
   return value;
 }
 
-CwshExprProcessValueType
-CwshExprProcess::
+ExprProcessValueType
+ExprProcess::
 getValueType(const std::string &value, int *integer)
 {
   if (CStrUtil::isInteger(value)) {
     *integer = int(CStrUtil::toInteger(value));
 
-    return CwshExprProcessValueType::INTEGER;
+    return ExprProcessValueType::INTEGER;
   }
   else
-    return CwshExprProcessValueType::STRING;
+    return ExprProcessValueType::STRING;
+}
+
 }

@@ -7,13 +7,15 @@
 
 #include <CShMem.h>
 
-struct CwshShMemData {
+namespace Cwsh {
+
+struct ShMemData {
   char path[MAXPATHLEN + 1];
 };
 
-class CwshShMem : public CShMem {
+class ShMem : public CShMem {
  public:
-  CwshShMem() :
+  ShMem() :
    CShMem("Cwsh") {
   }
 
@@ -35,8 +37,10 @@ class CwshShMem : public CShMem {
   uint getDataSize() const { return sizeof(data_); }
 
  private:
-  CwshShMemData data_;
+  ShMemData data_;
 };
+
+}
 
 #endif
 

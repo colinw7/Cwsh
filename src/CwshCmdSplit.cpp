@@ -1,15 +1,17 @@
 #include <CwshI.h>
 
+namespace Cwsh {
+
 bool
-CwshCmdSplit::
-wordsToCommandLines(const CwshWordArray &words, CwshCmdLineArray &cmds)
+CmdSplit::
+wordsToCommandLines(const WordArray &words, CmdLineArray &cmds)
 {
   int i = 0;
 
   int num_words = int(words.size());
 
   while (i < num_words) {
-    auto *cmd = new CwshCmdLine();
+    auto *cmd = new CmdLine();
 
     wordsToCommandLine(words, &i, cmd);
 
@@ -20,8 +22,8 @@ wordsToCommandLines(const CwshWordArray &words, CwshCmdLineArray &cmds)
 }
 
 void
-CwshCmdSplit::
-wordsToCommandLine(const CwshWordArray &words, int *i, CwshCmdLine *cmd)
+CmdSplit::
+wordsToCommandLine(const WordArray &words, int *i, CmdLine *cmd)
 {
   int brackets = 0;
 
@@ -54,15 +56,15 @@ wordsToCommandLine(const CwshWordArray &words, int *i, CwshCmdLine *cmd)
 }
 
 bool
-CwshCmdSplit::
-wordsToCommands(const CwshWordArray &words, CwshCmdArray &cmds)
+CmdSplit::
+wordsToCommands(const WordArray &words, CmdArray &cmds)
 {
   int i = 0;
 
   int num_words = int(words.size());
 
   while (i < num_words) {
-    auto *cmd = new CwshCmd();
+    auto *cmd = new Cmd();
 
     wordsToCommand(words, &i, cmd);
 
@@ -72,14 +74,14 @@ wordsToCommands(const CwshWordArray &words, CwshCmdArray &cmds)
   //------
 
   if (cmds.size() > 0) {
-    CwshCmd *last_cmd = cmds[cmds.size() - 1];
+    Cmd *last_cmd = cmds[cmds.size() - 1];
 
-    CwshCmdSeparatorType separator_type = last_cmd->getSeparator().getType();
+    auto separator_type = last_cmd->getSeparator().getType();
 
-    if (separator_type == CwshCmdSeparatorType::PIPE     ||
-        separator_type == CwshCmdSeparatorType::PIPE_ERR ||
-        separator_type == CwshCmdSeparatorType::AND      ||
-        separator_type == CwshCmdSeparatorType::OR)
+    if (separator_type == CmdSeparatorType::PIPE     ||
+        separator_type == CmdSeparatorType::PIPE_ERR ||
+        separator_type == CmdSeparatorType::AND      ||
+        separator_type == CmdSeparatorType::OR)
       CWSH_THROW("Invalid null command.");
   }
 
@@ -87,8 +89,8 @@ wordsToCommands(const CwshWordArray &words, CwshCmdArray &cmds)
 }
 
 void
-CwshCmdSplit::
-wordsToCommand(const CwshWordArray &words, int *i, CwshCmd *cmd)
+CmdSplit::
+wordsToCommand(const WordArray &words, int *i, Cmd *cmd)
 {
   int brackets = 0;
 
@@ -106,9 +108,9 @@ wordsToCommand(const CwshWordArray &words, int *i, CwshCmd *cmd)
         CWSH_THROW("Too many )'s.");
     }
     else if (brackets == 0) {
-      CwshCmdSeparator separator = parseCommandSeparator(word);
+      auto separator = parseCommandSeparator(word);
 
-      if (separator.getType() != CwshCmdSeparatorType::NONE) {
+      if (separator.getType() != CmdSeparatorType::NONE) {
         cmd->setSeparator(separator);
 
         ++(*i);
@@ -129,106 +131,106 @@ wordsToCommand(const CwshWordArray &words, int *i, CwshCmd *cmd)
     CWSH_THROW("Too many ('s.");
 }
 
-CwshCmdSeparator
-CwshCmdSplit::
+CmdSeparator
+CmdSplit::
 parseCommandSeparator(const std::string &word)
 {
   if      (word == "&")
-    return CwshCmdSeparator(CwshCmdSeparatorType::BACKGROUND);
+    return CmdSeparator(CmdSeparatorType::BACKGROUND);
   else if (word == "|")
-    return CwshCmdSeparator(CwshCmdSeparatorType::PIPE);
+    return CmdSeparator(CmdSeparatorType::PIPE);
   else if (word == "|&")
-    return CwshCmdSeparator(CwshCmdSeparatorType::PIPE_ERR);
+    return CmdSeparator(CmdSeparatorType::PIPE_ERR);
   else if (word == "&&")
-    return CwshCmdSeparator(CwshCmdSeparatorType::AND);
+    return CmdSeparator(CmdSeparatorType::AND);
   else if (word == "||")
-    return CwshCmdSeparator(CwshCmdSeparatorType::OR);
+    return CmdSeparator(CmdSeparatorType::OR);
   else if (word == ";")
-    return CwshCmdSeparator(CwshCmdSeparatorType::NORMAL);
+    return CmdSeparator(CmdSeparatorType::NORMAL);
   else
-    return CwshCmdSeparator(CwshCmdSeparatorType::NONE);
+    return CmdSeparator(CmdSeparatorType::NONE);
 }
 
-CwshCmdLine::
-CwshCmdLine()
+CmdLine::
+CmdLine()
 {
 }
 
-CwshCmdLine::
-~CwshCmdLine()
+CmdLine::
+~CmdLine()
 {
 }
 
 void
-CwshCmdLine::
-addWord(const CwshWord &word)
+CmdLine::
+addWord(const Word &word)
 {
   words_.push_back(word);
 }
 
-CwshCmdGroup::
-CwshCmdGroup(const CwshCmdArray &commands) :
+CmdGroup::
+CmdGroup(const CmdArray &commands) :
  commands_(commands)
 {
 }
 
-CwshCmdGroup::
-~CwshCmdGroup()
+CmdGroup::
+~CmdGroup()
 {
   for (auto &command : commands_)
     delete command;
 }
 
 void
-CwshCmd::
-displayCmdArray(const CwshCmdArray &cmds)
+Cmd::
+displayCmdArray(const CmdArray &cmds)
 {
   for (auto &cmd : cmds)
-    CwshCmd::displayCmd(cmd);
+    Cmd::displayCmd(cmd);
 }
 
 void
-CwshCmd::
-displayCmd(const CwshCmd *cmd)
+Cmd::
+displayCmd(const Cmd *cmd)
 {
   cmd->display();
 }
 
-CwshCmd::
-CwshCmd() :
- separator_(CwshCmdSeparatorType::NONE)
+Cmd::
+Cmd() :
+ separator_(CmdSeparatorType::NONE)
 {
 }
 
-CwshCmd::
-~CwshCmd()
+Cmd::
+~Cmd()
 {
 }
 
 void
-CwshCmd::
-addWord(const CwshWord &word)
+Cmd::
+addWord(const Word &word)
 {
   words_.push_back(word);
 }
 
 void
-CwshCmd::
-setWord(int i, const CwshWord &word)
+Cmd::
+setWord(int i, const Word &word)
 {
   words_[i] = word;
 }
 
 void
-CwshCmd::
-setSeparator(const CwshCmdSeparator &separator)
+Cmd::
+setSeparator(const CmdSeparator &separator)
 {
   separator_ = separator;
 }
 
 void
-CwshCmd::
-setWords(const CwshWordArray &words)
+Cmd::
+setWords(const WordArray &words)
 {
   words_.clear();
 
@@ -236,28 +238,30 @@ setWords(const CwshWordArray &words)
 }
 
 void
-CwshCmd::
+Cmd::
 display() const
 {
-  std::string command_str = CwshWord::toString(words_);
+  auto command_str = Word::toString(words_);
 
   std::cerr << command_str << " " << separator_.getName() << "\n";
 }
 
 std::string
-CwshCmdSeparator::
+CmdSeparator::
 getName() const
 {
-  if      (type_ == CwshCmdSeparatorType::BACKGROUND)
+  if      (type_ == CmdSeparatorType::BACKGROUND)
     return "&";
-  else if (type_ == CwshCmdSeparatorType::PIPE)
+  else if (type_ == CmdSeparatorType::PIPE)
     return "|";
-  else if (type_ == CwshCmdSeparatorType::PIPE_ERR)
+  else if (type_ == CmdSeparatorType::PIPE_ERR)
     return "|&";
-  else if (type_ == CwshCmdSeparatorType::AND)
+  else if (type_ == CmdSeparatorType::AND)
     return "&&";
-  else if (type_ == CwshCmdSeparatorType::OR)
+  else if (type_ == CmdSeparatorType::OR)
     return "||";
   else
     return "";
+}
+
 }

@@ -1,8 +1,12 @@
 #ifndef CWSH_UNIX_COMMAND_H
 #define CWSH_UNIX_COMMAND_H
 
-namespace CwshUnixCommand {
-  std::string search(Cwsh *cwsh, const std::string &name);
+namespace Cwsh {
+
+namespace UnixCommand {
+  std::string search(App *cwsh, const std::string &name);
+}
+
 }
 
 #endif

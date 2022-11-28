@@ -1,9 +1,11 @@
-class CwshResource {
+namespace Cwsh {
+
+class Resource {
  private:
-  static CwshResourceLimit limits_[];
+  static ResourceLimit limits_[];
 
  public:
-  CwshResource();
+  Resource();
 
   void limit(const std::string &name, const std::string &value, bool hard=false);
   void unlimitAll();
@@ -14,9 +16,11 @@ class CwshResource {
  private:
   void unlimit(int id);
 
-  void print(CwshResourceLimit *rlimit, bool hard);
+  void print(ResourceLimit *rlimit, bool hard);
 
-  int convertValue(CwshResourceLimit *rlimit, const std::string &value);
+  int convertValue(ResourceLimit *rlimit, const std::string &value);
 
-  CwshResourceLimit *getLimit(const std::string &name);
+  ResourceLimit *getLimit(const std::string &name);
 };
+
+}

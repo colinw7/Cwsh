@@ -1,7 +1,9 @@
 #ifndef CWSH_SET_H
 #define CWSH_SET_H
 
-enum class CwshSetAssignType {
+namespace Cwsh {
+
+enum class SetAssignType {
   NONE,
   EQUALS,
   PLUS_EQUALS,
@@ -16,28 +18,30 @@ enum class CwshSetAssignType {
   DECREMENT
 };
 
-class CwshSet {
+class Set {
  public:
-  CwshSet(Cwsh *cwsh);
+  Set(App *cwsh);
 
   void parseSet(const std::string &str, std::string &name, int *index,
-                CwshVariableType *type, std::vector<std::string> &values);
-  void processSet(const std::string &name, int index, CwshVariableType type,
+                VariableType *type, std::vector<std::string> &values);
+  void processSet(const std::string &name, int index, VariableType type,
                   std::vector<std::string> &values);
 
   void parseAssign(const std::string &str, std::string &name, int *index,
-                   CwshSetAssignType *assign_type, std::string &expr);
+                   SetAssignType *assignType, std::string &expr);
   void processAssign(const std::string &name, int index,
-                     CwshSetAssignType assign_type, const std::string &expr);
+                     SetAssignType assignType, const std::string &expr);
 
  private:
-  void              parseVariable(const std::string &str, uint *i, std::string &name, int *index);
-  CwshSetAssignType parseAssignType(const std::string &str, uint *i);
-  void              setValues(const std::string &str, uint *i, CwshVariableType *type,
-                              std::vector<std::string> &values);
+  void          parseVariable(const std::string &str, uint *i, std::string &name, int *index);
+  SetAssignType parseAssignType(const std::string &str, uint *i);
+  void          setValues(const std::string &str, uint *i, VariableType *type,
+                          std::vector<std::string> &values);
 
  private:
-  CPtr<Cwsh> cwsh_;
+  CPtr<App> cwsh_;
 };
+
+}
 
 #endif

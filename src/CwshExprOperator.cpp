@@ -1,5 +1,7 @@
 #include <CwshI.h>
 
+namespace Cwsh {
+
 /*
  *   Operator Token        | Precedence   | Associativity
  * ------------------------+--------------+--------------
@@ -21,63 +23,64 @@
  *
  */
 
-CwshExprOperator
-CwshExprOperator::
+ExprOperator
+ExprOperator::
 operators_[] = {
-  CwshExprOperator(CwshExprOperatorType::OPEN_BRACKET    , "("  , 12, true , true , false),
-  CwshExprOperator(CwshExprOperatorType::CLOSE_BRACKET   , ")"  , 12, true , true , false),
-  CwshExprOperator(CwshExprOperatorType::UNARY_PLUS      , "+"  , 11, false, false, true ),
-  CwshExprOperator(CwshExprOperatorType::UNARY_MINUS     , "-"  , 11, false, false, true ),
-  CwshExprOperator(CwshExprOperatorType::LOGICAL_NOT     , "!"  , 11, false, false, true ),
-  CwshExprOperator(CwshExprOperatorType::BIT_NOT         , "~"  , 11, false, false, true ),
-  CwshExprOperator(CwshExprOperatorType::IS_DIRECTORY    , "-d" , 11, false, false, true ),
-  CwshExprOperator(CwshExprOperatorType::IS_FILE         , "-e" , 11, false, false, true ),
-  CwshExprOperator(CwshExprOperatorType::IS_PLAIN        , "-f" , 11, false, false, true ),
-  CwshExprOperator(CwshExprOperatorType::IS_OWNER        , "-o" , 11, false, false, true ),
-  CwshExprOperator(CwshExprOperatorType::IS_READABLE     , "-r" , 11, false, false, true ),
-  CwshExprOperator(CwshExprOperatorType::IS_WRITABLE     , "-w" , 11, false, false, true ),
-  CwshExprOperator(CwshExprOperatorType::IS_EXECUTABLE   , "-x" , 11, false, false, true ),
-  CwshExprOperator(CwshExprOperatorType::IS_ZERO         , "-z" , 11, false, false, true ),
-  CwshExprOperator(CwshExprOperatorType::PLUS            , "+"  ,  9, true , false, false),
-  CwshExprOperator(CwshExprOperatorType::MINUS           , "-"  ,  9, true , false, false),
-  CwshExprOperator(CwshExprOperatorType::TIMES           , "*"  , 10, true , false, false),
-  CwshExprOperator(CwshExprOperatorType::DIVIDE          , "/"  , 10, true , false, false),
-  CwshExprOperator(CwshExprOperatorType::MODULUS         , "%"  , 10, true , false, false),
-  CwshExprOperator(CwshExprOperatorType::LESS            , "<"  ,  7, true , false, false),
-  CwshExprOperator(CwshExprOperatorType::LESS_OR_EQUAL   , "<=" ,  7, true , false, false),
-  CwshExprOperator(CwshExprOperatorType::GREATER         , ">"  ,  7, true , false, false),
-  CwshExprOperator(CwshExprOperatorType::GREATER_OR_EQUAL, ">=" ,  7, true , false, false),
-  CwshExprOperator(CwshExprOperatorType::EQUAL           , "==" ,  6, true , false, false),
-  CwshExprOperator(CwshExprOperatorType::NOT_EQUAL       , "!=" ,  6, true , false, false),
-  CwshExprOperator(CwshExprOperatorType::MATCH_EQUAL     , "=~" ,  6, true , false, false),
-  CwshExprOperator(CwshExprOperatorType::NO_MATCH_EQUAL  , "!~" ,  6, true , false, false),
-  CwshExprOperator(CwshExprOperatorType::LOGICAL_AND     , "&&" ,  2, true , false, false),
-  CwshExprOperator(CwshExprOperatorType::LOGICAL_OR      , "||" ,  1, true , false, false),
-  CwshExprOperator(CwshExprOperatorType::BIT_AND         , "&"  ,  5, true , false, false),
-  CwshExprOperator(CwshExprOperatorType::BIT_OR          , "|"  ,  3, true , false, false),
-  CwshExprOperator(CwshExprOperatorType::BIT_XOR         , "^"  ,  4, true , false, false),
-  CwshExprOperator(CwshExprOperatorType::BIT_LSHIFT      , "<<" ,  8, true , false, false),
-  CwshExprOperator(CwshExprOperatorType::BIT_RSHIFT      , ">>" ,  8, true , false, false),
+  ExprOperator(ExprOperatorType::OPEN_BRACKET    , "("  , 12, true , true , false),
+  ExprOperator(ExprOperatorType::CLOSE_BRACKET   , ")"  , 12, true , true , false),
+  ExprOperator(ExprOperatorType::UNARY_PLUS      , "+"  , 11, false, false, true ),
+  ExprOperator(ExprOperatorType::UNARY_MINUS     , "-"  , 11, false, false, true ),
+  ExprOperator(ExprOperatorType::LOGICAL_NOT     , "!"  , 11, false, false, true ),
+  ExprOperator(ExprOperatorType::BIT_NOT         , "~"  , 11, false, false, true ),
+  ExprOperator(ExprOperatorType::IS_DIRECTORY    , "-d" , 11, false, false, true ),
+  ExprOperator(ExprOperatorType::IS_FILE         , "-e" , 11, false, false, true ),
+  ExprOperator(ExprOperatorType::IS_PLAIN        , "-f" , 11, false, false, true ),
+  ExprOperator(ExprOperatorType::IS_OWNER        , "-o" , 11, false, false, true ),
+  ExprOperator(ExprOperatorType::IS_READABLE     , "-r" , 11, false, false, true ),
+  ExprOperator(ExprOperatorType::IS_WRITABLE     , "-w" , 11, false, false, true ),
+  ExprOperator(ExprOperatorType::IS_EXECUTABLE   , "-x" , 11, false, false, true ),
+  ExprOperator(ExprOperatorType::IS_ZERO         , "-z" , 11, false, false, true ),
+  ExprOperator(ExprOperatorType::PLUS            , "+"  ,  9, true , false, false),
+  ExprOperator(ExprOperatorType::MINUS           , "-"  ,  9, true , false, false),
+  ExprOperator(ExprOperatorType::TIMES           , "*"  , 10, true , false, false),
+  ExprOperator(ExprOperatorType::DIVIDE          , "/"  , 10, true , false, false),
+  ExprOperator(ExprOperatorType::MODULUS         , "%"  , 10, true , false, false),
+  ExprOperator(ExprOperatorType::LESS            , "<"  ,  7, true , false, false),
+  ExprOperator(ExprOperatorType::LESS_OR_EQUAL   , "<=" ,  7, true , false, false),
+  ExprOperator(ExprOperatorType::GREATER         , ">"  ,  7, true , false, false),
+  ExprOperator(ExprOperatorType::GREATER_OR_EQUAL, ">=" ,  7, true , false, false),
+  ExprOperator(ExprOperatorType::EQUAL           , "==" ,  6, true , false, false),
+  ExprOperator(ExprOperatorType::NOT_EQUAL       , "!=" ,  6, true , false, false),
+  ExprOperator(ExprOperatorType::MATCH_EQUAL     , "=~" ,  6, true , false, false),
+  ExprOperator(ExprOperatorType::NO_MATCH_EQUAL  , "!~" ,  6, true , false, false),
+  ExprOperator(ExprOperatorType::LOGICAL_AND     , "&&" ,  2, true , false, false),
+  ExprOperator(ExprOperatorType::LOGICAL_OR      , "||" ,  1, true , false, false),
+  ExprOperator(ExprOperatorType::BIT_AND         , "&"  ,  5, true , false, false),
+  ExprOperator(ExprOperatorType::BIT_OR          , "|"  ,  3, true , false, false),
+  ExprOperator(ExprOperatorType::BIT_XOR         , "^"  ,  4, true , false, false),
+  ExprOperator(ExprOperatorType::BIT_LSHIFT      , "<<" ,  8, true , false, false),
+  ExprOperator(ExprOperatorType::BIT_RSHIFT      , ">>" ,  8, true , false, false),
 };
 
-int CwshExprOperator::num_operators_ =
-  sizeof(CwshExprOperator::operators_)/sizeof(CwshExprOperator);
+int ExprOperator::numOperators_ = sizeof(ExprOperator::operators_)/sizeof(ExprOperator);
 
-CwshExprOperator::
-CwshExprOperator(CwshExprOperatorType type, const std::string &token, uint precedence,
-                 bool associate_l_to_r, bool punctuation, bool unary) :
- type_(type), token_(token), precedence_(precedence), associate_l_to_r_(associate_l_to_r),
+ExprOperator::
+ExprOperator(ExprOperatorType type, const std::string &token, uint precedence,
+             bool associateLtoR, bool punctuation, bool unary) :
+ type_(type), token_(token), precedence_(precedence), associateLtoR_(associateLtoR),
  punctuation_(punctuation), unary_(unary)
 {
 }
 
-CwshExprOperator *
-CwshExprOperator::
-lookup(CwshExprOperatorType type)
+ExprOperator *
+ExprOperator::
+lookup(ExprOperatorType type)
 {
-  for (int i = 0; i < num_operators_; i++)
+  for (int i = 0; i < numOperators_; i++)
     if (operators_[i].type_ == type)
       return &operators_[i];
 
   CWSH_THROW("Invalid Operator Type");
+}
+
 }

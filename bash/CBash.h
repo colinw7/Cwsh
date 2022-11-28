@@ -9,12 +9,13 @@
 #include <memory>
 #include <iostream>
 
-class CReadLine;
 class CCommand;
 
 namespace CBash {
 
 class App;
+class ReadLine;
+class History;
 
 using StringArray = std::vector<std::string>;
 using StringSet   = std::set<std::string>;
@@ -23,13 +24,16 @@ using StringSet   = std::set<std::string>;
 
 enum class TokenType {
   NONE,
-  STRING,
+  SQUOTE_STRING,
+  DQUOTE_STRING,
+  BACKQUOTE_STRING,
+  WORD,
   NUMBER,
   OPERATOR,
   KEYWORD
 };
 
-enum class TokenSubType {
+enum class Operator {
   NONE,
   OPEN_RBRACKETS,
   CLOSE_RBRACKETS,
@@ -43,12 +47,40 @@ enum class TokenSubType {
   LESS_LESS,
   LESS_GREATER,
   PIPE,
-  PIPE_PIPE,
   PIPE_ERR,
   SEMI_COLON,
   SEMI_COLON_BG,
   DOUBLE_SEMI_COLON,
-  DOUBLE_SEMI_COLON_BG
+  DOUBLE_SEMI_COLON_BG,
+  ASSIGN,
+  BG,
+  BG_GREATER,
+  BG_GREATER_GREATER,
+  OR,
+  AND
+};
+
+enum class Keyword {
+  IF,
+  THEN,
+  ELSE,
+  ELIF,
+  FI,
+  CASE,
+  ESAC,
+  FOR,
+  WHILE,
+  UNTIL,
+  DO,
+  DONE,
+  FUNCTION,
+  IN,
+  SELECT,
+  NOT,
+  OPEN_BRACE,
+  CLOSE_BRACE,
+  OPEN_BLOCK,
+  CLOSE_BLOCK
 };
 
 class Token {
@@ -59,26 +91,30 @@ class Token {
    str_(str) {
   }
 
-  Token(TokenType type, const std::string &str) :
-   type_(type), str_(str) {
+  Token(TokenType type, const std::string &str, int pos) :
+   type_(type), str_(str), pos_(pos) {
   }
 
   const TokenType &type() const { return type_; }
 
-  const TokenSubType &subType() const { return subType_; }
-  void setSubType(const TokenSubType &t) { subType_ = t; }
+  void setSubType(int t) { subType_ = t; }
+
+  Operator opType() const { return Operator(subType_); }
+
+  Keyword keyword() const { return Keyword(subType_); }
 
   const std::string &str() const { return str_; }
 
-  std::string sstr() const { return str_.substr(1, str_.size() - 2); }
-
-  void print(std::ostream &os) const {
+  void print(std::ostream &os=std::cerr) const {
     switch (type_) {
-      case TokenType::STRING  : os << "string"; break;
-      case TokenType::NUMBER  : os << "number"; break;
-      case TokenType::OPERATOR: os << "op"; break;
-      case TokenType::KEYWORD : os << "keyword"; break;
-      default                 : os << "none"; break;
+      case TokenType::DQUOTE_STRING   : os << "\"string"; break;
+      case TokenType::SQUOTE_STRING   : os << "\'string"; break;
+      case TokenType::BACKQUOTE_STRING: os << "`string"; break;
+      case TokenType::WORD            : os << "word"; break;
+      case TokenType::NUMBER          : os << "number"; break;
+      case TokenType::OPERATOR        : os << "op"; break;
+      case TokenType::KEYWORD         : os << "keyword"; break;
+      default                         : os << "none"; break;
     }
 
     os << "(" << str_ << ")";
@@ -87,8 +123,9 @@ class Token {
 
  private:
   TokenType    type_    { TokenType::NONE };
-  TokenSubType subType_ { TokenSubType::NONE };
+  int          subType_ { 0 };
   std::string  str_;
+  int          pos_     { 0 };
 };
 
 using Tokens = std::vector<Token>;
@@ -119,6 +156,8 @@ using AliasP = std::shared_ptr<Alias>;
 
 class BuiltinCommand;
 
+using CCommandP = std::shared_ptr<CCommand>;
+
 class Cmd {
  public:
   Cmd(App *app);
@@ -136,6 +175,7 @@ class Cmd {
   void addOpt(const Token &opt, const std::string &arg);
 
   bool isPipe() const { return pipe_; }
+  bool isPipeErr() const { return pipe_ && pipeErr_; }
 
   bool isFileInput() const { return ! input_.empty(); }
   bool isFileOutput() const { return ! output_.empty(); }
@@ -144,27 +184,35 @@ class Cmd {
   const std::string &fileOutput() const { return output_; }
 
   CCommand *command() const { return command_.get(); }
+  CCommandP commandp() const { return command_; }
 
   void init() const;
 
   void start() const;
 
+  bool isWait() const { return wait_; }
   void wait() const;
 
-  void print(std::ostream &os) const;
+  bool isAnd() const { return isAnd_; }
+
+  bool isOr() const { return isOr_; }
+
+  void print(std::ostream &os=std::cerr) const;
 
  private:
-  using CommandP = std::unique_ptr<CCommand>;
-
   App*            app_     { nullptr };
   std::string     name_;
   Tokens          args_;
   StringArray     ops_;
-  CommandP        command_;
+  CCommandP       command_;
   BuiltinCommand* builtin_ { nullptr };
   bool            pipe_    { false };
+  bool            pipeErr_ { false };
   std::string     input_;
   std::string     output_;
+  bool            wait_    { true };
+  bool            isAnd_   { false };
+  bool            isOr_    { false };
 };
 
 using CmdP = std::shared_ptr<Cmd>;
@@ -208,7 +256,7 @@ class BuiltinCommand {
 
   virtual ~BuiltinCommand() { }
 
-  virtual void exec(const CmdP &cmd) = 0;
+  virtual void exec(const Cmd *cmd) = 0;
 
  protected:
   App *app_ { nullptr };
@@ -221,6 +269,8 @@ class App {
   App();
  ~App();
 
+  bool isDebug() const { return debug_; }
+
   void init(int argc, char **argv);
 
   void addShellCommands();
@@ -231,18 +281,23 @@ class App {
 
   bool eof() const;
 
-  std::string getLine() const;
+  std::string getLine(bool &complete) const;
 
-  void parseLine(const std::string &line, Cmds &cmds) const;
+  std::string getInputPrompt() const;
 
-  void lineToTokens(const std::string &line, Tokens &tokens) const;
-  void tokensToCmds(const Tokens &tokens, Cmds &cmds) const;
+  std::string adjustPrompt(const std::string &prompt) const;
 
-  void expandToken(const Token &token, Tokens &tokens) const;
+  bool parseLine(const std::string &line, Cmds &cmds) const;
+
+  bool lineToTokens(const std::string &line, Tokens &tokens) const;
+
+  bool tokensToCmds(const Tokens &tokens, Cmds &cmds) const;
+
+  bool expandToken(const Token &token, Tokens &tokens) const;
 
   bool expandArg(const Token &token, StringArray &args) const;
 
-  bool expandVariable(const Token &token, std::string &arg1) const;
+  bool expandVariableToken(const Token &token, std::string &arg1) const;
   bool expandStringVariable(const std::string &str, std::string &str1) const;
 
   std::string expandVarName(const std::string &name, bool bracketed) const;
@@ -255,31 +310,155 @@ class App {
 
   void waitCommand(const CmdP &cmd);
 
+  void checkBgCommands();
+
+  //--
+
+  int returnCode() const { return returnCode_; }
+  void setReturnCode(int i) { returnCode_ = i; }
+
+  //--
+
+  History *history() { return history_.get(); }
+
+  void addHistory(const std::string &line);
+  void listHistory() const;
+
+  //---
+
+  int commandNum() const { return commandNum_; }
+
+  //---
+
   std::string lookupDir(const std::string &dirname) const;
 
   bool changeDir(const std::string &dirname) const;
 
+  //---
+
   void addVariable(const std::string &name, const std::string &value, bool exported=false);
   bool getVariable(const std::string &name, std::string &value) const;
 
-  bool isKeyword(const std::string &name) const;
+  bool completeVariable(const std::string &name, std::string &expandedName) const;
+
+  bool showMatchingVariables(const std::string &name)  const;
+
+  void listVariables() const;
+
+  //---
+
+  bool isKeyword(const std::string &name, Keyword &keyword) const;
 
   void listAliases() const;
   void listAlias(const std::string &name) const;
   void addAlias(const std::string &name, const StringArray &values);
 
+  //---
+
+  void addSignalHandlers();
+
+  //---
+
+  void printWords(const StringArray &words) const;
+
  private:
+  static void genericHandler(int sig);
+  static void interruptHandler(int sig);
+  static void termHandler(int sig);
+
+ private:
+  using ReadLineP       = std::unique_ptr<ReadLine>;
+  using HistoryP        = std::unique_ptr<History>;
   using BuiltinCommandP = std::shared_ptr<BuiltinCommand>;
+  using Commands        = std::map<std::string, BuiltinCommandP>;
+  using AliasMap        = std::map<std::string, AliasP>;
+  using BgCommands      = std::set<CCommandP>;
 
-  using Commands = std::map<std::string, BuiltinCommandP>;
-  using AliasMap = std::map<std::string, AliasP>;
-
-  using ReadLineP = std::unique_ptr<CReadLine>;
-
+  bool        debug_ { false };
   ReadLineP   readLine_;
+  bool        complete_ { true };
   Commands    shellCommands_;
   VariableMap variableMap_;
   AliasMap    aliases_;
+  HistoryP    history_;
+  int         commandNum_ { 1 };
+  BgCommands  bgCommands_;
+  int         returnCode_ { 0 };
+};
+
+}
+
+//---
+
+#include <CReadLine.h>
+
+namespace CBash {
+
+class ReadLine : public CReadLine {
+ public:
+  ReadLine(App *app);
+
+  std::string readLine();
+
+  void beep() override;
+  void interrupt() override;
+  void timeout() override;
+
+ private:
+  bool completeLine(const std::string &line, std::string &line1) override;
+
+  bool showComplete(const std::string &line) override;
+
+  bool getPrevCommand(std::string &line) override;
+  bool getNextCommand(std::string &line) override;
+
+ private:
+  App* app_ { nullptr };
+};
+
+}
+
+//---
+
+#include <CHistory.h>
+
+namespace CBash {
+
+class History {
+ public:
+  History(App *app);
+
+  void addCommand(const std::string &line);
+
+  bool hasPrevCommand();
+  bool hasNextCommand();
+
+  std::string getPrevCommand();
+  std::string getNextCommand();
+
+  void display(int num, bool show_numbers, bool show_time, bool reverse);
+
+  int commandNum() const { return commandNum_; }
+
+ private:
+  App*     app_ { nullptr };
+  CHistory history_;
+  int      commandNum_ { 0 };
+};
+
+}
+
+//---
+
+namespace CBash {
+
+class AliasCommand : public BuiltinCommand {
+ public:
+  AliasCommand(App *app) :
+   BuiltinCommand(app) {
+  }
+
+  void exec(const Cmd *cmd) override;
 };
 
 class CdCommand : public BuiltinCommand {
@@ -288,7 +467,7 @@ class CdCommand : public BuiltinCommand {
    BuiltinCommand(app) {
   }
 
-  void exec(const CmdP &cmd) override;
+  void exec(const Cmd *cmd) override;
 };
 
 class ExitCommand : public BuiltinCommand {
@@ -297,16 +476,34 @@ class ExitCommand : public BuiltinCommand {
    BuiltinCommand(app) {
   }
 
-  void exec(const CmdP &cmd) override;
+  void exec(const Cmd *cmd) override;
 };
 
-class AliasCommand : public BuiltinCommand {
+class HistoryCommand : public BuiltinCommand {
  public:
-  AliasCommand(App *app) :
+  HistoryCommand(App *app) :
    BuiltinCommand(app) {
   }
 
-  void exec(const CmdP &cmd) override;
+  void exec(const Cmd *cmd) override;
+};
+
+class PrintfCommand : public BuiltinCommand {
+ public:
+  PrintfCommand(App *app) :
+   BuiltinCommand(app) {
+  }
+
+  void exec(const Cmd *cmd) override;
+};
+
+class SetCommand : public BuiltinCommand {
+ public:
+  SetCommand(App *app) :
+   BuiltinCommand(app) {
+  }
+
+  void exec(const Cmd *cmd) override;
 };
 
 }

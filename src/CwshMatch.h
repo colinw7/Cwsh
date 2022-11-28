@@ -1,9 +1,11 @@
 #ifndef CWSH_MATCH_H
 #define CWSH_MATCH_H
 
-class CwshMatch {
+namespace Cwsh {
+
+class Match {
  public:
-  CwshMatch(Cwsh *cwsh);
+  Match(App *cwsh);
 
   bool showMatch(const std::string &line);
 
@@ -13,12 +15,14 @@ class CwshMatch {
   bool getVarMatch  (const std::string &pattern, std::vector<std::string> &words);
   bool getUsersMatch(const std::string &pattern, std::vector<std::string> &words);
 
-  void print(std::vector<std::string> &words);
+  void print(const std::vector<std::string> &words) const;
 
   bool matchUsers(const std::string &pattern, std::vector<std::string> &names);
 
  private:
-  CPtr<Cwsh> cwsh_;
+  CPtr<App> cwsh_;
 };
+
+}
 
 #endif

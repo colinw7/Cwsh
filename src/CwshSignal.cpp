@@ -2,62 +2,64 @@
 #include <COSSignal.h>
 #include <cerrno>
 
-CwshSignal
-CwshSignal::signals_[] = {
-  CwshSignal("HUP"   , SIGHUP   ),
-  CwshSignal("INT"   , SIGINT   ),
-  CwshSignal("QUIT"  , SIGQUIT  ),
-  CwshSignal("ILL"   , SIGILL   ),
-  CwshSignal("TRAP"  , SIGTRAP  ),
-  CwshSignal("ABRT"  , SIGABRT  ),
-  CwshSignal("IOT"   , SIGIOT   ),
-  CwshSignal("BUS"   , SIGBUS   ),
-  CwshSignal("FPE"   , SIGFPE   ),
-  CwshSignal("KILL"  , SIGKILL  ),
-  CwshSignal("USR1"  , SIGUSR1  ),
-  CwshSignal("SEGV"  , SIGSEGV  ),
-  CwshSignal("USR2"  , SIGUSR2  ),
-  CwshSignal("PIPE"  , SIGPIPE  ),
-  CwshSignal("ALRM"  , SIGALRM  ),
-  CwshSignal("TERM"  , SIGTERM  ),
+namespace Cwsh {
+
+Signal
+Signal::signals_[] = {
+  Signal("HUP"   , SIGHUP   ),
+  Signal("INT"   , SIGINT   ),
+  Signal("QUIT"  , SIGQUIT  ),
+  Signal("ILL"   , SIGILL   ),
+  Signal("TRAP"  , SIGTRAP  ),
+  Signal("ABRT"  , SIGABRT  ),
+  Signal("IOT"   , SIGIOT   ),
+  Signal("BUS"   , SIGBUS   ),
+  Signal("FPE"   , SIGFPE   ),
+  Signal("KILL"  , SIGKILL  ),
+  Signal("USR1"  , SIGUSR1  ),
+  Signal("SEGV"  , SIGSEGV  ),
+  Signal("USR2"  , SIGUSR2  ),
+  Signal("PIPE"  , SIGPIPE  ),
+  Signal("ALRM"  , SIGALRM  ),
+  Signal("TERM"  , SIGTERM  ),
 #ifdef SIGSTKFLT
-  CwshSignal("STKFLT", SIGSTKFLT),
+  Signal("STKFLT", SIGSTKFLT),
 #endif
-  CwshSignal("CHLD"  , SIGCHLD  ),
-  CwshSignal("CONT"  , SIGCONT  ),
-  CwshSignal("STOP"  , SIGSTOP  ),
-  CwshSignal("TSTP"  , SIGTSTP  ),
-  CwshSignal("TTIN"  , SIGTTIN  ),
-  CwshSignal("TTOU"  , SIGTTOU  ),
-  CwshSignal("URG"   , SIGURG   ),
+  Signal("CHLD"  , SIGCHLD  ),
+  Signal("CONT"  , SIGCONT  ),
+  Signal("STOP"  , SIGSTOP  ),
+  Signal("TSTP"  , SIGTSTP  ),
+  Signal("TTIN"  , SIGTTIN  ),
+  Signal("TTOU"  , SIGTTOU  ),
+  Signal("URG"   , SIGURG   ),
 #ifdef SIGXCPU
-  CwshSignal("XCPU"  , SIGXCPU  ),
+  Signal("XCPU"  , SIGXCPU  ),
 #endif
 #ifdef SIGXFSZ
-  CwshSignal("XFSZ"  , SIGXFSZ  ),
+  Signal("XFSZ"  , SIGXFSZ  ),
 #endif
 #ifdef SIGVTALRM
-  CwshSignal("VTALRM", SIGVTALRM),
+  Signal("VTALRM", SIGVTALRM),
 #endif
-  CwshSignal("PROF"  , SIGPROF  ),
-  CwshSignal("WINCH" , SIGWINCH ),
-  CwshSignal("IO"    , SIGIO    ),
+  Signal("PROF"  , SIGPROF  ),
+  Signal("WINCH" , SIGWINCH ),
+  Signal("IO"    , SIGIO    ),
 #ifdef SIGPOLL
-  CwshSignal("POLL"  , SIGPOLL  ),
+  Signal("POLL"  , SIGPOLL  ),
 #endif
 #ifdef SIGPWR
-  CwshSignal("PWR"   , SIGPWR   ),
+  Signal("PWR"   , SIGPWR   ),
 #endif
 #ifdef SIGSYS
-  CwshSignal("SYS"   , SIGSYS   ),
+  Signal("SYS"   , SIGSYS   ),
 #endif
 };
 
-CwshInterruptType CwshSignal::interrupt_type_ = CwshInterruptType::NORMAL;
-std::string       CwshSignal::interrupt_label_;
+InterruptType Signal::interruptType_ = InterruptType::NORMAL;
+std::string   Signal::interruptLabel_;
 
 void
-CwshSignal::
+Signal::
 addHandlers()
 {
   COSSignal::addSignalHandler(SIGHUP  ,
@@ -97,17 +99,19 @@ addHandlers()
 }
 
 void
-CwshSignal::
+Signal::
 nohup()
 {
   COSSignal::addSignalHandler(SIGHUP, (COSSignal::SignalHandler) SIG_IGN);
 }
 
 void
-CwshSignal::
+Signal::
 termHandler(int)
 {
-  CwshMgrInst.term(0);
+  auto *mgr = CwshMgrInst;
+
+  mgr->term(0);
 }
 
 // TODO: use static of type 'volatile sig_atomic_t flag'
@@ -115,31 +119,33 @@ termHandler(int)
 // TODO: use sigsetjmp, siglongjmp to handle interrupt and restart readline loop
 // and ensure signal handling is not changed
 void
-CwshSignal::
+Signal::
 interruptHandler(int)
 {
-  if      (interrupt_type_ == CwshInterruptType::NORMAL) {
-    CwshMgrInst.setInterrupt(true);
+  auto *mgr = CwshMgrInst;
 
-    CwshMgrInst.readInterrupt();
+  if      (interruptType_ == InterruptType::NORMAL) {
+    mgr->setInterrupt(true);
+
+    mgr->readInterrupt();
   }
-  else if (interrupt_type_ == CwshInterruptType::GOTO)
-    CwshMgrInst.gotoBlockLabel(interrupt_label_);
+  else if (interruptType_ == InterruptType::GOTO)
+    mgr->gotoBlockLabel(interruptLabel_);
 }
 
 void
-CwshSignal::
+Signal::
 stopHandler(int)
 {
   int savedErrno = errno; // In case we change 'errno'
 
 #if 0
-  //printf("Caught SIGTSTP\n");         /* UNSAFE (see Section 21.1.2) */
+  //printf("Caught SIGTSTP\n"); /* UNSAFE (see Section 21.1.2) */
 
   if (signal(SIGTSTP, SIG_DFL) == SIG_ERR)
-    errExit("signal");              /* Set handling to default */
+    errExit("signal"); /* Set handling to default */
 
-  raise(SIGTSTP);                     /* Generate a further SIGTSTP */
+  raise(SIGTSTP); /* Generate a further SIGTSTP */
 
   /* Unblock SIGTSTP; the pending SIGTSTP immediately suspends the program */
 
@@ -157,31 +163,33 @@ stopHandler(int)
 #else
   std::cerr << "stopHandler\n";
 
-  CwshMgrInst.stopActiveProcesses();
+  auto *mgr = CwshMgrInst;
+
+  mgr->stopActiveProcesses();
 #endif
 
   errno = savedErrno;
 }
 
 void
-CwshSignal::
+Signal::
 genericHandler(int)
 {
 #if 0
-  CwshSignal *sig = lookup(num);
+  auto *sig = lookup(num);
 
   std::cerr << "Signal " << sig->name_ << "(" << sig->num_ << ") received\n";
 #endif
 }
 
-CwshSignal::
-CwshSignal(const std::string &name, int num) :
+Signal::
+Signal(const std::string &name, int num) :
  name_(name), num_(num)
 {
 }
 
-CwshSignal *
-CwshSignal::
+Signal *
+Signal::
 lookup(const std::string &name)
 {
   int num_signals = getNumSignals();
@@ -193,8 +201,8 @@ lookup(const std::string &name)
   return nullptr;
 }
 
-CwshSignal *
-CwshSignal::
+Signal *
+Signal::
 lookup(int num)
 {
   int num_signals = getNumSignals();
@@ -207,15 +215,17 @@ lookup(int num)
 }
 
 int
-CwshSignal::
+Signal::
 getNumSignals()
 {
-  return sizeof(signals_)/sizeof(CwshSignal);
+  return sizeof(signals_)/sizeof(Signal);
 }
 
-CwshSignal *
-CwshSignal::
+Signal *
+Signal::
 getSignal(int i)
 {
   return &signals_[i];
+}
+
 }

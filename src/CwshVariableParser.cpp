@@ -1,38 +1,39 @@
 #include <CwshI.h>
 #include <COSProcess.h>
 
-CwshVariableParser::
-CwshVariableParser(Cwsh *cwsh, const CwshWord &word) :
+namespace Cwsh {
+
+VariableParser::
+VariableParser(App *cwsh, const Word &word) :
  cwsh_(cwsh), word_(word)
 {
 }
 
 bool
-CwshVariableParser::
-expandVariables(CwshWordArray &words)
+VariableParser::
+expandVariables(WordArray &words)
 {
-  const CwshSubWordArray &sub_words = word_.getSubWords();
+  const auto &sub_words = word_.getSubWords();
 
   std::string word1;
 
   int num_sub_words = int(sub_words.size());
 
   for (int i = 0; i < num_sub_words; i++) {
-    CwshSubWordType type = sub_words[i].getType();
+    auto type = sub_words[i].getType();
 
-    if      (type == CwshSubWordType::SINGLE_QUOTED) {
+    if      (type == SubWordType::SINGLE_QUOTED) {
+      auto sub_word = sub_words[i].getString();
+
+      word1 += sub_word;
+    }
+    else if (type == SubWordType::BACK_QUOTED) {
       std::string sub_word = sub_words[i].getString();
 
       word1 += sub_word;
     }
-    else if (type == CwshSubWordType::BACK_QUOTED) {
-      std::string sub_word = sub_words[i].getString();
-
-      word1 += sub_word;
-    }
-    else if (type == CwshSubWordType::DOUBLE_QUOTED) {
-      std::string sub_word =
-        expandQuotedVariables(CwshWord(sub_words[i].getWord()));
+    else if (type == SubWordType::DOUBLE_QUOTED) {
+      auto sub_word = expandQuotedVariables(Word(sub_words[i].getWord()));
 
       word1 += '"' + sub_word + '"';
     }
@@ -46,38 +47,38 @@ expandVariables(CwshWordArray &words)
       int num_sub_words1 = int(sub_words1.size());
 
       for (int j = 0; j < num_sub_words1 - 1; j++)
-        words.push_back(sub_words1[j]);
+        words.push_back(Word(sub_words1[j]));
 
       word1 = sub_words1[num_sub_words1 - 1];
     }
   }
 
-  words.push_back(word1);
+  words.push_back(Word(word1));
 
   return true;
 }
 
 std::string
-CwshVariableParser::
-expandQuotedVariables(const CwshWord &word)
+VariableParser::
+expandQuotedVariables(const Word &word)
 {
-  CwshWordArray words;
+  WordArray words;
 
-  const CwshSubWordArray &sub_words = word.getSubWords();
+  const auto &sub_words = word.getSubWords();
 
   std::string word1;
 
   int num_sub_words = int(sub_words.size());
 
   for (int i = 0; i < num_sub_words; i++) {
-    CwshSubWordType type = sub_words[i].getType();
+    auto type = sub_words[i].getType();
 
-    if      (type == CwshSubWordType::SINGLE_QUOTED) {
+    if      (type == SubWordType::SINGLE_QUOTED) {
       std::string sub_word = sub_words[i].getString();
 
       word1 += sub_word;
     }
-    else if (type == CwshSubWordType::BACK_QUOTED) {
+    else if (type == SubWordType::BACK_QUOTED) {
       std::string sub_word = sub_words[i].getString();
 
       word1 += sub_word;
@@ -98,7 +99,7 @@ expandQuotedVariables(const CwshWord &word)
 }
 
 bool
-CwshVariableParser::
+VariableParser::
 expandVariables1(const std::string &str, std::vector<std::string> &words)
 {
   std::string word;
@@ -230,7 +231,7 @@ expandVariables1(const std::string &str, std::vector<std::string> &words)
 }
 
 bool
-CwshVariableParser::
+VariableParser::
 expandVariable(const std::string &name, std::vector<std::string> &words)
 {
   if      (name[0] == '<') {
@@ -244,19 +245,19 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
   if (name[0] == '$') {
     int pid = COSProcess::getProcessId();
 
-    std::string word = CStrUtil::toString(pid) + name.substr(1);
+    auto word = CStrUtil::toString(pid) + name.substr(1);
 
     words.push_back(word);
 
     return true;
   }
 
-  CwshVariableValueType type = CwshVariableValueType::VALUE;
+  auto type = VariableValueType::VALUE;
 
   std::string name1;
 
   if      (name[0] == '#') {
-    type = CwshVariableValueType::SIZE;
+    type = VariableValueType::SIZE;
 
     name1 = name.substr(1);
 
@@ -269,7 +270,7 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
     }
   }
   else if (name[0] == '?') {
-    type = CwshVariableValueType::EXISTS;
+    type = VariableValueType::EXISTS;
 
     name1 = name.substr(1);
 
@@ -287,8 +288,7 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
   //------
 
   if      (name1[0] == '*') {
-    if (type == CwshVariableValueType::SIZE ||
-        type == CwshVariableValueType::EXISTS)
+    if (type == VariableValueType::SIZE || type == VariableValueType::EXISTS)
       CWSH_THROW("* not allowed with $# or $?.");
 
     name1 = "argv[*]" + name1.substr(1);
@@ -308,10 +308,10 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
 
     int num = int(CStrUtil::toInteger(num_str));
 
-    if (type == CwshVariableValueType::SIZE)
+    if (type == VariableValueType::SIZE)
       CWSH_THROW("$#<num> is not allowed.");
 
-    if (type == CwshVariableValueType::EXISTS) {
+    if (type == VariableValueType::EXISTS) {
       if (num > 0)
         CWSH_THROW("$?<num> is not allowed.");
 
@@ -345,7 +345,7 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
   auto *variable = cwsh_->lookupVariable(variable_name);
 
   if (variable) {
-    if (type == CwshVariableValueType::EXISTS) {
+    if (type == VariableValueType::EXISTS) {
       std::string word = "1";
 
       word += subscript_str;
@@ -358,7 +358,7 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
     variable_values = variable->getValues();
   }
   else {
-    if (type == CwshVariableValueType::EXISTS) {
+    if (type == VariableValueType::EXISTS) {
       std::string word = "0";
 
       if (CEnvInst.exists(variable_name))
@@ -374,17 +374,17 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
     if (! CEnvInst.exists(variable_name))
       CWSH_THROW(variable_name + ": Undefined variable.");
 
-    std::vector<std::string> values = CEnvInst.getValues(variable_name);
+    auto values = CEnvInst.getValues(variable_name);
 
-    int num_values = int(values.size());
+    auto num_values = values.size();
 
-    for (int iv = 0; iv < num_values; iv++)
+    for (size_t iv = 0; iv < num_values; iv++)
       variable_values.push_back(values[iv]);
   }
 
   //------
 
-  if (type == CwshVariableValueType::SIZE) {
+  if (type == VariableValueType::SIZE) {
     std::string word = CStrUtil::toString(int(variable_values.size()));
 
     word += subscript_str;
@@ -500,7 +500,7 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
     end_value   = int(variable_values.size());
   }
 
-  CwshVariableValueModifier modifier = CwshVariableValueModifier::NONE;
+  auto modifier = VariableValueModifier::NONE;
 
   bool modifier_global = false;
 
@@ -521,22 +521,22 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
 
     switch (subscript_str[is]) {
       case 'r':
-        modifier = CwshVariableValueModifier::ROOT;
+        modifier = VariableValueModifier::ROOT;
         break;
       case 'e':
-        modifier = CwshVariableValueModifier::EXTENSION;
+        modifier = VariableValueModifier::EXTENSION;
         break;
       case 'h':
-        modifier = CwshVariableValueModifier::HEADER;
+        modifier = VariableValueModifier::HEADER;
         break;
       case 't':
-        modifier = CwshVariableValueModifier::TAIL;
+        modifier = VariableValueModifier::TAIL;
         break;
       case 'q':
-        modifier = CwshVariableValueModifier::QUOTE_WORDLIST;
+        modifier = VariableValueModifier::QUOTE_WORDLIST;
         break;
       case 'x':
-        modifier = CwshVariableValueModifier::QUOTE_WORD;
+        modifier = VariableValueModifier::QUOTE_WORD;
         break;
       default:
         CWSH_THROW(std::string("Bad : modifier in $ (") + subscript_str[is] + ").");
@@ -567,32 +567,32 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
       values.push_back("");
   }
 
-  if      (modifier == CwshVariableValueModifier::ROOT ||
-           modifier == CwshVariableValueModifier::EXTENSION ||
-           modifier == CwshVariableValueModifier::HEADER ||
-           modifier == CwshVariableValueModifier::TAIL) {
+  if      (modifier == VariableValueModifier::ROOT ||
+           modifier == VariableValueModifier::EXTENSION ||
+           modifier == VariableValueModifier::HEADER ||
+           modifier == VariableValueModifier::TAIL) {
     int num_values = int(values.size());
 
     for (int iv = 0; iv < num_values; iv++) {
-      if      (modifier == CwshVariableValueModifier::ROOT) {
+      if      (modifier == VariableValueModifier::ROOT) {
         std::string::size_type pos = values[iv].rfind('.');
 
         if (pos != std::string::npos)
           values[iv] = values[iv].substr(0, pos);
       }
-      else if (modifier == CwshVariableValueModifier::EXTENSION) {
+      else if (modifier == VariableValueModifier::EXTENSION) {
         std::string::size_type pos = values[iv].rfind('.');
 
         if (pos != std::string::npos)
           values[iv] = values[iv].substr(pos + 1);
       }
-      else if (modifier == CwshVariableValueModifier::HEADER) {
+      else if (modifier == VariableValueModifier::HEADER) {
         std::string::size_type pos = values[iv].rfind('/');
 
         if (pos != std::string::npos)
           values[iv] = values[iv].substr(0, pos);
       }
-      else if (modifier == CwshVariableValueModifier::TAIL) {
+      else if (modifier == VariableValueModifier::TAIL) {
         std::string::size_type pos = values[iv].rfind('/');
 
         if (pos != std::string::npos)
@@ -603,8 +603,8 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
         break;
     }
   }
-  else if (modifier == CwshVariableValueModifier::QUOTE_WORDLIST ||
-           modifier == CwshVariableValueModifier::QUOTE_WORD) {
+  else if (modifier == VariableValueModifier::QUOTE_WORDLIST ||
+           modifier == VariableValueModifier::QUOTE_WORD) {
     std::string value;
 
     int num_values = int(values.size());
@@ -629,4 +629,6 @@ expandVariable(const std::string &name, std::vector<std::string> &words)
   copy(values.begin(), values.end(), back_inserter(words));
 
   return true;
+}
+
 }

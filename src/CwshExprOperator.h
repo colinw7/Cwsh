@@ -1,7 +1,9 @@
 #ifndef CWSH_EXPR_OPERATOR_H
 #define CWSH_EXPR_OPERATOR_H
 
-enum class CwshExprOperatorType {
+namespace Cwsh {
+
+enum class ExprOperatorType {
   OPEN_BRACKET,
   CLOSE_BRACKET,
 
@@ -40,33 +42,35 @@ enum class CwshExprOperatorType {
   BIT_RSHIFT,
 };
 
-class CwshExprOperator {
+class ExprOperator {
  public:
-  static CwshExprOperator *lookup(CwshExprOperatorType type);
+  static ExprOperator *lookup(ExprOperatorType type);
 
-  CwshExprOperatorType  getType      () const { return type_; }
-  const std::string    &getToken     () const { return token_; }
-  int                   getPrecedence() const { return precedence_; }
+  ExprOperatorType   getType      () const { return type_; }
+  const std::string &getToken     () const { return token_; }
+  int                getPrecedence() const { return precedence_; }
 
-  bool doesAssociateLtoR() const { return associate_l_to_r_; }
+  bool doesAssociateLtoR() const { return associateLtoR_; }
   bool isPunctuation    () const { return punctuation_; }
   bool isUnary          () const { return unary_; }
   bool isBinary         () const { return (! unary_ && ! punctuation_); }
 
  private:
-  CwshExprOperator(CwshExprOperatorType type, const std::string &token, uint precedence,
-                   bool associate_ltor, bool punctuation, bool unary);
+  ExprOperator(ExprOperatorType type, const std::string &token, uint precedence,
+               bool associateLtoR, bool punctuation, bool unary);
 
  private:
-  static CwshExprOperator operators_[];
-  static int              num_operators_;
+  static ExprOperator operators_[];
+  static int          numOperators_;
 
-  CwshExprOperatorType type_;
-  std::string          token_;
-  uint                 precedence_;
-  bool                 associate_l_to_r_;
-  bool                 punctuation_;
-  bool                 unary_;
+  ExprOperatorType type_;
+  std::string      token_;
+  uint             precedence_;
+  bool             associateLtoR_;
+  bool             punctuation_;
+  bool             unary_;
 };
+
+}
 
 #endif

@@ -3,14 +3,14 @@
 int
 main(int argc, char **argv)
 {
-  auto *cwsh = new Cwsh;
+  auto *cwsh = new Cwsh::App;
 
   try {
     cwsh->init(argc, argv);
 
     cwsh->mainLoop();
   }
-  catch (struct CwshErr *err) {
+  catch (struct Cwsh::Err *err) {
     err->print();
   }
   catch (...) {

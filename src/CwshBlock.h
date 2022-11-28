@@ -1,78 +1,86 @@
 #ifndef CWSH_BLOCK_H
 #define CWSH_BLOCK_H
 
-class CwshBlockMgr {
+namespace Cwsh {
+
+//---
+
+class BlockMgr {
  public:
-  CwshBlockMgr(Cwsh *cwsh);
- ~CwshBlockMgr();
+  BlockMgr(App *cwsh);
+ ~BlockMgr();
 
-  CwshBlock *currentBlock() { return current_block_; }
+  Block *currentBlock() { return currentBlock_.get(); }
 
-  CwshBlock *startBlock(CwshBlockType type, const CwshLineArray &lines);
-  void       endBlock();
+  Block *startBlock(BlockType type, const LineArray &lines);
+  void   endBlock();
 
-  bool     inBlock () const;
-  bool     eof     () const;
-  CwshLine readLine() const;
+  bool inBlock () const;
+  bool eof     () const;
+  Line readLine() const;
 
-  CwshBlock *find(CwshBlockType type);
+  Block *find(BlockType type);
 
   void gotoLabel(const std::string &label);
 
-  bool isBreak      () const { return break_flag_   ; }
-  bool isBreakSwitch() const { return breaksw_flag_ ; }
-  bool isContinue   () const { return continue_flag_; }
-  bool isReturn     () const { return return_flag_  ; }
+  bool isBreak      () const { return breakFlag_   ; }
+  bool isBreakSwitch() const { return breakswFlag_ ; }
+  bool isContinue   () const { return continueFlag_; }
+  bool isReturn     () const { return returnFlag_  ; }
 
-  int getGotoDepth() const { return goto_depth_; }
+  int getGotoDepth() const { return gotoDepth_; }
 
-  void setBreak      (bool flag) { break_flag_    = flag; }
-  void setBreakSwitch(bool flag) { breaksw_flag_  = flag; }
-  void setContinue   (bool flag) { continue_flag_ = flag; }
-  void setReturn     (bool flag) { return_flag_   = flag; }
+  void setBreak      (bool flag) { breakFlag_    = flag; }
+  void setBreakSwitch(bool flag) { breakswFlag_  = flag; }
+  void setContinue   (bool flag) { continueFlag_ = flag; }
+  void setReturn     (bool flag) { returnFlag_   = flag; }
 
  private:
-  CPtr<Cwsh>          cwsh_;
-  CAutoPtr<CwshBlock> current_block_;
-  CwshBlockArray      block_stack_;
-  bool                break_flag_    { false };
-  bool                breaksw_flag_  { false };
-  bool                continue_flag_ { false };
-  bool                return_flag_   { false };
-  int                 goto_depth_    { 0 };
+  CPtr<App>  cwsh_;
+  BlockP     currentBlock_;
+  BlockArray blockStack_;
+  bool       breakFlag_    { false };
+  bool       breakswFlag_  { false };
+  bool       continueFlag_ { false };
+  bool       returnFlag_   { false };
+  int        gotoDepth_    { 0 };
 };
 
 //---
 
-class CwshBlock {
+class Block {
  public:
-  CwshBlock(CwshBlockType type, const CwshLineArray &lines);
- ~CwshBlock();
+  Block(BlockType type, const LineArray &lines);
+ ~Block();
 
-  CwshBlockType getType() const { return type_; }
+  BlockType getType() const { return type_; }
 
-  const CwshLineArray &getLines() const { return lines_; }
+  const LineArray &getLines() const { return lines_; }
 
   int getNumLines() const { return int(lines_.size()); }
-  const CwshLine &getLine(int i) const { return lines_[uint(i)]; }
+  const Line &getLine(int i) const { return lines_[uint(i)]; }
 
   const std::string &getFilename() const { return filename_; }
   void setFilename(const std::string &v) { filename_ = v; }
 
-  int getLineNum() const { return line_num_; }
-  void setLineNum(int line_num) { line_num_ = line_num; }
+  int getLineNum() const { return lineNum_; }
+  void setLineNum(int lineNum) { lineNum_ = lineNum; }
 
-  CwshLine readLine();
+  Line readLine();
 
   bool eof() const;
 
   int getLabelLineNum(const std::string &label) const;
 
  private:
-  CwshBlockType type_;
-  CwshLineArray lines_;
-  std::string   filename_;
-  int           line_num_ { 0 };
+  BlockType   type_;
+  LineArray   lines_;
+  std::string filename_;
+  int         lineNum_ { 0 };
 };
+
+//---
+
+}
 
 #endif

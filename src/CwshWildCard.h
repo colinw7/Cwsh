@@ -1,14 +1,20 @@
 class CGlob;
 
-class CwshWildCard {
+namespace Cwsh {
+
+class WildCard {
  public:
-  CwshWildCard(const std::string &pattern);
- ~CwshWildCard();
+  WildCard(const std::string &pattern);
+ ~WildCard();
 
   bool isValid() const;
 
   bool checkMatch(const std::string &str) const;
 
  private:
-  CAutoPtr<CGlob> glob_;
+  using GlobP = std::shared_ptr<CGlob>;
+
+  GlobP glob_;
 };
+
+}

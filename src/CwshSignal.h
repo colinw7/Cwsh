@@ -1,32 +1,29 @@
-enum class CwshInterruptType {
+namespace Cwsh {
+
+enum class InterruptType {
   NORMAL,
   IGNORE,
   GOTO
 };
 
-class CwshSignal {
+class Signal {
  public:
   static void addHandlers();
 
   static void nohup();
 
-  static CwshSignal *lookup(const std::string &name);
-  static CwshSignal *lookup(int num);
+  static Signal *lookup(const std::string &name);
+  static Signal *lookup(int num);
 
-  static int         getNumSignals();
-  static CwshSignal *getSignal(int i);
+  static int     getNumSignals();
+  static Signal *getSignal(int i);
 
-  static void interruptReset() {
-    interrupt_type_ = CwshInterruptType::NORMAL;
-  }
-
-  static void interruptIgnore() {
-    interrupt_type_ = CwshInterruptType::IGNORE;
-  }
+  static void interruptReset () { interruptType_ = InterruptType::NORMAL; }
+  static void interruptIgnore() { interruptType_ = InterruptType::IGNORE; }
 
   static void interruptGoto(const std::string &label) {
-    interrupt_type_  = CwshInterruptType::GOTO;
-    interrupt_label_ = label;
+    interruptType_  = InterruptType::GOTO;
+    interruptLabel_ = label;
   }
 
   const std::string &getName() const { return name_; }
@@ -38,14 +35,16 @@ class CwshSignal {
   static void stopHandler(int sig);
   static void genericHandler(int sig);
 
-  CwshSignal(const std::string &name, int num);
+  Signal(const std::string &name, int num);
 
  private:
   std::string name_;
   int         num_;
 
-  static CwshSignal signals_[];
+  static Signal signals_[];
 
-  static CwshInterruptType interrupt_type_;
-  static std::string       interrupt_label_;
+  static InterruptType interruptType_;
+  static std::string   interruptLabel_;
 };
+
+}

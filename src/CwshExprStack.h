@@ -1,35 +1,37 @@
 #ifndef CWSH_EXPR_STACK_H
 #define CWSH_EXPR_STACK_H
 
-enum class CwshExprStackNodeType {
+namespace Cwsh {
+
+enum class ExprStackNodeType {
   OPERATOR,
   VALUE,
 };
 
-class CwshExprStackStack {
+class ExprStackStack {
  public:
-  CwshExprStackStack();
- ~CwshExprStackStack();
+  ExprStackStack();
+ ~ExprStackStack();
 
   void push(const std::string &value);
-  void push(CwshExprOperator *opr);
+  void push(ExprOperator *opr);
 
   bool pop(std::string &value);
-  bool pop(CwshExprOperator **opr);
+  bool pop(ExprOperator **opr);
 
-  void remove(CwshExprStackNode *stack_node);
+  void remove(ExprStackNode *stackNode);
 
   void restart(bool flag);
 
-  CwshExprStack *start();
-  void           end();
+  ExprStack *start();
+  void       end();
 
   void startTemporary();
   void endTemporary();
 
-  CwshExprStack *getCurrent() const;
+  ExprStack *getCurrent() const;
 
-  void setCurrent(CwshExprStack *stack);
+  //void setCurrent(ExprStack *stack);
 
   void toStart();
   void toEnd();
@@ -40,35 +42,37 @@ class CwshExprStackStack {
   void signalRestart();
   bool checkRestart();
 
-  CwshExprStackNode *getCurrentNode();
+  ExprStackNode *getCurrentNode();
 
   void toNext();
   void toPrev();
 
-  void              setLastOperator();
-  CwshExprOperator *getLastOperator();
+  void          setLastOperator();
+  ExprOperator *getLastOperator();
 
  private:
-  CAutoPtr<CwshExprStack> current_;
-  CwshExprStackArray      stacks_;
+  using ExprStackP = std::shared_ptr<ExprStack>;
+
+  ExprStackP     current_;
+  ExprStackArray stacks_;
 };
 
 //---
 
-class CwshExprStack {
-  CINST_COUNT_MEMBER(CwshExprStack);
+class ExprStack {
+  CINST_COUNT_MEMBER(ExprStack);
 
  public:
-  CwshExprStack();
- ~CwshExprStack();
+  ExprStack();
+ ~ExprStack();
 
   void push(const std::string &value);
-  void push(CwshExprOperator *opr);
+  void push(ExprOperator *opr);
 
   bool pop(std::string &value);
-  bool pop(CwshExprOperator **opr);
+  bool pop(ExprOperator **opr);
 
-  void remove(CwshExprStackNode *stack_node);
+  void remove(ExprStackNode *stackNode);
 
   void restart(bool flag);
 
@@ -81,51 +85,53 @@ class CwshExprStack {
   void signalRestart();
   bool checkRestart();
 
-  CwshExprStackNode *getCurrent();
+  ExprStackNode *getCurrent();
 
   void toNext();
   void toPrev();
 
-  void              setLastOperator();
-  CwshExprOperator *getLastOperator();
+  void          setLastOperator();
+  ExprOperator *getLastOperator();
 
   void dumpStack();
 
  private:
-  void push(CwshExprStackNode *stack_node);
+  void push(ExprStackNode *stackNode);
 
  private:
-  bool                             restart_    { false };
-  bool                             in_bracket_ { false };
-  CwshExprOperator                *last_opr_   { nullptr };
-  CwshExprStackNodeList            stack_nodes_;
-  CwshExprStackNodeList::iterator  pstack_node_;
-  bool                             debug_      { false };
+  bool                        restart_   { false };
+  bool                        inBracket_ { false };
+  ExprOperator *              lastOpr_   { nullptr };
+  ExprStackNodeList           stackNodes_;
+  ExprStackNodeList::iterator pstackNode_;
+  bool                        debug_     { false };
 };
 
 //---
 
-class CwshExprStackNode {
-  CINST_COUNT_MEMBER(CwshExprStackNode);
+class ExprStackNode {
+  CINST_COUNT_MEMBER(ExprStackNode);
 
  public:
-  CwshExprStackNode(const std::string &value);
-  CwshExprStackNode(CwshExprOperator *opr);
+  ExprStackNode(const std::string &value);
+  ExprStackNode(ExprOperator *opr);
 
- ~CwshExprStackNode();
+ ~ExprStackNode();
 
-  CwshExprStackNodeType getType() const { return type_; }
+  ExprStackNodeType getType() const { return type_; }
 
-  CwshExprOperator *getOperator() const { return opr_; }
-  std::string       getValue   () const { return value_; }
+  ExprOperator *getOperator() const { return opr_; }
+  std::string   getValue   () const { return value_; }
 
   void print() const;
   void dump() const;
 
  private:
-  CwshExprStackNodeType  type_;
-  CwshExprOperator      *opr_;
-  std::string            value_;
+  ExprStackNodeType type_;
+  ExprOperator*     opr_;
+  std::string       value_;
 };
+
+}
 
 #endif

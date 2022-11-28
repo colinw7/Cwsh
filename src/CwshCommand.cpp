@@ -1,56 +1,58 @@
 #include <CwshI.h>
 
-CwshCommandData::
-CwshCommandData(Cwsh *cwsh, const std::vector<std::string> &words) :
+namespace Cwsh {
+
+CommandData::
+CommandData(App *cwsh, const std::vector<std::string> &words) :
  cwsh_(cwsh)
 {
-  type_ = CwshCommandUtil::getType(cwsh, words);
+  type_ = CommandUtil::getType(cwsh, words);
 
-  if (type_ == CwshCommandType::UNIX) {
-    std::string name = CStrUtil::removeEscapeChars(words[0]);
+  if (type_ == CommandType::UNIX) {
+    auto name = CStrUtil::removeEscapeChars(words[0]);
 
     std::vector<std::string> args;
 
-    uint num_words = uint(words.size());
+    auto num_words = words.size();
 
     for (uint i = 1; i < num_words; ++i)
       args.push_back(CStrUtil::removeEscapeChars(words[i]));
 
     try {
-      std::string path = CwshUnixCommand::search(cwsh, name);
+      auto path = UnixCommand::search(cwsh, name);
 
-      command_ = new CwshCommand(cwsh_, name, path, args);
+      command_ = std::make_shared<Command>(cwsh_, name, path, args);
     }
-    catch (struct CwshErr *error) {
+    catch (struct Err *error) {
       bool found = false;
 
       if (num_words == 1 && CFile::exists(name) && CFile::isDirectory(name)) {
         args.clear(); args.push_back(name);
 
-        CwshShellCommand *shell_command = cwsh_->lookupShellCommand("cd");
+        auto *shell_command = cwsh_->lookupShellCommand("cd");
 
         // TODO: lookup and expand any cd alias
-        command_ = new CwshCommand(cwsh_, "cd", CwshShellCommandMgr::runProc,
-                                   static_cast<CCommand::CallbackData>(shell_command), args);
+        command_ = std::make_shared<Command>(cwsh_, "cd", ShellCommandMgr::runProc,
+                     static_cast<CCommand::CallbackData>(shell_command), args);
 
         found = true;
       }
       else if (num_words == 1 && CFile::exists(name) && CFile::isRegular(name)) {
-        std::string::size_type pos = name.rfind('.');
+        auto pos = name.rfind('.');
 
         if (pos != std::string::npos) {
-          std::string suffix = name.substr(pos + 1);
+          auto suffix = name.substr(pos + 1);
 
-          CwshAutoExec *exec = cwsh->lookupAutoExec(suffix);
+          auto *exec = cwsh->lookupAutoExec(suffix);
 
           if (exec) {
             std::string              cmd;
             std::vector<std::string> eargs;
 
             if (exec->substitute(name, cmd, eargs)) {
-              std::string path = CwshUnixCommand::search(cwsh, cmd);
+              auto path = UnixCommand::search(cwsh, cmd);
 
-              command_ = new CwshCommand(cwsh_, cmd, path, eargs);
+              command_ = std::make_shared<Command>(cwsh_, cmd, path, eargs);
 
               found = true;
             }
@@ -62,54 +64,55 @@ CwshCommandData(Cwsh *cwsh, const std::vector<std::string> &words) :
         CWSH_THROWQ(name, "Command not found.");
     }
   }
-  else if (type_ == CwshCommandType::SHELL) {
-    std::string name = CStrUtil::removeEscapeChars(words[0]);
+  else if (type_ == CommandType::SHELL) {
+    auto name = CStrUtil::removeEscapeChars(words[0]);
 
     std::vector<std::string> cargs;
 
-    uint num_words = uint(words.size());
+    auto num_words = words.size();
 
     for (uint i = 1; i < num_words; ++i)
       cargs.push_back(CStrUtil::removeEscapeChars(words[i]));
 
-    CwshShellCommand *shell_command = cwsh_->lookupShellCommand(name);
+    auto *shell_command = cwsh_->lookupShellCommand(name);
 
-    command_ = new CwshCommand(cwsh_, name, CwshShellCommandMgr::runProc,
-                               static_cast<CCommand::CallbackData>(shell_command), cargs);
+    command_ = std::make_shared<Command>(cwsh_, name, ShellCommandMgr::runProc,
+                           static_cast<CCommand::CallbackData>(shell_command), cargs);
   }
-  else if (type_ == CwshCommandType::FUNCTION) {
-    std::string name = CStrUtil::removeEscapeChars(words[0]);
+  else if (type_ == CommandType::FUNCTION) {
+    auto name = CStrUtil::removeEscapeChars(words[0]);
 
     std::vector<std::string> fargs;
 
-    uint num_words = int(words.size());
+    auto num_words = words.size();
 
     for (uint i = 1; i < num_words; ++i)
       fargs.push_back(CStrUtil::removeEscapeChars(words[i]));
 
-    CwshFunction *function = cwsh_->lookupFunction(name);
+    auto *function = cwsh_->lookupFunction(name);
 
-    command_ = new CwshCommand(cwsh_, name, CwshFunction::runProc,
-                               static_cast<CCommand::CallbackData>(function), fargs);
+    command_ = std::make_shared<Command>(cwsh_, name, Function::runProc,
+                 static_cast<CCommand::CallbackData>(function), fargs);
   }
-  else if (type_ == CwshCommandType::LABEL)
+  else if (type_ == CommandType::LABEL)
     ;
-  else if (type_ == CwshCommandType::SUBSHELL) {
+  else if (type_ == CommandType::SUBSHELL) {
     std::string name = "";
 
-    std::string line = CStrUtil::toString(words, 1, uint(words.size()) - 2);
+    auto line = CStrUtil::toString(words, 1, uint(words.size()) - 2);
 
     std::vector<std::string> sargs;
 
     sargs.push_back(line);
 
-    command_ = new CwshCommand(cwsh_, name, CwshCommandUtil::processLineProc, cwsh_, sargs, true);
+    command_ = std::make_shared<Command>(cwsh_, name,
+                 CommandUtil::processLineProc, cwsh_, sargs, true);
   }
-  else if (type_ == CwshCommandType::PROCESS) {
+  else if (type_ == CommandType::PROCESS) {
     if (words.size() > 1)
       CWSH_THROW("Too many arguments.");
 
-    CwshProcess *process = cwsh_->getActiveProcess(words[0]);
+    auto *process = cwsh_->getActiveProcess(words[0]);
 
     if (! process)
       CWSH_THROW("No such job.");
@@ -127,34 +130,41 @@ CwshCommandData(Cwsh *cwsh, const std::vector<std::string> &words) :
   }
 }
 
-CwshCommandData::
-~CwshCommandData()
+CommandData::
+~CommandData()
 {
+}
+
+Command *
+CommandData::
+getCommand() const
+{
+  return command_.get();
 }
 
 //------------
 
-CwshCommand::
-CwshCommand(Cwsh *cwsh, const std::string &name, const std::string &path,
-            const StringVectorT &args, bool do_fork) :
- CCommand(name, path, args, do_fork), cwsh_(cwsh)
+Command::
+Command(App *cwsh, const std::string &name, const std::string &path,
+        const StringVectorT &args, bool doFork) :
+ CCommand(name, path, args, doFork), cwsh_(cwsh)
 {
 }
 
-CwshCommand::
-CwshCommand(Cwsh *cwsh, const std::string &name, CallbackProc proc, CallbackData data,
-            const StringVectorT &args, bool do_fork) :
- CCommand(name, proc, data, args, do_fork), cwsh_(cwsh)
+Command::
+Command(App *cwsh, const std::string &name, CallbackProc proc, CallbackData data,
+        const StringVectorT &args, bool doFork) :
+ CCommand(name, proc, data, args, doFork), cwsh_(cwsh)
 {
 }
 
-CwshCommand::
-~CwshCommand()
+Command::
+~Command()
 {
 }
 
 void
-CwshCommand::
+Command::
 setState(State state)
 {
   if (getState() == state) return;
@@ -162,7 +172,7 @@ setState(State state)
   CCommand::setState(state);
 
   if (notify_) {
-    CwshProcess *process = cwsh_->lookupProcess(getPid());
+    auto *process = cwsh_->lookupProcess(getPid());
     if (! process) return;
 
     std::cout << "[" << process->getNum() << "] ";
@@ -191,64 +201,64 @@ setState(State state)
 //------------
 
 bool
-CwshCommandUtil::
-parseCommandLines(Cwsh *cwsh, const std::string &str, CwshCmdLineArray &cmds)
+CommandUtil::
+parseCommandLines(App *cwsh, const std::string &str, CmdLineArray &cmds)
 {
   // Split String Into Words
 
-  CwshWordArray words;
+  WordArray words;
 
-  CwshWord::toWords(str, words);
+  Word::toWords(str, words);
 
   if (cwsh->getDebug()) {
     std::cerr << "Split String Into Words\n";
 
-    CwshWord::printWords(words);
+    Word::printWords(words);
   }
 
-  return CwshCmdSplit::wordsToCommandLines(words, cmds);
+  return CmdSplit::wordsToCommandLines(words, cmds);
 }
 
 bool
-CwshCommandUtil::
-parseCommandGroups(Cwsh *cwsh, const std::string &str, CwshCmdGroupArray &groups)
+CommandUtil::
+parseCommandGroups(App *cwsh, const std::string &str, CmdGroupArray &groups)
 {
   // Split String Into Words
 
-  CwshWordArray words;
+  WordArray words;
 
-  CwshWord::toWords(str, words);
+  Word::toWords(str, words);
 
   if (cwsh->getDebug()) {
     std::cerr << "Split String Into Words\n";
 
-    CwshWord::printWords(words);
+    Word::printWords(words);
   }
 
   //------
 
   // Split Words Into Commands
 
-  CwshCmdArray cmds;
+  CmdArray cmds;
 
-  CwshCmdSplit::wordsToCommands(words, cmds);
+  CmdSplit::wordsToCommands(words, cmds);
 
   if (cwsh->getDebug()) {
     std::cerr << "Split Words Into Commands\n";
 
-    CwshCmd::displayCmdArray(cmds);
+    Cmd::displayCmdArray(cmds);
   }
 
   //------
 
   // Replace Aliased Commands
 
-  CwshCmdArray cmds1;
+  CmdArray cmds1;
 
-  uint num_cmds = uint(cmds.size());
+  auto num_cmds = cmds.size();
 
   for (uint i = 0; i < num_cmds; ++i) {
-    CwshCmdArray alias_cmds;
+    CmdArray alias_cmds;
 
     if (cwsh->substituteAlias(cmds[i], alias_cmds)) {
       delete cmds[i];
@@ -262,7 +272,7 @@ parseCommandGroups(Cwsh *cwsh, const std::string &str, CwshCmdGroupArray &groups
   if (cwsh->getDebug()) {
     std::cerr << "Replace Aliased Commands\n";
 
-    CwshCmd::displayCmdArray(cmds1);
+    Cmd::displayCmdArray(cmds1);
   }
 
   //------
@@ -275,19 +285,19 @@ parseCommandGroups(Cwsh *cwsh, const std::string &str, CwshCmdGroupArray &groups
 }
 
 bool
-CwshCommandUtil::
-groupCommands(CwshCmdArray cmds, CwshCmdGroupArray &groups)
+CommandUtil::
+groupCommands(CmdArray cmds, CmdGroupArray &groups)
 {
-  CwshCmdArray cmds1;
+  CmdArray cmds1;
 
-  uint num_cmds = uint(cmds.size());
+  auto num_cmds = cmds.size();
 
   for (uint i = 0; i < num_cmds; ++i) {
     cmds1.push_back(cmds[i]);
 
-    if (cmds[i]->getSeparator().getType() == CwshCmdSeparatorType::NORMAL) {
+    if (cmds[i]->getSeparator().getType() == CmdSeparatorType::NORMAL) {
       if (cmds1.size() > 0) {
-        auto *group = new CwshCmdGroup(cmds1);
+        auto group = std::make_shared<CmdGroup>(cmds1);
 
         groups.push_back(group);
 
@@ -297,7 +307,7 @@ groupCommands(CwshCmdArray cmds, CwshCmdGroupArray &groups)
   }
 
   if (cmds1.size() > 0) {
-    auto *group = new CwshCmdGroup(cmds1);
+    auto group = std::make_shared<CmdGroup>(cmds1);
 
     groups.push_back(group);
   }
@@ -305,36 +315,36 @@ groupCommands(CwshCmdArray cmds, CwshCmdGroupArray &groups)
   return true;
 }
 
-CwshCmdArray
-CwshCommandUtil::
-parseCommandGroup(Cwsh *cwsh, CwshCmdGroup *group)
+CmdArray
+CommandUtil::
+parseCommandGroup(App *cwsh, CmdGroup *group)
 {
-  const CwshCmdArray cmds = group->getCommands();
+  const auto &cmds = group->getCommands();
 
   //------
 
   // Replace Variables
 
-  uint num_cmds = uint(cmds.size());
+  auto num_cmds = cmds.size();
 
   for (uint i = 0; i < num_cmds; ++i) {
-    CwshShellCommand *shell_command = cwsh->lookupShellCommand(cmds[i]->getWord(0).getWord());
+    auto *shell_command = cwsh->lookupShellCommand(cmds[i]->getWord(0).getWord());
 
     if (shell_command && shell_command->getNoExpand())
       continue;
 
     //------
 
-    CwshWordArray words;
+    WordArray words;
 
     int num_words = cmds[i]->getNumWords();
 
     for (int j = 0; j < num_words; ++j) {
-      CwshWordArray words1;
+      WordArray words1;
 
-      const CwshWord &word = cmds[i]->getWord(j);
+      const auto &word = cmds[i]->getWord(j);
 
-      CwshVariableParser vparser(cwsh, word);
+      VariableParser vparser(cwsh, word);
 
       if (vparser.expandVariables(words1))
         copy(words1.begin(), words1.end(), back_inserter(words));
@@ -348,34 +358,34 @@ parseCommandGroup(Cwsh *cwsh, CwshCmdGroup *group)
   if (cwsh->getDebug()) {
     std::cerr << "Replace Variables\n";
 
-    CwshCmd::displayCmdArray(cmds);
+    Cmd::displayCmdArray(cmds);
   }
 
   //------
 
   // Replace backquotes
 
-  num_cmds = uint(cmds.size());
+  num_cmds = cmds.size();
 
   for (uint i = 0; i < num_cmds; ++i) {
-    CwshShellCommand *shell_command = cwsh->lookupShellCommand(cmds[i]->getWord(0).getWord());
+    auto *shell_command = cwsh->lookupShellCommand(cmds[i]->getWord(0).getWord());
 
     if (shell_command && shell_command->getNoExpand())
       continue;
 
     //------
 
-    CwshWordArray cmd_words;
-    bool          cmd_words_changed = false;
+    WordArray cmd_words;
+    bool      cmd_words_changed = false;
 
     int num_words = cmds[i]->getNumWords();
 
     for (int j = 0; j < num_words; ++j) {
-      const CwshWord &word = cmds[i]->getWord(j);
+      const auto &word = cmds[i]->getWord(j);
 
-      CwshWordArray in_place_words;
+      WordArray in_place_words;
 
-      CwshInPlaceCommand icmd(cwsh, word);
+      InPlaceCommand icmd(cwsh, word);
 
       if (icmd.expand(in_place_words)) {
         uint num_in_place_words = uint(in_place_words.size());
@@ -396,17 +406,17 @@ parseCommandGroup(Cwsh *cwsh, CwshCmdGroup *group)
   if (cwsh->getDebug()) {
     std::cerr << "Replace backquotes\n";
 
-    CwshCmd::displayCmdArray(cmds);
+    Cmd::displayCmdArray(cmds);
   }
 
   //------
 
   // Expand Tildes
 
-  num_cmds = uint(cmds.size());
+  num_cmds = cmds.size();
 
   for (uint i = 0; i < num_cmds; ++i) {
-    CwshShellCommand *shell_command = cwsh->lookupShellCommand(cmds[i]->getWord(0).getWord());
+    auto *shell_command = cwsh->lookupShellCommand(cmds[i]->getWord(0).getWord());
 
     if (shell_command && shell_command->getNoWildcards())
       continue;
@@ -419,40 +429,40 @@ parseCommandGroup(Cwsh *cwsh, CwshCmdGroup *group)
       std::string str;
 
       if (CFile::expandTilde(cmds[i]->getWord(j).getWord(), str))
-        cmds[i]->setWord(j, CwshWord(str));
+        cmds[i]->setWord(j, Word(str));
     }
   }
 
   if (cwsh->getDebug()) {
     std::cerr << "Expand Tildes\n";
 
-    CwshCmd::displayCmdArray(cmds);
+    Cmd::displayCmdArray(cmds);
   }
 
   //------
 
   // Expand Braces
 
-  num_cmds = uint(cmds.size());
+  num_cmds = cmds.size();
 
   for (uint i = 0; i < num_cmds; ++i) {
-    CwshShellCommand *shell_command = cwsh->lookupShellCommand(cmds[i]->getWord(0).getWord());
+    auto *shell_command = cwsh->lookupShellCommand(cmds[i]->getWord(0).getWord());
 
     if (shell_command && shell_command->getNoWildcards())
       continue;
 
     //------
 
-    CwshWordArray words;
+    WordArray words;
 
     int num_words = cmds[i]->getNumWords();
 
     for (int j = 0; j < num_words; ++j) {
-      const CwshWord &word = cmds[i]->getWord(j);
+      const auto &word = cmds[i]->getWord(j);
 
-      CwshWordArray words1;
+      WordArray words1;
 
-      if (CwshBraces::expand(word, words1))
+      if (Braces::expand(word, words1))
         copy(words1.begin(), words1.end(), back_inserter(words));
       else
         words.push_back(word);
@@ -464,33 +474,33 @@ parseCommandGroup(Cwsh *cwsh, CwshCmdGroup *group)
   if (cwsh->getDebug()) {
     std::cerr << "Expand Braces\n";
 
-    CwshCmd::displayCmdArray(cmds);
+    Cmd::displayCmdArray(cmds);
   }
 
   //------
 
   // Expand Wildcards
 
-  num_cmds = uint(cmds.size());
+  num_cmds = cmds.size();
 
   for (uint i = 0; i < num_cmds; ++i) {
-    CwshShellCommand *shell_command = cwsh->lookupShellCommand(cmds[i]->getWord(0).getWord());
+    auto *shell_command = cwsh->lookupShellCommand(cmds[i]->getWord(0).getWord());
 
     if (shell_command && shell_command->getNoWildcards())
       continue;
 
     //------
 
-    CwshWordArray words;
+    WordArray words;
 
     int num_words = cmds[i]->getNumWords();
 
     for (int j = 0; j < num_words; ++j) {
-      const CwshWord &word = cmds[i]->getWord(j);
+      const auto &word = cmds[i]->getWord(j);
 
-      CwshWordArray words1;
+      WordArray words1;
 
-      CwshPattern pattern(cwsh);
+      Pattern pattern(cwsh);
 
       if (pattern.expandWordToFiles(word, words1))
         copy(words1.begin(), words1.end(), back_inserter(words));
@@ -504,17 +514,17 @@ parseCommandGroup(Cwsh *cwsh, CwshCmdGroup *group)
   if (cwsh->getDebug()) {
     std::cerr << "Expand Wildcards\n";
 
-    CwshCmd::displayCmdArray(cmds);
+    Cmd::displayCmdArray(cmds);
   }
 
   //------
 
   // Remove Quotes
 
-  num_cmds = uint(cmds.size());
+  num_cmds = cmds.size();
 
   for (uint i = 0; i < num_cmds; ++i) {
-    CwshShellCommand *shell_command = cwsh->lookupShellCommand(cmds[i]->getWord(0).getWord());
+    auto *shell_command = cwsh->lookupShellCommand(cmds[i]->getWord(0).getWord());
 
     if (shell_command && shell_command->getNoExpand())
       continue;
@@ -524,7 +534,7 @@ parseCommandGroup(Cwsh *cwsh, CwshCmdGroup *group)
     int num_words = cmds[i]->getNumWords();
 
     for (int j = 0; j < num_words; ++j) {
-      CwshWord word = cmds[i]->getWord(j);
+      auto word = cmds[i]->getWord(j);
 
       word.removeQuotes();
 
@@ -535,29 +545,29 @@ parseCommandGroup(Cwsh *cwsh, CwshCmdGroup *group)
   if (cwsh->getDebug()) {
     std::cerr << "Remove Quotes\n";
 
-    CwshCmd::displayCmdArray(cmds);
+    Cmd::displayCmdArray(cmds);
   }
 
   //------
 
   // Get Command Redirection
 
-  num_cmds = uint(cmds.size());
+  num_cmds = cmds.size();
 
   for (uint i = 0; i < num_cmds; ++i) {
-    CwshShellCommand *shell_command = cwsh->lookupShellCommand(cmds[i]->getWord(0).getWord());
+    auto *shell_command = cwsh->lookupShellCommand(cmds[i]->getWord(0).getWord());
 
     if (shell_command && shell_command->getNoExpand())
       continue;
 
     //------
 
-    CwshWordArray words;
+    WordArray words;
 
     int num_words = cmds[i]->getNumWords();
 
     for (int j = 0; j < num_words; ++j) {
-      const std::string &word = cmds[i]->getWord(j).getWord();
+      const auto &word = cmds[i]->getWord(j).getWord();
 
       if      (word == ">"  || word == ">!" ||
                word == ">>" || word == ">>!") {
@@ -623,49 +633,51 @@ parseCommandGroup(Cwsh *cwsh, CwshCmdGroup *group)
   return cmds;
 }
 
-CwshCommandType
-CwshCommandUtil::
-getType(Cwsh *cwsh, const std::vector<std::string> &words)
+CommandType
+CommandUtil::
+getType(App *cwsh, const std::vector<std::string> &words)
 {
-  const std::string &name = words[0];
+  const auto &name = words[0];
 
   if (name.size() > 0 && name[0] == '(')
-    return CwshCommandType::SUBSHELL;
+    return CommandType::SUBSHELL;
 
   //------
 
   if (name.size() > 0 && name[0] == '%')
-    return CwshCommandType::PROCESS;
+    return CommandType::PROCESS;
 
   //------
 
   if (words.size() == 2 && words[1] == ":")
-    return CwshCommandType::LABEL;
+    return CommandType::LABEL;
 
   //------
 
-  CwshFunction *function = cwsh->lookupFunction(name);
+  auto *function = cwsh->lookupFunction(name);
 
   if (function)
-    return CwshCommandType::FUNCTION;
+    return CommandType::FUNCTION;
 
   //------
 
-  CwshShellCommand *command = cwsh->lookupShellCommand(name);
+  auto *command = cwsh->lookupShellCommand(name);
 
   if (command)
-    return CwshCommandType::SHELL;
+    return CommandType::SHELL;
 
   //------
 
-  return CwshCommandType::UNIX;
+  return CommandType::UNIX;
 }
 
 void
-CwshCommandUtil::
+CommandUtil::
 processLineProc(const std::vector<std::string> &args, CCommand::CallbackData data)
 {
-  auto *cwsh = reinterpret_cast<Cwsh *>(data);
+  auto *cwsh = reinterpret_cast<App *>(data);
 
   cwsh->processInputLine(args[0]);
+}
+
 }

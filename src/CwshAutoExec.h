@@ -3,64 +3,72 @@
 
 #include <CPtr.h>
 
-class CwshAutoExecMgr {
-  CINST_COUNT_MEMBER(CwshAutoExecMgr);
+namespace Cwsh {
+
+//---
+
+class AutoExecMgr {
+  CINST_COUNT_MEMBER(AutoExecMgr);
 
  public:
-  typedef CAutoPtrMap<std::string,CwshAutoExec> AutoExecList;
+  using AutoExecList = std::map<std::string, AutoExecP>;
 
  public:
-  CwshAutoExecMgr(Cwsh *cwsh);
- ~CwshAutoExecMgr();
+  AutoExecMgr(App *cwsh);
+ ~AutoExecMgr();
 
-  void define(const CwshAutoExecName &suffix, const CwshAutoExecValue &value);
+  void define(const std::string &suffix, const std::string &value);
 
-  void undefine(const CwshAutoExecName &suffix);
+  void undefine(const std::string &suffix);
 
-  CwshAutoExec *lookup(const CwshAutoExecName &suffix) const;
+  AutoExec *lookup(const std::string &suffix) const;
 
   void display() const;
 
   std::string getAutoExecsMsg() const;
 
  private:
-  CPtr<Cwsh>   cwsh_;
-  AutoExecList auto_execs_;
+  CPtr<App>    cwsh_;
+  AutoExecList autoExecs_;
 };
 
 //---
 
-class CwshAutoExec {
-  CINST_COUNT_MEMBER(CwshAutoExec);
+class AutoExec {
+  CINST_COUNT_MEMBER(AutoExec);
 
  public:
-  CwshAutoExec(const CwshAutoExecName &suffix, const CwshAutoExecValue &value);
- ~CwshAutoExec();
+  AutoExec(const std::string &suffix, const std::string &value);
+ ~AutoExec();
 
-  const CwshAutoExecName  &getName () const { return suffix_ ; }
-  const CwshAutoExecValue &getValue() const { return value_; }
+  const std::string &getName () const { return suffix_ ; }
+  const std::string &getValue() const { return value_; }
 
-  void setValue(const CwshAutoExecValue &value) { value_ = value; }
+  void setValue(const std::string &value) { value_ = value; }
 
   void display() const;
 
   bool substitute(const std::string &suffix, std::string &cmd, std::vector<std::string> &args);
 
  private:
-  CwshAutoExecName  suffix_;
-  CwshAutoExecValue value_;
+  std::string suffix_;
+  std::string value_;
 };
 
 //---
 
-class CwshAutoExecEq {
+class AutoExecEq {
  public:
-  CwshAutoExecEq(const std::string &suffix) : suffix_(suffix) { }
+  AutoExecEq(const std::string &suffix) : suffix_(suffix) { }
 
-  bool operator()(const CwshAutoExec *auto_exec) { return suffix_ == auto_exec->getName(); }
+  bool operator()(const AutoExec *autoExec) { return suffix_ == autoExec->getName(); }
 
  private:
   const std::string suffix_;
 };
+
+//---
+
+}
 
 #endif

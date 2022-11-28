@@ -1,12 +1,14 @@
 #include <CwshI.h>
 
-enum class CwshGetVariableType {
+namespace Cwsh {
+
+enum class GetVariableType {
   CWSH_GET_VARIABLE_VALUES,
   CWSH_GET_VARIABLE_SIZE,
   CWSH_GET_VARIABLE_EXISTS
 };
 
-enum class CwshVariableModifierType {
+enum class VariableModifierType {
   CWSH_VARIABLE_MODIFIER_NONE,
   CWSH_VARIABLE_MODIFIER_ROOT,
   CWSH_VARIABLE_MODIFIER_EXTENSION,
@@ -17,8 +19,8 @@ enum class CwshVariableModifierType {
 };
 
 std::string
-CwshVariableMgr::
-lower_env_names_[] = {
+VariableMgr::
+lowerEnvNames_[] = {
   "home",
   "path",
   "shell",
@@ -27,8 +29,8 @@ lower_env_names_[] = {
 };
 
 std::string
-CwshVariableMgr::
-upper_env_names_[] = {
+VariableMgr::
+upperEnvNames_[] = {
   "HOME",
   "PATH",
   "SHELL",
@@ -36,68 +38,68 @@ upper_env_names_[] = {
   "USER"
 };
 
-CwshVariableMgr::
-CwshVariableMgr(Cwsh *cwsh) :
+VariableMgr::
+VariableMgr(App *cwsh) :
  cwsh_(cwsh)
 {
 }
 
-CwshVariableMgr::
-CwshVariableMgr(const CwshVariableMgr &mgr) :
+VariableMgr::
+VariableMgr(const VariableMgr &mgr) :
  cwsh_(mgr.cwsh_)
 {
   for (auto &variable : mgr.variables_)
-    variables_.push_back(new CwshVariable(*variable));
+    variables_.push_back(new Variable(*variable));
 
   for (auto &stack : mgr.stack_)
-    stack_.push_back(new CwshVariableMgr(*stack));
+    stack_.push_back(new VariableMgr(*stack));
 }
 
-CwshVariableMgr::
-~CwshVariableMgr()
+VariableMgr::
+~VariableMgr()
 {
   clear();
 }
 
-CwshVariable *
-CwshVariableMgr::
-define(const CwshVariableName &name)
+Variable *
+VariableMgr::
+define(const std::string &name)
 {
   if (cwsh_->getDebug())
     std::cout << "define " << name << "\n";
 
   undefine(name);
 
-  auto *variable = new CwshVariable(cwsh_, name, "");
+  auto *variable = new Variable(cwsh_, name, "");
 
   variables_.push_back(variable);
 
-  variables_.sort(CwshVariablesCmp());
+  variables_.sort(VariablesCmp());
 
   return variable;
 }
 
-CwshVariable *
-CwshVariableMgr::
-define(const CwshVariableName &name, const CwshVariableValue &value)
+Variable *
+VariableMgr::
+define(const std::string &name, const std::string &value)
 {
   if (cwsh_->getDebug())
     std::cout << "define " << name << "='" << value << "'\n";
 
   undefine(name);
 
-  auto *variable = new CwshVariable(cwsh_, name, value);
+  auto *variable = new Variable(cwsh_, name, value);
 
   variables_.push_back(variable);
 
-  variables_.sort(CwshVariablesCmp());
+  variables_.sort(VariablesCmp());
 
   return variable;
 }
 
-CwshVariable *
-CwshVariableMgr::
-define(const CwshVariableName &name, int value)
+Variable *
+VariableMgr::
+define(const std::string &name, int value)
 {
   if (cwsh_->getDebug())
     std::cout << "define " << name << "='" << value << "'\n";
@@ -107,18 +109,18 @@ define(const CwshVariableName &name, int value)
   if (name == "_debug")
     cwsh_->setDebug(value != 0);
 
-  auto *variable = new CwshVariable(cwsh_, name, CStrUtil::toString(value));
+  auto *variable = new Variable(cwsh_, name, CStrUtil::toString(value));
 
   variables_.push_back(variable);
 
-  variables_.sort(CwshVariablesCmp());
+  variables_.sort(VariablesCmp());
 
   return variable;
 }
 
-CwshVariable *
-CwshVariableMgr::
-define(const CwshVariableName &name, const CwshVariableValueArray &values)
+Variable *
+VariableMgr::
+define(const std::string &name, const VariableValueArray &values)
 {
   if (cwsh_->getDebug()) {
     std::string value = CStrUtil::toString(values, " ");
@@ -128,41 +130,41 @@ define(const CwshVariableName &name, const CwshVariableValueArray &values)
 
   undefine(name);
 
-  auto *variable = new CwshVariable(cwsh_, name, values);
+  auto *variable = new Variable(cwsh_, name, values);
 
   variables_.push_back(variable);
 
-  variables_.sort(CwshVariablesCmp());
+  variables_.sort(VariablesCmp());
 
   return variable;
 }
 
-CwshVariable *
-CwshVariableMgr::
-define(const CwshVariableName &name, const char **values, int num_values)
+Variable *
+VariableMgr::
+define(const std::string &name, const char **values, int numValues)
 {
   if (cwsh_->getDebug()) {
-    std::string value = CStrUtil::toString(values, num_values, " ");
+    std::string value = CStrUtil::toString(values, numValues, " ");
 
     std::cout << "define " << name << "='" << value << "'\n";
   }
 
   undefine(name);
 
-  auto *variable = new CwshVariable(cwsh_, name, values, num_values);
+  auto *variable = new Variable(cwsh_, name, values, numValues);
 
   variables_.push_back(variable);
 
-  variables_.sort(CwshVariablesCmp());
+  variables_.sort(VariablesCmp());
 
   return variable;
 }
 
 void
-CwshVariableMgr::
-undefine(const CwshVariableName &name)
+VariableMgr::
+undefine(const std::string &name)
 {
-  CwshVariable *variable = lookup(name);
+  auto *variable = lookup(name);
 
   if (variable) {
     variables_.remove(variable);
@@ -171,9 +173,9 @@ undefine(const CwshVariableName &name)
   }
 }
 
-CwshVariable *
-CwshVariableMgr::
-lookup(const CwshVariableName &name) const
+Variable *
+VariableMgr::
+lookup(const std::string &name) const
 {
   for (auto &variable : variables_) {
     if (variable->getName() == name)
@@ -184,7 +186,7 @@ lookup(const CwshVariableName &name) const
 }
 
 void
-CwshVariableMgr::
+VariableMgr::
 listVariables(bool all) const
 {
   for (auto &variable : variables_)
@@ -192,7 +194,7 @@ listVariables(bool all) const
 }
 
 void
-CwshVariableMgr::
+VariableMgr::
 clear()
 {
   for (auto &variable : variables_)
@@ -207,75 +209,75 @@ clear()
 }
 
 void
-CwshVariableMgr::
+VariableMgr::
 save()
 {
-  auto *copy = new CwshVariableMgr(*this);
+  auto *copy = new VariableMgr(*this);
 
   stack_.push_back(copy);
 }
 
 void
-CwshVariableMgr::
+VariableMgr::
 restore()
 {
   if (stack_.size() == 0)
     CWSH_THROW("Not in save state.");
 
-  CwshVariableMgr *variable_mgr = stack_[stack_.size() - 1];
+  auto *variableMgr = stack_[stack_.size() - 1];
 
   stack_.pop_back();
 
   clear();
 
-  copy(variable_mgr->variables_.begin(), variable_mgr->variables_.end(), back_inserter(variables_));
+  copy(variableMgr->variables_.begin(), variableMgr->variables_.end(), back_inserter(variables_));
 
-  variable_mgr->variables_.clear();
+  variableMgr->variables_.clear();
 
-  copy(variable_mgr->stack_.begin(), variable_mgr->stack_.end(), back_inserter(stack_));
+  copy(variableMgr->stack_.begin(), variableMgr->stack_.end(), back_inserter(stack_));
 
-  variable_mgr->stack_.clear();
+  variableMgr->stack_.clear();
 
-  delete variable_mgr;
+  delete variableMgr;
 }
 
 bool
-CwshVariableMgr::
+VariableMgr::
 isEnvironmentVariableLower(const std::string &name)
 {
-  int num_env_names_ = sizeof(lower_env_names_)/sizeof(std::string);
+  int numEnvNames_ = sizeof(lowerEnvNames_)/sizeof(std::string);
 
-  for (int i = 0; i < num_env_names_; i++)
-    if (lower_env_names_[i] == name)
+  for (int i = 0; i < numEnvNames_; i++)
+    if (lowerEnvNames_[i] == name)
       return true;
 
   return false;
 }
 
 bool
-CwshVariableMgr::
+VariableMgr::
 isEnvironmentVariableUpper(const std::string &name)
 {
-  int num_env_names_ = sizeof(upper_env_names_)/sizeof(std::string);
+  int numEnvNames_ = sizeof(upperEnvNames_)/sizeof(std::string);
 
-  for (int i = 0; i < num_env_names_; i++)
-    if (upper_env_names_[i] == name)
+  for (int i = 0; i < numEnvNames_; i++)
+    if (upperEnvNames_[i] == name)
       return true;
 
   return false;
 }
 
 void
-CwshVariableMgr::
-updateEnvironmentVariable(CwshVariable *variable)
+VariableMgr::
+updateEnvironmentVariable(Variable *variable)
 {
   std::string name = CStrUtil::toUpper(variable->getName());
 
   std::string value;
 
-  auto num_values = variable->getNumValues();
+  auto numValues = variable->getNumValues();
 
-  for (uint i = 0; i < num_values; i++) {
+  for (uint i = 0; i < numValues; i++) {
     if (i > 0)
       value += ":";
 
@@ -285,8 +287,8 @@ updateEnvironmentVariable(CwshVariable *variable)
   CEnvInst.set(name, value);
 }
 
-CwshVariable::
-CwshVariable(Cwsh *cwsh, const CwshVariableName &name, const CwshVariableValue &value) :
+Variable::
+Variable(App *cwsh, const std::string &name, const std::string &value) :
  cwsh_(cwsh), name_(name)
 {
   checkName();
@@ -296,21 +298,21 @@ CwshVariable(Cwsh *cwsh, const CwshVariableName &name, const CwshVariableValue &
   init();
 }
 
-CwshVariable::
-CwshVariable(Cwsh *cwsh, const CwshVariableName &name, int value) :
+Variable::
+Variable(App *cwsh, const std::string &name, int value) :
  cwsh_(cwsh), name_(name)
 {
   checkName();
 
-  CwshVariableValue value1 = CStrUtil::toString(value);
+  auto value1 = CStrUtil::toString(value);
 
   values_.push_back(value1);
 
   init();
 }
 
-CwshVariable::
-CwshVariable(Cwsh *cwsh, const CwshVariableName &name, const CwshVariableValueArray &values) :
+Variable::
+Variable(App *cwsh, const std::string &name, const VariableValueArray &values) :
  cwsh_(cwsh), name_(name), values_(values)
 {
   checkName();
@@ -318,35 +320,35 @@ CwshVariable(Cwsh *cwsh, const CwshVariableName &name, const CwshVariableValueAr
   init();
 }
 
-CwshVariable::
-CwshVariable(Cwsh *cwsh, const CwshVariableName &name, const char **values, int num_values) :
+Variable::
+Variable(App *cwsh, const std::string &name, const char **values, int numValues) :
  cwsh_(cwsh), name_(name)
 {
   checkName();
 
-  for (int i = 0; i < num_values; ++i)
+  for (int i = 0; i < numValues; ++i)
     values_.push_back(values[i]);
 
   init();
 }
 
-CwshVariable::
-CwshVariable(const CwshVariable &variable) :
+Variable::
+Variable(const Variable &variable) :
  cwsh_(variable.cwsh_), name_(variable.name_), type_(variable.type_), envVar_(variable.envVar_)
 {
-  int num_values = int(variable.values_.size());
+  int numValues = int(variable.values_.size());
 
-  for (int i = 0; i < num_values; ++i)
+  for (int i = 0; i < numValues; ++i)
     values_.push_back(variable.values_[i]);
 }
 
-CwshVariable::
-~CwshVariable()
+Variable::
+~Variable()
 {
 }
 
 void
-CwshVariable::
+Variable::
 checkName()
 {
   int len = int(name_.size());
@@ -363,7 +365,7 @@ checkName()
 }
 
 void
-CwshVariable::
+Variable::
 init()
 {
   envVar_ = cwsh_->isEnvironmentVariableLower(name_);
@@ -372,50 +374,50 @@ init()
     cwsh_->updateEnvironmentVariable(this);
 }
 
-const CwshVariableName &
-CwshVariable::
+const std::string &
+Variable::
 getName() const
 {
   return name_;
 }
 
-CwshVariableType
-CwshVariable::
+VariableType
+Variable::
 getType() const
 {
   return type_;
 }
 
 uint
-CwshVariable::
+Variable::
 getNumValues() const
 {
   return uint(values_.size());
 }
 
-const CwshVariableValueArray &
-CwshVariable::
+const VariableValueArray &
+Variable::
 getValues() const
 {
   return values_;
 }
 
-const CwshVariableValue &
-CwshVariable::
+const std::string &
+Variable::
 getValue(int pos) const
 {
   return values_[pos];
 }
 
 void
-CwshVariable::
-setValue(int pos, const CwshVariableValue &value)
+Variable::
+setValue(int pos, const std::string &value)
 {
   values_[pos] = value;
 }
 
 void
-CwshVariable::
+Variable::
 shift()
 {
   int len = int(values_.size());
@@ -427,35 +429,37 @@ shift()
 }
 
 void
-CwshVariable::
+Variable::
 print(bool all) const
 {
-  std::cout << CwshMgrInst.varNameColorStr() << name_ << CwshMgrInst.resetColorStr() << " ";
+  auto *mgr = CwshMgrInst;
 
-  std:: cout << CwshMgrInst.varValueColorStr();
+  std::cout << mgr->varNameColorStr() << name_ << mgr->resetColorStr() << " ";
 
-  int num_values = int(values_.size());
+  std:: cout << mgr->varValueColorStr();
 
-  if (num_values > 1)
+  int numValues = int(values_.size());
+
+  if (numValues > 1)
     std::cout << '(';
 
-  for (int i = 0; i < num_values; i++) {
+  for (int i = 0; i < numValues; i++) {
     if (i > 0)
       std::cout << " ";
 
     std::cout << values_[i];
   }
 
-  if (num_values > 1)
+  if (numValues > 1)
     std::cout << ')';
 
-  std::cout << CwshMgrInst.resetColorStr();
+  std::cout << mgr->resetColorStr();
 
   if (all && getLineNum() > 0) {
     std::cout << " [";
 
-    std::cout << CwshMgrInst.locationColorStr() << getFilename() << ":" << getLineNum() <<
-                 CwshMgrInst.resetColorStr();
+    std::cout << mgr->locationColorStr() << getFilename() << ":" << getLineNum() <<
+                 mgr->resetColorStr();
 
     std::cout << "]";
   }
@@ -464,8 +468,10 @@ print(bool all) const
 }
 
 int
-CwshVariablesCmp::
-operator()(const CwshVariable *variable1, const CwshVariable *variable2)
+VariablesCmp::
+operator()(const Variable *variable1, const Variable *variable2)
 {
   return (variable1->getName() < variable2->getName());
+}
+
 }

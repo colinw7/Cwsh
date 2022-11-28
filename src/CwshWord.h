@@ -1,56 +1,60 @@
-enum class CwshSubWordType {
+namespace Cwsh {
+
+enum class SubWordType {
   DOUBLE_QUOTED,
   SINGLE_QUOTED,
   BACK_QUOTED,
   NORMAL
 };
 
-class CwshWord {
+class Word {
  public:
-  static void toWords(const std::string &line, CwshWordArray &words);
+  static void toWords(const std::string &line, WordArray &words);
 
-  static std::string toString(const CwshWordArray &words);
-  static std::string toString(const CwshSubWordArray &sub_words);
+  static std::string toString(const WordArray &words);
+  static std::string toString(const SubWordArray &subWords);
 
-  static void printWords(const CwshWordArray &words);
+  static void printWords(const WordArray &words);
 
-  static void printWord(const CwshWord &word);
+  static void printWord(const Word &word);
 
-  CwshWord(const std::string &word="");
+  explicit Word(const std::string &word="");
 
   const std::string &getWord() const { return word_; }
 
-  const CwshSubWordArray &getSubWords() const;
+  const SubWordArray &getSubWords() const;
 
   void removeQuotes();
 
-  friend std::ostream &operator<<(std::ostream &os, const CwshWord &word);
+  friend std::ostream &operator<<(std::ostream &os, const Word &word);
 
  private:
   void createSubWords();
 
  private:
-  std::string      word_;
-  bool             sub_words_created_ { false };
-  CwshSubWordArray sub_words_;
+  std::string  word_;
+  bool         subWordsCreated_ { false };
+  SubWordArray subWords_;
 };
 
 //---
 
-class CwshSubWord {
+class SubWord {
  public:
-  static std::string toString(const CwshSubWordArray &words);
+  static std::string toString(const SubWordArray &words);
 
-  CwshSubWord(const std::string &word, CwshSubWordType type=CwshSubWordType::NORMAL);
+  explicit SubWord(const std::string &word, SubWordType type=SubWordType::NORMAL);
 
   const std::string &getWord() const { return word_; }
-  CwshSubWordType    getType() const { return type_; }
+  SubWordType        getType() const { return type_; }
 
   std::string getString() const;
 
-  friend std::ostream &operator<<(std::ostream &os, const CwshSubWord &word);
+  friend std::ostream &operator<<(std::ostream &os, const SubWord &word);
 
  private:
-  std::string     word_;
-  CwshSubWordType type_;
+  std::string word_;
+  SubWordType type_;
 };
+
+}

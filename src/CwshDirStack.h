@@ -1,9 +1,11 @@
 #ifndef CWSH_DIR_STACK_H
 #define CWSH_DIR_STACK_H
 
-class CwshDirStack {
+namespace Cwsh {
+
+class DirStack {
  public:
-  CwshDirStack();
+  DirStack();
 
   void push();
   void push(const std::string &dirname);
@@ -16,7 +18,9 @@ class CwshDirStack {
   void print(std::ostream &os = std::cout);
 
  private:
-  std::vector<std::string> dir_stack_;
+  std::vector<std::string> dirStack_;
 };
+
+}
 
 #endif

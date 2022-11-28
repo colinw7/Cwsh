@@ -1,66 +1,64 @@
 #include <CwshI.h>
 
-template<typename T>
-class CwshAutoExecListValueDisplay {
- public:
-  void operator()(const typename T::value_type &alias) {
-    alias.second->display();
-  }
-};
+namespace Cwsh {
 
-CwshAutoExecMgr::
-CwshAutoExecMgr(Cwsh *cwsh) :
+//---
+
+AutoExecMgr::
+AutoExecMgr(App *cwsh) :
  cwsh_(cwsh)
 {
 }
 
-CwshAutoExecMgr::
-~CwshAutoExecMgr()
+AutoExecMgr::
+~AutoExecMgr()
 {
 }
 
 void
-CwshAutoExecMgr::
-define(const CwshAutoExecName &suffix, const CwshAutoExecValue &value)
+AutoExecMgr::
+define(const std::string &suffix, const std::string &value)
 {
-  auto *alias = new CwshAutoExec(suffix, value);
+  auto alias = std::make_shared<AutoExec>(suffix, value);
 
-  auto_execs_.setValue(suffix, alias);
+  autoExecs_[suffix] = alias;
 }
 
 void
-CwshAutoExecMgr::
-undefine(const CwshAutoExecName &suffix)
+AutoExecMgr::
+undefine(const std::string &suffix)
 {
-  auto_execs_.unsetValue(suffix);
+  autoExecs_.erase(suffix);
 }
 
-CwshAutoExec *
-CwshAutoExecMgr::
+AutoExec *
+AutoExecMgr::
 lookup(const std::string &suffix) const
 {
-  return auto_execs_.getValue(suffix);
+  auto p = autoExecs_.find(suffix);
+
+  return (p != autoExecs_.end() ? (*p).second.get() : nullptr);
 }
 
 void
-CwshAutoExecMgr::
+AutoExecMgr::
 display() const
 {
-  for (auto &auto_exec : auto_execs_)
-    CwshAutoExecListValueDisplay<AutoExecList>()(auto_exec);
+  for (auto &autoExec : autoExecs_)
+    autoExec.second->display();
 }
 
 std::string
-CwshAutoExecMgr::
+AutoExecMgr::
 getAutoExecsMsg() const
 {
   std::string msg;
 
-  for (const auto &auto_exec : auto_execs_) {
+  for (const auto &autoExec : autoExecs_) {
     if (! msg.empty())
       msg += "#";
 
-    msg += auto_exec.second->getName () + "#" + auto_exec.second->getValue();
+    msg += autoExec.second->getName () + "#" + autoExec.second->getValue();
   }
 
   return msg;
@@ -68,26 +66,26 @@ getAutoExecsMsg() const
 
 //-------------------
 
-CwshAutoExec::
-CwshAutoExec(const std::string &suffix, const std::string &value) :
+AutoExec::
+AutoExec(const std::string &suffix, const std::string &value) :
  suffix_(suffix), value_(value)
 {
 }
 
-CwshAutoExec::
-~CwshAutoExec()
+AutoExec::
+~AutoExec()
 {
 }
 
 void
-CwshAutoExec::
+AutoExec::
 display() const
 {
   std::cout << suffix_ << " " << value_ << "\n";
 }
 
 bool
-CwshAutoExec::
+AutoExec::
 substitute(const std::string &name, std::string &cmd, std::vector<std::string> &args)
 {
   cmd = value_;
@@ -95,4 +93,8 @@ substitute(const std::string &name, std::string &cmd, std::vector<std::string> &
   args.push_back(name);
 
   return true;
+}
+
+//---
+
 }

@@ -1,13 +1,15 @@
 #include <CwshI.h>
 
-CwshExprEvaluate::
-CwshExprEvaluate(Cwsh *cwsh, const std::string &expression) :
+namespace Cwsh {
+
+ExprEvaluate::
+ExprEvaluate(App *cwsh, const std::string &expression) :
  cwsh_(cwsh), expression_(expression)
 {
 }
 
 int
-CwshExprEvaluate::
+ExprEvaluate::
 process()
 {
   std::string value = evaluate();
@@ -21,24 +23,24 @@ process()
 }
 
 std::string
-CwshExprEvaluate::
+ExprEvaluate::
 evaluate()
 {
-  stack_ = new CwshExprStackStack();
+  stack_ = std::make_unique<ExprStackStack>();
 
-  CwshExprParse parse(cwsh_);
+  ExprParse parse(cwsh_);
 
-  parse.stack(stack_, expression_);
+  parse.stack(stack_.get(), expression_);
 
   std::string value = evaluateStack();
 
-  stack_ = nullptr;
+  stack_ = ExprStackStackP();
 
   return value;
 }
 
 std::string
-CwshExprEvaluate::
+ExprEvaluate::
 evaluateStack()
 {
   stack_->toStart();
@@ -49,12 +51,12 @@ evaluateStack()
 }
 
 std::string
-CwshExprEvaluate::
+ExprEvaluate::
 unstack()
 {
-  CwshExprStackNode *initial_stack_node = stack_->getCurrentNode();
+  auto *initial_stack_node = stack_->getCurrentNode();
 
-  CwshExprStackNode *stack_node = initial_stack_node;
+  auto *stack_node = initial_stack_node;
 
   if (! stack_node)
     CWSH_THROW("Null Expression.");
@@ -63,7 +65,7 @@ unstack()
   bool value_on_stack = false;
 
   while (! end_expression) {
-    if      (stack_node->getType() == CwshExprStackNodeType::OPERATOR) {
+    if      (stack_node->getType() == ExprStackNodeType::OPERATOR) {
       if      (stack_node->getOperator()->isUnary()) {
         stack_->toNext();
 
@@ -73,7 +75,7 @@ unstack()
         if (checkUnstack(stack_node->getOperator())) {
           stack_->toPrev();
 
-          CwshExprOperator *last_opr = stack_->getLastOperator();
+          auto *last_opr = stack_->getLastOperator();
 
           if      (last_opr->isUnary()) {
             unstackUnary();
@@ -98,8 +100,7 @@ unstack()
           value_on_stack = false;
         }
       }
-      else if (stack_node->getOperator()->getType() ==
-                CwshExprOperatorType::OPEN_BRACKET) {
+      else if (stack_node->getOperator()->getType() == ExprOperatorType::OPEN_BRACKET) {
         unstackBracketed();
 
         value_on_stack = true;
@@ -109,7 +110,7 @@ unstack()
       else
         CWSH_THROW("Invalid Operator.");
     }
-    else if (stack_node->getType() == CwshExprStackNodeType::VALUE) {
+    else if (stack_node->getType() == ExprStackNodeType::VALUE) {
       stack_->toNext();
 
       value_on_stack = true;
@@ -137,10 +138,10 @@ unstack()
 }
 
 std::string
-CwshExprEvaluate::
+ExprEvaluate::
 backUnstack()
 {
-  CwshExprOperator *last_opr = stack_->getLastOperator();
+  auto *last_opr = stack_->getLastOperator();
 
   while (last_opr && (last_opr->isUnary() || last_opr->isBinary())) {
     if      (last_opr->isUnary())
@@ -160,7 +161,7 @@ backUnstack()
 }
 
 void
-CwshExprEvaluate::
+ExprEvaluate::
 unstackUnary()
 {
   std::string value1;
@@ -168,12 +169,12 @@ unstackUnary()
   if (! stack_->pop(value1))
     CWSH_THROW("Undefined Value.");
 
-  CwshExprOperator *opr;
+  ExprOperator *opr;
 
   if (! stack_->pop(&opr))
     CWSH_THROW("Undefined Operator.");
 
-  CwshExprProcess process;
+  ExprProcess process;
 
   std::string value = process.process(opr, value1);
 
@@ -181,7 +182,7 @@ unstackUnary()
 }
 
 void
-CwshExprEvaluate::
+ExprEvaluate::
 unstackBinary()
 {
   std::string value1;
@@ -190,7 +191,7 @@ unstackBinary()
   if (! stack_->pop(value2))
     CWSH_THROW("Undefined Value.");
 
-  CwshExprOperator *opr;
+  ExprOperator *opr;
 
   if (! stack_->pop(&opr))
     CWSH_THROW("Undefined Operator.");
@@ -198,7 +199,7 @@ unstackBinary()
   if (! stack_->pop(value1))
     CWSH_THROW("Undefined Value.");
 
-  CwshExprProcess process;
+  ExprProcess process;
 
   std::string value = process.process(value1, opr, value2);
 
@@ -206,7 +207,7 @@ unstackBinary()
 }
 
 void
-CwshExprEvaluate::
+ExprEvaluate::
 unstackBracketed()
 {
   stack_->toNext();
@@ -215,7 +216,7 @@ unstackBracketed()
 
   stack_->toNext();
 
-  CwshExprOperator *opr;
+  ExprOperator *opr;
 
   if (! stack_->pop(&opr))
     CWSH_THROW("Undefined Operator.");
@@ -227,10 +228,10 @@ unstackBracketed()
 }
 
 void
-CwshExprEvaluate::
+ExprEvaluate::
 skip()
 {
-  CwshExprStackNode *stack_node = stack_->getCurrentNode();
+  auto *stack_node = stack_->getCurrentNode();
 
   if (! stack_node)
     CWSH_THROW("Null Expression.");
@@ -238,7 +239,7 @@ skip()
   bool end_expression = false;
 
   while (! end_expression) {
-    if      (stack_node->getType() == CwshExprStackNodeType::OPERATOR) {
+    if      (stack_node->getType() == ExprStackNodeType::OPERATOR) {
       if      (stack_node->getOperator()->isUnary()) {
         stack_->remove(stack_node);
 
@@ -249,8 +250,7 @@ skip()
 
         stack_->toNext();
       }
-      else if (stack_node->getOperator()->getType() ==
-                CwshExprOperatorType::OPEN_BRACKET) {
+      else if (stack_node->getOperator()->getType() == ExprOperatorType::OPEN_BRACKET) {
         stack_->remove(stack_node);
 
         stack_->toNext();
@@ -259,9 +259,8 @@ skip()
 
         stack_node = stack_->getCurrentNode();
 
-        while (stack_node->getType() != CwshExprStackNodeType::OPERATOR ||
-               stack_node->getOperator()->getType() !=
-                CwshExprOperatorType::CLOSE_BRACKET) {
+        while (stack_node->getType() != ExprStackNodeType::OPERATOR ||
+               stack_node->getOperator()->getType() != ExprOperatorType::CLOSE_BRACKET) {
           stack_->remove(stack_node);
 
           stack_->toNext();
@@ -280,7 +279,7 @@ skip()
       else
         CWSH_THROW("Invalid Operator.");
     }
-    else if (stack_node->getType() == CwshExprStackNodeType::VALUE) {
+    else if (stack_node->getType() == ExprStackNodeType::VALUE) {
       stack_->remove(stack_node);
 
       stack_->toNext();
@@ -296,10 +295,10 @@ skip()
 }
 
 bool
-CwshExprEvaluate::
-checkUnstack(CwshExprOperator *opr)
+ExprEvaluate::
+checkUnstack(ExprOperator *opr)
 {
-  CwshExprOperator *last_opr = stack_->getLastOperator();
+  auto *last_opr = stack_->getLastOperator();
 
   if (last_opr &&
       (last_opr->getPrecedence() > opr->getPrecedence() ||
@@ -307,4 +306,6 @@ checkUnstack(CwshExprOperator *opr)
     return true;
   else
     return false;
+}
+
 }

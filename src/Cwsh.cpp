@@ -32,20 +32,22 @@ bool configColor(CConfig &config, const std::string &name, std::string &colorStr
 
 //---
 
-CwshMgr &
-CwshMgr::
+namespace Cwsh {
+
+Mgr *
+Mgr::
 getInstance()
 {
-  static CwshMgr *instance_;
+  static Mgr *instance_;
 
   if (! instance_)
-    instance_ = new CwshMgr();
+    instance_ = new Mgr();
 
-  return *instance_;
+  return instance_;
 }
 
-CwshMgr::
-CwshMgr() :
+Mgr::
+Mgr() :
  config_("Cwsh")
 {
   configColor(config_, "locationColor", locationColor_);
@@ -69,27 +71,27 @@ CwshMgr() :
   resetColor_ = "[0m";
 }
 
-CwshMgr::
-~CwshMgr()
+Mgr::
+~Mgr()
 {
 }
 
 void
-CwshMgr::
-add(Cwsh *cwsh)
+Mgr::
+add(App *cwsh)
 {
   cwshList_.push_back(cwsh);
 }
 
 void
-CwshMgr::
-remove(Cwsh *cwsh)
+Mgr::
+remove(App *cwsh)
 {
   cwshList_.remove(cwsh);
 }
 
 void
-CwshMgr::
+Mgr::
 term(int status)
 {
   auto p = cwshList_.begin();
@@ -104,8 +106,8 @@ term(int status)
 }
 
 void
-CwshMgr::
-term(Cwsh *cwsh, int status)
+Mgr::
+term(App *cwsh, int status)
 {
   cwsh->term();
 
@@ -114,7 +116,7 @@ term(Cwsh *cwsh, int status)
 }
 
 void
-CwshMgr::
+Mgr::
 setInterrupt(bool flag)
 {
   for (auto &cwsh : cwshList_)
@@ -122,7 +124,7 @@ setInterrupt(bool flag)
 }
 
 void
-CwshMgr::
+Mgr::
 readInterrupt()
 {
   for (auto &cwsh : cwshList_)
@@ -130,7 +132,7 @@ readInterrupt()
 }
 
 void
-CwshMgr::
+Mgr::
 gotoBlockLabel(const std::string &label)
 {
   for (auto &cwsh : cwshList_)
@@ -138,11 +140,11 @@ gotoBlockLabel(const std::string &label)
 }
 
 void
-CwshMgr::
+Mgr::
 stopActiveProcesses()
 {
   for (auto &cwsh : cwshList_) {
-    CwshProcess *process = cwsh->getCurrentActiveProcess();
+    auto *process = cwsh->getCurrentActiveProcess();
 
     if (process) {
       std::cout << "[" << process->getNum() << "]    Stopped               ";
@@ -158,70 +160,74 @@ stopActiveProcesses()
 
 //--------
 
-Cwsh::
-Cwsh()
+App::
+App()
 {
-  functionMgr_ = new CwshFunctionMgr(this);
-  variableMgr_ = new CwshVariableMgr(this);
-  processMgr_  = new CwshProcessMgr(this);
-  stateMgr_    = new CwshStateMgr(this);
-  blockMgr_    = new CwshBlockMgr(this);
-  aliasMgr_    = new CwshAliasMgr(this);
-  autoExecMgr_ = new CwshAutoExecMgr(this);
-  history_     = new CwshHistory(this);
-  shellCmdMgr_ = new CwshShellCommandMgr(this);
-  input_       = new CwshInput(this);
-  readLine_    = new CwshReadLine(this);
-  dirStack_    = new CwshDirStack;
-  hash_        = new CwshHash(this);
-  resource_    = new CwshResource;
+  functionMgr_ = std::make_unique<FunctionMgr    >(this);
+  variableMgr_ = std::make_unique<VariableMgr    >(this);
+  processMgr_  = std::make_unique<ProcessMgr     >(this);
+  stateMgr_    = std::make_unique<StateMgr       >(this);
+  blockMgr_    = std::make_unique<BlockMgr       >(this);
+  aliasMgr_    = std::make_unique<AliasMgr       >(this);
+  autoExecMgr_ = std::make_unique<AutoExecMgr    >(this);
+  history_     = std::make_unique<History        >(this);
+  shellCmdMgr_ = std::make_unique<ShellCommandMgr>(this);
+  input_       = std::make_unique<Input          >(this);
+  readLine_    = std::make_unique<ReadLine       >(this);
+  dirStack_    = std::make_unique<DirStack       >();
+  hash_        = std::make_unique<Hash           >(this);
+  resource_    = std::make_unique<Resource       >();
 
 #ifdef USE_SHM
-  sh_mem_ = new CwshShMem();
+  sh_mem_ = std::make_unique<ShMem>();
 
   sh_mem_->purge();
 #endif
 
   //readLine_->enableTimeoutHook();
 
-  CwshMgrInst.add(this);
+  auto *mgr = CwshMgrInst;
+
+  mgr->add(this);
 }
 
-Cwsh::
-~Cwsh()
+App::
+~App()
 {
   cleanup();
 
-  CwshMgrInst.remove(this);
+  auto *mgr = CwshMgrInst;
+
+  mgr->remove(this);
 }
 
 void
-Cwsh::
+App::
 cleanup()
 {
-  inputFile_   = nullptr;
-  functionMgr_ = nullptr;
-  variableMgr_ = nullptr;
-  processMgr_  = nullptr;
-  stateMgr_    = nullptr;
-  blockMgr_    = nullptr;
-  aliasMgr_    = nullptr;
-  autoExecMgr_ = nullptr;
-  history_     = nullptr;
-  shellCmdMgr_ = nullptr;
-  input_       = nullptr;
-  readLine_    = nullptr;
-  dirStack_    = nullptr;
-  hash_        = nullptr;
-  resource_    = nullptr;
-  server_      = nullptr;
+  inputFile_   = FileP();
+  functionMgr_ = FunctionMgrP();
+  variableMgr_ = VariableMgrP();
+  processMgr_  = ProcessMgrP();
+  stateMgr_    = StateMgrP();
+  blockMgr_    = BlockMgrP();
+  aliasMgr_    = AliasMgrP();
+  autoExecMgr_ = AutoExecMgrP();
+  history_     = HistoryP();
+  shellCmdMgr_ = ShellCommandMgrP();
+  input_       = InputP();
+  readLine_    = ReadLineP();
+  dirStack_    = DirStackP();
+  hash_        = HashP();
+  resource_    = ResourceP();
+  server_      = ServerP();
 #ifdef USE_SHM
-  sh_mem_      = nullptr;
+  sh_mem_      = ShMemP();
 #endif
 }
 
 void
-Cwsh::
+App::
 init()
 {
   int   argc   = 1;
@@ -231,7 +237,7 @@ init()
 }
 
 void
-Cwsh::
+App::
 init(int argc, char **argv)
 {
   if (! processArgs(argc, argv))
@@ -241,7 +247,7 @@ init(int argc, char **argv)
 }
 
 bool
-Cwsh::
+App::
 processArgs(int argc, char **argv)
 {
   std::string opts = "\
@@ -272,19 +278,19 @@ processArgs(int argc, char **argv)
     return false;
   }
 
-  command_string_ = cargs.getStringArg ("-c");
-  exitOnError_    = cargs.getBooleanArg("-e");
-  fastStartup_    = cargs.getBooleanArg("-f");
-  interactive_    = cargs.getBooleanArg("-i");
-  noExecute_      = cargs.getBooleanArg("-n");
-  exitAfterCmd_   = cargs.getBooleanArg("-t");
-  verbose1_       = cargs.getBooleanArg("-v");
-  verbose2_       = cargs.getBooleanArg("-V");
-  echo1_          = cargs.getBooleanArg("-x");
-  echo2_          = cargs.getBooleanArg("-X");
-  compatible_     = cargs.getBooleanArg("--compatible");
-  silentMode_     = cargs.getBooleanArg("--silent");
-  debug_          = cargs.getBooleanArg("--debug");
+  commandString_ = cargs.getStringArg ("-c");
+  exitOnError_   = cargs.getBooleanArg("-e");
+  fastStartup_   = cargs.getBooleanArg("-f");
+  interactive_   = cargs.getBooleanArg("-i");
+  noExecute_     = cargs.getBooleanArg("-n");
+  exitAfterCmd_  = cargs.getBooleanArg("-t");
+  verbose1_      = cargs.getBooleanArg("-v");
+  verbose2_      = cargs.getBooleanArg("-V");
+  echo1_         = cargs.getBooleanArg("-x");
+  echo2_         = cargs.getBooleanArg("-X");
+  compatible_    = cargs.getBooleanArg("--compatible");
+  silentMode_    = cargs.getBooleanArg("--silent");
+  debug_         = cargs.getBooleanArg("--debug");
 
   defineVariable("argv", const_cast<const char **>(&argv[1]), argc - 1);
 
@@ -307,16 +313,16 @@ processArgs(int argc, char **argv)
 }
 
 void
-Cwsh::
+App::
 initEnv()
 {
   if (debug_)
     CCommandMgrInst->setDebug(true);
 
   if (initFilename_ != "")
-    inputFile_ = new CFile(initFilename_);
+    inputFile_ = std::make_unique<CFile>(initFilename_);
   else {
-    inputFile_ = new CFile(stdin);
+    inputFile_ = std::make_unique<CFile>(stdin);
 
     interactive_ = true;
   }
@@ -339,7 +345,7 @@ initEnv()
   defineVariable("shell", COSUser::getUserShell      ());
   defineVariable("cwd"  , COSFile::getCurrentDir     ());
 
-  promptType_    = CwshPromptType::NORMAL;
+  promptType_    = PromptType::NORMAL;
   promptCommand_ = "";
 
   if (interactive_)
@@ -362,7 +368,7 @@ initEnv()
 
   //------
 
-  CwshSignal::addHandlers();
+  Signal::addHandlers();
 
   //------
 
@@ -387,43 +393,45 @@ initEnv()
 
   //------
 
-  if (command_string_ != "")
-    processLine(command_string_);
+  if (commandString_ != "")
+    processLine(commandString_);
 }
 
 void
-Cwsh::
+App::
 enableServer()
 {
-  server_ = new CwshServer(this);
+  server_ = std::make_unique<Server>(this);
 }
 
-CMessage *
-Cwsh::
+App::MessageP
+App::
 createServerMessage()
 {
-  return CwshServer::createMessage();
+  return Server::createMessage();
 }
 
 void
-Cwsh::
+App::
 mainLoop()
 {
   if (! getExit())
-    input_->execute(inputFile_);
+    input_->execute(inputFile_.get());
 
-  CwshMgrInst.term(this, 0);
+  auto *mgr = CwshMgrInst;
+
+  mgr->term(this, 0);
 }
 
 void
-Cwsh::
+App::
 processLine(const std::string &line)
 {
   processInputLine(line);
 }
 
 void
-Cwsh::
+App::
 startup()
 {
   std::string home = COSUser::getUserHome();
@@ -448,7 +456,7 @@ startup()
 }
 
 void
-Cwsh::
+App::
 term()
 {
   if (getNumActiveProcesses() > 0 && termTries_ <= 0) {
@@ -477,7 +485,7 @@ term()
 }
 
 bool
-Cwsh::
+App::
 changeDir(const std::string &dirname)
 {
   if (! CDir::changeDir(dirname))
@@ -493,7 +501,7 @@ changeDir(const std::string &dirname)
 }
 
 void
-Cwsh::
+App::
 setDebug(bool flag)
 {
   debug_ = flag;
@@ -501,11 +509,11 @@ setDebug(bool flag)
 
 //---------------
 
-CwshFunction *
-Cwsh::
-defineFunction(const CwshFunctionName &name, const CwshLineArray &lines)
+Function *
+App::
+defineFunction(const std::string &name, const LineArray &lines)
 {
-  CwshFunction *function = functionMgr_->define(name, lines);
+  auto *function = functionMgr_->define(name, lines);
 
   function->setFilename(getFilename());
   function->setLineNum (getLineNum ());
@@ -514,21 +522,21 @@ defineFunction(const CwshFunctionName &name, const CwshLineArray &lines)
 }
 
 void
-Cwsh::
-undefineFunction(const CwshFunctionName &name)
+App::
+undefineFunction(const std::string &name)
 {
   functionMgr_->undefine(name);
 }
 
-CwshFunction *
-Cwsh::
-lookupFunction(const CwshFunctionName &name)
+Function *
+App::
+lookupFunction(const std::string &name)
 {
   return functionMgr_->lookup(name);
 }
 
 void
-Cwsh::
+App::
 listAllFunctions()
 {
   functionMgr_->listAll(/*all*/true);
@@ -536,14 +544,14 @@ listAllFunctions()
 
 //---------------
 
-CwshVariable *
-Cwsh::
-defineVariable(const CwshVariableName &name)
+Variable *
+App::
+defineVariable(const std::string &name)
 {
   if (! variableMgr_)
     return nullptr;
 
-  CwshVariable *variable = variableMgr_->define(name);
+  auto *variable = variableMgr_->define(name);
 
   variable->setFilename(getFilename());
   variable->setLineNum (getLineNum ());
@@ -551,14 +559,14 @@ defineVariable(const CwshVariableName &name)
   return variable;
 }
 
-CwshVariable *
-Cwsh::
-defineVariable(const CwshVariableName &name, const CwshVariableValue &value)
+Variable *
+App::
+defineVariable(const std::string &name, const std::string &value)
 {
   if (! variableMgr_)
     return nullptr;
 
-  CwshVariable *variable = variableMgr_->define(name, value);
+  auto *variable = variableMgr_->define(name, value);
 
   variable->setFilename(getFilename());
   variable->setLineNum (getLineNum ());
@@ -566,14 +574,14 @@ defineVariable(const CwshVariableName &name, const CwshVariableValue &value)
   return variable;
 }
 
-CwshVariable *
-Cwsh::
-defineVariable(const CwshVariableName &name, int value)
+Variable *
+App::
+defineVariable(const std::string &name, int value)
 {
   if (! variableMgr_)
     return nullptr;
 
-  CwshVariable *variable = variableMgr_->define(name, value);
+  auto *variable = variableMgr_->define(name, value);
 
   variable->setFilename(getFilename());
   variable->setLineNum (getLineNum ());
@@ -581,14 +589,14 @@ defineVariable(const CwshVariableName &name, int value)
   return variable;
 }
 
-CwshVariable *
-Cwsh::
-defineVariable(const CwshVariableName &name, const CwshVariableValueArray &values)
+Variable *
+App::
+defineVariable(const std::string &name, const VariableValueArray &values)
 {
   if (! variableMgr_)
     return nullptr;
 
-  CwshVariable *variable = variableMgr_->define(name, values);
+  auto *variable = variableMgr_->define(name, values);
 
   variable->setFilename(getFilename());
   variable->setLineNum (getLineNum ());
@@ -596,14 +604,14 @@ defineVariable(const CwshVariableName &name, const CwshVariableValueArray &value
   return variable;
 }
 
-CwshVariable *
-Cwsh::
-defineVariable(const CwshVariableName &name, const char **values, int num_values)
+Variable *
+App::
+defineVariable(const std::string &name, const char **values, int numValues)
 {
   if (! variableMgr_)
     return nullptr;
 
-  CwshVariable *variable = variableMgr_->define(name, values, num_values);
+  auto *variable = variableMgr_->define(name, values, numValues);
 
   variable->setFilename(getFilename());
   variable->setLineNum (getLineNum ());
@@ -612,8 +620,8 @@ defineVariable(const CwshVariableName &name, const char **values, int num_values
 }
 
 void
-Cwsh::
-undefineVariable(const CwshVariableName &name)
+App::
+undefineVariable(const std::string &name)
 {
   if (! variableMgr_)
     return;
@@ -621,9 +629,9 @@ undefineVariable(const CwshVariableName &name)
   variableMgr_->undefine(name);
 }
 
-CwshVariable *
-Cwsh::
-lookupVariable(const CwshVariableName &name) const
+Variable *
+App::
+lookupVariable(const std::string &name) const
 {
   if (variableMgr_)
     return variableMgr_->lookup(name);
@@ -631,26 +639,17 @@ lookupVariable(const CwshVariableName &name) const
   return nullptr;
 }
 
-CwshVariableList::iterator
-Cwsh::
-variablesBegin()
+const VariableList &
+App::
+variables() const
 {
   assert(variableMgr_);
 
-  return variableMgr_->variablesBegin();
-}
-
-CwshVariableList::iterator
-Cwsh::
-variablesEnd()
-{
-  assert(variableMgr_);
-
-  return variableMgr_->variablesEnd();
+  return variableMgr_->variables();
 }
 
 void
-Cwsh::
+App::
 listVariables(bool all) const
 {
   if (variableMgr_)
@@ -658,7 +657,7 @@ listVariables(bool all) const
 }
 
 void
-Cwsh::
+App::
 saveVariables()
 {
   if (variableMgr_)
@@ -666,7 +665,7 @@ saveVariables()
 }
 
 void
-Cwsh::
+App::
 restoreVariables()
 {
   if (variableMgr_)
@@ -674,7 +673,7 @@ restoreVariables()
 }
 
 bool
-Cwsh::
+App::
 isEnvironmentVariableLower(const std::string &name)
 {
   if (variableMgr_)
@@ -684,7 +683,7 @@ isEnvironmentVariableLower(const std::string &name)
 }
 
 bool
-Cwsh::
+App::
 isEnvironmentVariableUpper(const std::string &name)
 {
   if (variableMgr_)
@@ -694,8 +693,8 @@ isEnvironmentVariableUpper(const std::string &name)
 }
 
 void
-Cwsh::
-updateEnvironmentVariable(CwshVariable *variable)
+App::
+updateEnvironmentVariable(Variable *variable)
 {
   if (variableMgr_)
     variableMgr_->updateEnvironmentVariable(variable);
@@ -703,29 +702,29 @@ updateEnvironmentVariable(CwshVariable *variable)
 
 //---------------
 
-CwshProcess *
-Cwsh::
-addProcess(CwshCommandData *command)
+Process *
+App::
+addProcess(CommandData *command)
 {
   return processMgr_->add(command);
 }
 
 void
-Cwsh::
-removeProcess(CwshProcess *process)
+App::
+removeProcess(Process *process)
 {
   processMgr_->remove(process);
 }
 
 void
-Cwsh::
+App::
 killProcess(int pid, int signal)
 {
   processMgr_->kill(pid, signal);
 }
 
 int
-Cwsh::
+App::
 getNumActiveProcesses()
 {
   if (! processMgr_) return 0;
@@ -734,49 +733,49 @@ getNumActiveProcesses()
 }
 
 void
-Cwsh::
-displayActiveProcesses(bool list_pids)
+App::
+displayActiveProcesses(bool listPids)
 {
-  processMgr_->displayActive(list_pids);
+  processMgr_->displayActive(listPids);
 }
 
 void
-Cwsh::
+App::
 displayExitedProcesses()
 {
   processMgr_->displayExited();
 }
 
 void
-Cwsh::
+App::
 waitActiveProcesses()
 {
   processMgr_->waitActive();
 }
 
 int
-Cwsh::
+App::
 stringToProcessId(const std::string &str)
 {
   return processMgr_->stringToPid(str);
 }
 
-CwshProcess *
-Cwsh::
+Process *
+App::
 getActiveProcess(const std::string &str)
 {
   return processMgr_->getActiveProcess(str);
 }
 
-CwshProcess *
-Cwsh::
+Process *
+App::
 getCurrentActiveProcess()
 {
   return processMgr_->getCurrentActiveProcess();
 }
 
-CwshProcess *
-Cwsh::
+Process *
+App::
 lookupProcess(pid_t pid)
 {
   return processMgr_->lookupProcess(pid);
@@ -785,14 +784,14 @@ lookupProcess(pid_t pid)
 //---------------
 
 void
-Cwsh::
+App::
 saveState()
 {
   stateMgr_->save(this);
 }
 
 void
-Cwsh::
+App::
 restoreState()
 {
   stateMgr_->restore();
@@ -800,113 +799,113 @@ restoreState()
 
 //---------------
 
-CwshBlock *
-Cwsh::
-startBlock(CwshBlockType type, const CwshLineArray &lines)
+Block *
+App::
+startBlock(BlockType type, const LineArray &lines)
 {
   return blockMgr_->startBlock(type, lines);
 }
 
 void
-Cwsh::
+App::
 endBlock()
 {
   blockMgr_->endBlock();
 }
 
 bool
-Cwsh::
+App::
 inBlock() const
 {
   return blockMgr_->inBlock();
 }
 
 bool
-Cwsh::
+App::
 blockEof() const
 {
   return blockMgr_->eof();
 }
 
-CwshLine
-Cwsh::
+Line
+App::
 blockReadLine() const
 {
   return blockMgr_->readLine();
 }
 
-CwshBlock *
-Cwsh::
-findBlock(CwshBlockType type)
+Block *
+App::
+findBlock(BlockType type)
 {
   return blockMgr_->find(type);
 }
 
 void
-Cwsh::
+App::
 gotoBlockLabel(const std::string &label)
 {
   blockMgr_->gotoLabel(label);
 }
 
 bool
-Cwsh::
+App::
 isBlockBreak() const
 {
   return blockMgr_->isBreak();
 }
 
 bool
-Cwsh::
+App::
 isBlockBreakSwitch() const
 {
   return blockMgr_->isBreakSwitch();
 }
 
 bool
-Cwsh::
+App::
 isBlockContinue() const
 {
   return blockMgr_->isContinue();
 }
 
 bool
-Cwsh::
+App::
 isBlockReturn() const
 {
   return blockMgr_->isReturn();
 }
 
 int
-Cwsh::
+App::
 getBlockGotoDepth() const
 {
   return blockMgr_->getGotoDepth();
 }
 
 void
-Cwsh::
+App::
 setBlockBreak(bool flag)
 {
   return blockMgr_->setBreak(flag);
 }
 
 void
-Cwsh::
+App::
 setBlockBreakSwitch(bool flag)
 {
   return blockMgr_->setBreakSwitch(flag);
 }
 
 void
-Cwsh::
+App::
 setBlockContinue(bool flag)
 {
   return blockMgr_->setContinue(flag);
 }
 
 void
-Cwsh::
+App::
 setBlockReturn(bool flag)
 {
   return blockMgr_->setReturn(flag);
@@ -914,11 +913,11 @@ setBlockReturn(bool flag)
 
 //---------------
 
-CwshAlias *
-Cwsh::
-defineAlias(const CwshAliasName &name, const CwshAliasValue &value)
+Alias *
+App::
+defineAlias(const std::string &name, const std::string &value)
 {
-  CwshAlias *alias = aliasMgr_->define(name, value);
+  auto *alias = aliasMgr_->define(name, value);
 
   alias->setFilename(getFilename());
   alias->setLineNum (getLineNum ());
@@ -927,28 +926,28 @@ defineAlias(const CwshAliasName &name, const CwshAliasValue &value)
 }
 
 void
-Cwsh::
-undefineAlias(const CwshAliasName &name)
+App::
+undefineAlias(const std::string &name)
 {
   aliasMgr_->undefine(name);
 }
 
-CwshAlias *
-Cwsh::
-lookupAlias(const CwshAliasName &name) const
+Alias *
+App::
+lookupAlias(const std::string &name) const
 {
   return aliasMgr_->lookup(name);
 }
 
 bool
-Cwsh::
-substituteAlias(CwshCmd *cmd, CwshCmdArray &cmds) const
+App::
+substituteAlias(Cmd *cmd, CmdArray &cmds) const
 {
   return aliasMgr_->substitute(cmd, cmds);
 }
 
 void
-Cwsh::
+App::
 displayAliases(bool all) const
 {
   aliasMgr_->display(all);
@@ -957,28 +956,28 @@ displayAliases(bool all) const
 //---------------
 
 void
-Cwsh::
-defineAutoExec(const CwshAutoExecName &name, const CwshAutoExecValue &value)
+App::
+defineAutoExec(const std::string &name, const std::string &value)
 {
   autoExecMgr_->define(name, value);
 }
 
 void
-Cwsh::
-undefineAutoExec(const CwshAutoExecName &name)
+App::
+undefineAutoExec(const std::string &name)
 {
   autoExecMgr_->undefine(name);
 }
 
-CwshAutoExec *
-Cwsh::
-lookupAutoExec(const CwshAutoExecName &name) const
+AutoExec *
+App::
+lookupAutoExec(const std::string &name) const
 {
   return autoExecMgr_->lookup(name);
 }
 
 void
-Cwsh::
+App::
 displayAutoExec() const
 {
   autoExecMgr_->display();
@@ -987,98 +986,98 @@ displayAutoExec() const
 //---------------
 
 int
-Cwsh::
+App::
 getHistoryCommandNum() const
 {
   return history_->getCommandNum();
 }
 
 bool
-Cwsh::
-findHistoryCommandStart(const std::string &text, int &command_num)
+App::
+findHistoryCommandStart(const std::string &text, int &commandNum)
 {
-  return history_->findCommandStart(text, command_num);
+  return history_->findCommandStart(text, commandNum);
 }
 
 bool
-Cwsh::
-findHistoryCommandIn(const std::string &text, int &command_num)
+App::
+findHistoryCommandIn(const std::string &text, int &commandNum)
 {
-  return history_->findCommandIn(text, command_num);
+  return history_->findCommandIn(text, commandNum);
 }
 
 bool
-Cwsh::
-findHistoryCommandArg(const std::string &text, int &command_num, int &arg_num)
+App::
+findHistoryCommandArg(const std::string &text, int &commandNum, int &argNum)
 {
-  return history_->findCommandArg(text, command_num, arg_num);
+  return history_->findCommandArg(text, commandNum, argNum);
 }
 
 std::string
-Cwsh::
+App::
 getHistoryCommand(int num)
 {
   return history_->getCommand(num);
 }
 
 std::string
-Cwsh::
-getHistoryCommandArg(int num, int arg_num)
+App::
+getHistoryCommandArg(int num, int argNum)
 {
-  return history_->getCommandArg(num, arg_num);
+  return history_->getCommandArg(num, argNum);
 }
 
 void
-Cwsh::
+App::
 addHistoryFile(const std::string &filename)
 {
   history_->addFile(filename);
 }
 
 void
-Cwsh::
+App::
 addHistoryCommand(const std::string &text)
 {
   history_->addCommand(text);
 }
 
 void
-Cwsh::
+App::
 setHistoryCurrent(const std::string &text)
 {
   history_->setCurrent(text);
 }
 
 void
-Cwsh::
-displayHistory(int num, bool show_numbers, bool show_time, bool reverse)
+App::
+displayHistory(int num, bool showNumbers, bool showTime, bool reverse)
 {
-  history_->display(num, show_numbers, show_time, reverse);
+  history_->display(num, showNumbers, showTime, reverse);
 }
 
 bool
-Cwsh::
+App::
 hasPrevHistoryCommand()
 {
   return history_->hasPrevCommand();
 }
 
 bool
-Cwsh::
+App::
 hasNextHistoryCommand()
 {
   return history_->hasNextCommand();
 }
 
 std::string
-Cwsh::
+App::
 getPrevHistoryCommand()
 {
   return history_->getPrevCommand();
 }
 
 std::string
-Cwsh::
+App::
 getNextHistoryCommand()
 {
   return history_->getNextCommand();
@@ -1086,8 +1085,8 @@ getNextHistoryCommand()
 
 //------------
 
-CwshShellCommand *
-Cwsh::
+ShellCommand *
+App::
 lookupShellCommand(const std::string &name) const
 {
   return shellCmdMgr_->lookup(name);
@@ -1096,49 +1095,49 @@ lookupShellCommand(const std::string &name) const
 //------------
 
 void
-Cwsh::
+App::
 executeInput(const std::string &filename)
 {
   input_->execute(filename);
 }
 
 void
-Cwsh::
-processInputLine(const CwshLine &line)
+App::
+processInputLine(const Line &line)
 {
   input_->processLine(line);
 }
 
 void
-Cwsh::
-getInputBlock(CwshShellCommand *command, CwshLineArray &lines)
+App::
+getInputBlock(ShellCommand *command, LineArray &lines)
 {
   input_->getBlock(command, lines);
 }
 
 void
-Cwsh::
-skipInputBlock(const CwshLine &line)
+App::
+skipInputBlock(const Line &line)
 {
   input_->skipBlock(line);
 }
 
 bool
-Cwsh::
+App::
 inputEof()
 {
   return input_->eof();
 }
 
-CwshLine
-Cwsh::
+Line
+App::
 getInputLine()
 {
   return input_->getLine();
 }
 
 std::string
-Cwsh::
+App::
 getInputPrompt()
 {
   if (getSilentMode())
@@ -1148,8 +1147,8 @@ getInputPrompt()
 }
 
 std::string
-Cwsh::
-processInputExprLine(const CwshLine &line)
+App::
+processInputExprLine(const Line &line)
 {
   return input_->processExprLine(line);
 }
@@ -1157,7 +1156,7 @@ processInputExprLine(const CwshLine &line)
 //------------
 
 std::string
-Cwsh::
+App::
 readLine()
 {
   //struct termios t;
@@ -1172,14 +1171,14 @@ readLine()
 }
 
 void
-Cwsh::
+App::
 beep()
 {
   readLine_->beep();
 }
 
 void
-Cwsh::
+App::
 readInterrupt()
 {
   readLine_->interrupt();
@@ -1188,43 +1187,43 @@ readInterrupt()
 //------------
 
 void
-Cwsh::
+App::
 pushDirStack()
 {
   dirStack_->push();
 }
 
 void
-Cwsh::
+App::
 pushDirStack(const std::string &dirname)
 {
   dirStack_->push(dirname);
 }
 
 std::string
-Cwsh::
+App::
 popDirStack()
 {
   return dirStack_->pop();
 }
 
 std::string
-Cwsh::
+App::
 popDirStack(int pos)
 {
   return dirStack_->pop(pos);
 }
 
 int
-Cwsh::
+App::
 sizeDirStack()
 {
   return dirStack_->size();
 }
 
 void
-Cwsh::
-printDirStack(bool /*expand_home*/)
+App::
+printDirStack(bool /*expandHome*/)
 {
   dirStack_->print();
 }
@@ -1232,35 +1231,35 @@ printDirStack(bool /*expand_home*/)
 //------------
 
 void
-Cwsh::
+App::
 addFilePath(const std::string &filename, const std::string &path)
 {
   hash_->addFilePath(filename, path);
 }
 
 std::string
-Cwsh::
+App::
 getFilePath(const std::string &filename)
 {
   return hash_->getFilePath(filename);
 }
 
 void
-Cwsh::
+App::
 clearFilePath()
 {
   hash_->clearFilePath();
 }
 
 void
-Cwsh::
+App::
 printFilePathStats()
 {
   hash_->printFilePathStats();
 }
 
 void
-Cwsh::
+App::
 setFilePathActive(bool flag)
 {
   hash_->setFilePathActive(flag);
@@ -1269,42 +1268,42 @@ setFilePathActive(bool flag)
 //------------
 
 void
-Cwsh::
+App::
 limitResource(const std::string &name, const std::string &value, bool hard)
 {
   resource_->limit(name, value, hard);
 }
 
 void
-Cwsh::
+App::
 unlimitAllResources()
 {
   resource_->unlimitAll();
 }
 
 void
-Cwsh::
+App::
 unlimitResource(const std::string &name)
 {
   resource_->unlimit(name);
 }
 
 void
-Cwsh::
+App::
 printAllResources(bool hard)
 {
   resource_->printAll(hard);
 }
 
 void
-Cwsh::
+App::
 printResource(const std::string &name, bool hard)
 {
   resource_->print(name, hard);
 }
 
 void
-Cwsh::
+App::
 readTimeout()
 {
 #if 0
@@ -1320,22 +1319,24 @@ readTimeout()
 }
 
 std::string
-Cwsh::
+App::
 colorLine(const std::string &line)
 {
   return "[1m" + line + "[0m";
 }
 
 std::string
-Cwsh::
+App::
 getAliasesMsg() const
 {
   return aliasMgr_->getAliasesMsg();
 }
 
 std::string
-Cwsh::
+App::
 getHistoryMsg() const
 {
   return history_->getHistoryMsg();
+}
+
 }

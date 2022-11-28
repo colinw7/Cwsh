@@ -3,23 +3,30 @@
 
 #include <CReadLine.h>
 
-class CwshReadLine : public CReadLine {
+namespace Cwsh {
+
+class ReadLine : public CReadLine {
  public:
-  CwshReadLine(Cwsh *cwsh);
+  ReadLine(App *cwsh);
 
   std::string readLine();
-  void        beep();
-  void        interrupt();
-  void        timeout();
+
+  void beep() override;
+  void interrupt() override;
+  void timeout() override;
 
  private:
-  bool completeLine(const std::string &line, std::string &line1);
-  bool showComplete(const std::string &line);
-  bool getPrevCommand(std::string &line);
-  bool getNextCommand(std::string &line);
+  bool completeLine(const std::string &line, std::string &line1) override;
+
+  bool showComplete(const std::string &line) override;
+
+  bool getPrevCommand(std::string &line) override;
+  bool getNextCommand(std::string &line) override;
 
  private:
-  CPtr<Cwsh> cwsh_;
+  CPtr<App> cwsh_;
 };
+
+}
 
 #endif

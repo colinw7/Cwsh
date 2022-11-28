@@ -1,42 +1,46 @@
 #include <CwshI.h>
 
-CwshFunctionMgr::
-CwshFunctionMgr(Cwsh *cwsh) :
+namespace Cwsh {
+
+FunctionMgr::
+FunctionMgr(App *cwsh) :
  cwsh_(cwsh)
 {
 }
 
-CwshFunction *
-CwshFunctionMgr::
-define(const CwshFunctionName &name, const CwshLineArray &lines)
+Function *
+FunctionMgr::
+define(const std::string &name, const LineArray &lines)
 {
-  auto *function = new CwshFunction(cwsh_, name, lines);
+  auto function = std::make_shared<Function>(cwsh_, name, lines);
 
-  function_list_.setValue(name, function);
+  functionList_[name] = function;
 
-  return function;
+  return function.get();
 }
 
 void
-CwshFunctionMgr::
-undefine(const CwshFunctionName &name)
+FunctionMgr::
+undefine(const std::string &name)
 {
-  function_list_.unsetValue(name);
+  functionList_.erase(name);
 }
 
-CwshFunction *
-CwshFunctionMgr::
-lookup(const CwshFunctionName &name)
+Function *
+FunctionMgr::
+lookup(const std::string &name)
 {
-  return function_list_.getValue(name);
+  auto p = functionList_.find(name);
+
+  return (p != functionList_.end() ? (*p).second.get() : nullptr);
 }
 
 void
-CwshFunctionMgr::
+FunctionMgr::
 listAll(bool all)
 {
-  for (const auto &pfunction : function_list_) {
-    CwshFunction *function = pfunction.second;
+  for (const auto &pfunction : functionList_) {
+    const auto &function = pfunction.second;
 
     function->list(all);
   }
@@ -44,37 +48,38 @@ listAll(bool all)
 
 //------
 
-CwshFunction::
-CwshFunction(Cwsh *cwsh, const CwshFunctionName &name, const CwshLineArray &lines) :
+Function::
+Function(App *cwsh, const std::string &name, const LineArray &lines) :
  cwsh_(cwsh), name_(name), lines_(lines)
 {
 }
 
-CwshFunction::
-~CwshFunction()
+Function::
+~Function()
 {
 }
+
 void
-CwshFunction::
-runProc(const CwshArgArray &args, CCommand::CallbackData data)
+Function::
+runProc(const ArgArray &args, CCommand::CallbackData data)
 {
-  auto *function = reinterpret_cast<CwshFunction *>(data);
+  auto *function = reinterpret_cast<Function *>(data);
 
   function->run(args);
 }
 
 void
-CwshFunction::
-run(const CwshArgArray &args)
+Function::
+run(const ArgArray &args)
 {
   cwsh_->saveState();
 
-  cwsh_->startBlock(CwshBlockType::FUNCTION, lines_);
+  cwsh_->startBlock(BlockType::FUNCTION, lines_);
 
   cwsh_->defineVariable("argv", args);
 
   while (! cwsh_->blockEof()) {
-    CwshLine line = cwsh_->blockReadLine();
+    auto line = cwsh_->blockReadLine();
 
     cwsh_->processInputLine(line);
 
@@ -90,16 +95,18 @@ run(const CwshArgArray &args)
 }
 
 void
-CwshFunction::
+Function::
 list(bool all)
 {
-  std::cout << CwshMgrInst.funcNameColorStr() << getName() << CwshMgrInst.resetColorStr();
+  auto *mgr = CwshMgrInst;
+
+  std::cout << mgr->funcNameColorStr() << getName() << mgr->resetColorStr();
 
   if (all) {
     std::cout << " [";
 
-    std::cout << CwshMgrInst.locationColorStr() << getFilename() << ":" << getLineNum() <<
-                 CwshMgrInst.resetColorStr();
+    std::cout << mgr->locationColorStr() << getFilename() << ":" << getLineNum() <<
+                 mgr->resetColorStr();
 
     std::cout << "]";
   }
@@ -107,3 +114,4 @@ list(bool all)
   std::cout << "\n";
 }
 
+}

@@ -1,4 +1,6 @@
-namespace CwshString {
+namespace Cwsh {
+
+namespace String {
   std::string replaceHome(const std::string &str);
   void        skipWordsToChar(const std::string &str, uint *i, int c);
   void        skipWord(const std::string &str, uint *i);
@@ -6,4 +8,6 @@ namespace CwshString {
   std::string readLineFromFile(CFile *file);
 
   bool matchUsers(const std::string &pattern, std::vector<std::string> &names);
+}
+
 }

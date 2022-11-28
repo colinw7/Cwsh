@@ -1,7 +1,9 @@
 #ifndef CWSH_COMPLETE_H
 #define CWSH_COMPLETE_H
 
-enum class CwshCompletionType {
+namespace Cwsh {
+
+enum class CompletionType {
   NONE,
   COMMAND,
   FILE,
@@ -9,13 +11,13 @@ enum class CwshCompletionType {
   USERS,
 };
 
-class CwshComplete {
+class Complete {
  public:
-  CwshComplete(Cwsh *cwsh, const std::string &line);
+  Complete(App *cwsh, const std::string &line);
 
   bool complete(std::string &line1);
 
-  CwshCompletionType getCompletionType(std::string *word);
+  CompletionType getCompletionType(std::string *word);
 
   bool completeCommand (std::string &file, std::string &filePath);
   bool completeFile    (std::string &file);
@@ -32,11 +34,13 @@ class CwshComplete {
   bool matchUsers(const std::string &pattern, std::vector<std::string> &names);
 
  private:
-  typedef std::vector<std::string> StringArray;
+  using StringArray = std::vector<std::string>;
 
-  CPtr<Cwsh>  cwsh_;
+  CPtr<App>   cwsh_;
   std::string line_;
-  StringArray file_ignore_list_;
+  StringArray fileIgnoreList_;
 };
+
+}
 
 #endif

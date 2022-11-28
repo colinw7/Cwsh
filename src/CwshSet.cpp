@@ -1,15 +1,17 @@
 #include <CwshI.h>
 
-CwshSet::
-CwshSet(Cwsh *cwsh) :
+namespace Cwsh {
+
+Set::
+Set(App *cwsh) :
  cwsh_(cwsh)
 {
 }
 
 void
-CwshSet::
+Set::
 parseSet(const std::string &str, std::string &name, int *index,
-         CwshVariableType *type, std::vector<std::string> &values)
+         VariableType *type, std::vector<std::string> &values)
 {
   uint i = 0;
 
@@ -26,8 +28,8 @@ parseSet(const std::string &str, std::string &name, int *index,
 }
 
 void
-CwshSet::
-processSet(const std::string &name, int index, CwshVariableType type,
+Set::
+processSet(const std::string &name, int index, VariableType type,
            std::vector<std::string> &values)
 {
   if (index != -1) {
@@ -36,7 +38,7 @@ processSet(const std::string &name, int index, CwshVariableType type,
     if (num_values != 1)
       CWSH_THROW("Syntax Error.");
 
-    if (type == CwshVariableType::WORDLIST || num_values != 1)
+    if (type == VariableType::WORDLIST || num_values != 1)
       CWSH_THROW("Expression Syntax.");
 
     auto *variable = cwsh_->lookupVariable(name);
@@ -54,34 +56,34 @@ processSet(const std::string &name, int index, CwshVariableType type,
 }
 
 void
-CwshSet::
+Set::
 parseAssign(const std::string &str, std::string &name, int *index,
-            CwshSetAssignType *assign_type, std::string &expr_str)
+            SetAssignType *assignType, std::string &expr_str)
 {
   uint i = 0;
 
   parseVariable(str, &i, name, index);
 
-  *assign_type = parseAssignType(str, &i);
+  *assignType = parseAssignType(str, &i);
 
-  if (*assign_type != CwshSetAssignType::INCREMENT &&
-      *assign_type != CwshSetAssignType::DECREMENT) {
-    CwshExprParse parse(cwsh_);
+  if (*assignType != SetAssignType::INCREMENT &&
+      *assignType != SetAssignType::DECREMENT) {
+    ExprParse parse(cwsh_);
 
     expr_str = parse.parse(str, &i);
   }
 }
 
 void
-CwshSet::
+Set::
 processAssign(const std::string &name, int index,
-              CwshSetAssignType assign_type, const std::string &expr_str)
+              SetAssignType assignType, const std::string &expr_str)
 {
   int integer = 0;
 
-  if (assign_type != CwshSetAssignType::INCREMENT &&
-      assign_type != CwshSetAssignType::DECREMENT) {
-    CwshExprEvaluate expr(cwsh_, expr_str);
+  if (assignType != SetAssignType::INCREMENT &&
+      assignType != SetAssignType::DECREMENT) {
+    ExprEvaluate expr(cwsh_, expr_str);
 
     integer = expr.process();
   }
@@ -105,7 +107,7 @@ processAssign(const std::string &name, int index,
     integer1 = int(CStrUtil::toInteger(str));
   }
   else {
-    if (assign_type != CwshSetAssignType::EQUALS && ! variable)
+    if (assignType != SetAssignType::EQUALS && ! variable)
       CWSH_THROW("Undefined variable.");
 
     if (variable && variable->getNumValues() > 0) {
@@ -118,43 +120,43 @@ processAssign(const std::string &name, int index,
     }
   }
 
-  switch (assign_type) {
-    case CwshSetAssignType::EQUALS:
+  switch (assignType) {
+    case SetAssignType::EQUALS:
       break;
-    case CwshSetAssignType::PLUS_EQUALS:
+    case SetAssignType::PLUS_EQUALS:
       integer = integer1 + integer;
       break;
-    case CwshSetAssignType::MINUS_EQUALS:
+    case SetAssignType::MINUS_EQUALS:
       integer = integer1 - integer;
       break;
-    case CwshSetAssignType::TIMES_EQUALS:
+    case SetAssignType::TIMES_EQUALS:
       integer = integer1 * integer;
       break;
-    case CwshSetAssignType::DIVIDE_EQUALS:
+    case SetAssignType::DIVIDE_EQUALS:
       if (integer == 0)
         CWSH_THROW("Division by 0.");
 
       integer = integer1 / integer;
       break;
-    case CwshSetAssignType::MODULUS_EQUALS:
+    case SetAssignType::MODULUS_EQUALS:
       if (integer == 0)
         CWSH_THROW("Mod by 0.");
 
       integer = integer1 % integer;
       break;
-    case CwshSetAssignType::AND_EQUALS:
+    case SetAssignType::AND_EQUALS:
       integer = integer1 & integer;
       break;
-    case CwshSetAssignType::OR_EQUALS:
+    case SetAssignType::OR_EQUALS:
       integer = integer1 | integer;
       break;
-    case CwshSetAssignType::XOR_EQUALS:
+    case SetAssignType::XOR_EQUALS:
       integer = integer1 ^ integer;
       break;
-    case CwshSetAssignType::INCREMENT:
+    case SetAssignType::INCREMENT:
       integer = ++integer1;
       break;
-    case CwshSetAssignType::DECREMENT:
+    case SetAssignType::DECREMENT:
       integer = --integer1;
       break;
     default:
@@ -168,7 +170,7 @@ processAssign(const std::string &name, int index,
 }
 
 void
-CwshSet::
+Set::
 parseVariable(const std::string &str, uint *i, std::string &name, int *index)
 {
   CStrUtil::skipSpace(str, i);
@@ -219,11 +221,11 @@ parseVariable(const std::string &str, uint *i, std::string &name, int *index)
   (*i)++;
 }
 
-CwshSetAssignType
-CwshSet::
+SetAssignType
+Set::
 parseAssignType(const std::string &str, uint *i)
 {
-  CwshSetAssignType type = CwshSetAssignType::NONE;
+  auto type = SetAssignType::NONE;
 
   CStrUtil::skipSpace(str, i);
 
@@ -231,7 +233,7 @@ parseAssignType(const std::string &str, uint *i)
     case '=':
       (*i)++;
 
-      type = CwshSetAssignType::EQUALS;
+      type = SetAssignType::EQUALS;
 
       break;
     case '+':
@@ -241,13 +243,13 @@ parseAssignType(const std::string &str, uint *i)
         case '=':
           (*i)++;
 
-          type = CwshSetAssignType::PLUS_EQUALS;
+          type = SetAssignType::PLUS_EQUALS;
 
           break;
         case '+':
           (*i)++;
 
-          type = CwshSetAssignType::INCREMENT;
+          type = SetAssignType::INCREMENT;
 
           break;
       }
@@ -260,13 +262,13 @@ parseAssignType(const std::string &str, uint *i)
         case '=':
           (*i)++;
 
-          type = CwshSetAssignType::MINUS_EQUALS;
+          type = SetAssignType::MINUS_EQUALS;
 
           break;
         case '-':
           (*i)++;
 
-          type = CwshSetAssignType::DECREMENT;
+          type = SetAssignType::DECREMENT;
 
           break;
       }
@@ -279,7 +281,7 @@ parseAssignType(const std::string &str, uint *i)
         case '=':
           (*i)++;
 
-          type = CwshSetAssignType::TIMES_EQUALS;
+          type = SetAssignType::TIMES_EQUALS;
 
           break;
       }
@@ -292,7 +294,7 @@ parseAssignType(const std::string &str, uint *i)
         case '=':
           (*i)++;
 
-          type = CwshSetAssignType::DIVIDE_EQUALS;
+          type = SetAssignType::DIVIDE_EQUALS;
 
           break;
       }
@@ -305,7 +307,7 @@ parseAssignType(const std::string &str, uint *i)
         case '=':
           (*i)++;
 
-          type = CwshSetAssignType::MODULUS_EQUALS;
+          type = SetAssignType::MODULUS_EQUALS;
 
           break;
       }
@@ -318,7 +320,7 @@ parseAssignType(const std::string &str, uint *i)
         case '=':
           (*i)++;
 
-          type = CwshSetAssignType::AND_EQUALS;
+          type = SetAssignType::AND_EQUALS;
 
           break;
       }
@@ -331,7 +333,7 @@ parseAssignType(const std::string &str, uint *i)
         case '=':
           (*i)++;
 
-          type = CwshSetAssignType::OR_EQUALS;
+          type = SetAssignType::OR_EQUALS;
 
           break;
       }
@@ -344,7 +346,7 @@ parseAssignType(const std::string &str, uint *i)
         case '=':
           (*i)++;
 
-          type = CwshSetAssignType::XOR_EQUALS;
+          type = SetAssignType::XOR_EQUALS;
 
           break;
       }
@@ -352,7 +354,7 @@ parseAssignType(const std::string &str, uint *i)
       break;
   }
 
-  if (type == CwshSetAssignType::NONE)
+  if (type == SetAssignType::NONE)
     CWSH_THROW("Syntax error.");
 
   CStrUtil::skipSpace(str, i);
@@ -361,8 +363,8 @@ parseAssignType(const std::string &str, uint *i)
 }
 
 void
-CwshSet::
-setValues(const std::string &str, uint *i, CwshVariableType *type,
+Set::
+setValues(const std::string &str, uint *i, VariableType *type,
           std::vector<std::string> &values)
 {
   CStrUtil::skipSpace(str, i);
@@ -370,26 +372,26 @@ setValues(const std::string &str, uint *i, CwshVariableType *type,
   uint len = uint(str.size());
 
   if (*i < len && str[*i] == '(') {
-    *type = CwshVariableType::WORDLIST;
+    *type = VariableType::WORDLIST;
 
     (*i)++;
 
     int j = *i;
 
-    CwshString::skipWordsToChar(str, i, ')');
+    String::skipWordsToChar(str, i, ')');
 
     std::string str1 = str.substr(j, *i - j);
 
     (*i)++;
 
-    CwshString::addWords(str1, values);
+    String::addWords(str1, values);
   }
   else {
-    *type = CwshVariableType::WORD;
+    *type = VariableType::WORD;
 
     int j = *i;
 
-    CwshString::skipWord(str, i);
+    String::skipWord(str, i);
 
     std::string str1 = str.substr(j, *i - j);
 
@@ -397,4 +399,6 @@ setValues(const std::string &str, uint *i, CwshVariableType *type,
   }
 
   CStrUtil::skipSpace(str, i);
+}
+
 }

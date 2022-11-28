@@ -2,22 +2,24 @@
 #include <CFileMatch.h>
 #include <COSTerm.h>
 
-CwshMatch::
-CwshMatch(Cwsh *cwsh) :
+namespace Cwsh {
+
+Match::
+Match(App *cwsh) :
  cwsh_(cwsh) {
 }
 
 bool
-CwshMatch::
+Match::
 showMatch(const std::string &line)
 {
   std::string word;
 
-  CwshComplete complete(cwsh_, line);
+  Complete complete(cwsh_, line);
 
-  CwshCompletionType type = complete.getCompletionType(&word);
+  auto type = complete.getCompletionType(&word);
 
-  if (type == CwshCompletionType::NONE) {
+  if (type == CompletionType::NONE) {
     cwsh_->beep();
 
     return false;
@@ -27,9 +29,9 @@ showMatch(const std::string &line)
 
   std::vector<std::string> words;
 
-  if      (type == CwshCompletionType::COMMAND)
+  if      (type == CompletionType::COMMAND)
     getPathMatch(word, words);
-  else if (type == CwshCompletionType::FILE) {
+  else if (type == CompletionType::FILE) {
     std::string::size_type pos = word.rfind('/');
 
     if (pos != std::string::npos) {
@@ -45,31 +47,31 @@ showMatch(const std::string &line)
     else
       getFileMatch(word, words);
   }
-  else if (type == CwshCompletionType::VAR)
+  else if (type == CompletionType::VAR)
     getVarMatch(word, words);
-  else if (type == CwshCompletionType::USERS)
+  else if (type == CompletionType::USERS)
     getUsersMatch(word, words);
   else
     return false;
 
   CStrUtil::sort(words);
 
-  std::vector<std::string> uniq_words;
+  std::vector<std::string> uniqWords;
 
-  CStrUtil::uniq(words, uniq_words);
+  CStrUtil::uniq(words, uniqWords);
 
   std::cout << "\n";
 
-  print(uniq_words);
+  print(uniqWords);
 
   return true;
 }
 
 bool
-CwshMatch::
-getPathMatch(const std::string &pattern_str, std::vector<std::string> &words)
+Match::
+getPathMatch(const std::string &patternStr, std::vector<std::string> &words)
 {
-  CwshPattern pattern(cwsh_, pattern_str);
+  Pattern pattern(cwsh_, patternStr);
 
   if (! pattern.expandPath(words)) {
     cwsh_->beep();
@@ -81,12 +83,12 @@ getPathMatch(const std::string &pattern_str, std::vector<std::string> &words)
 }
 
 bool
-CwshMatch::
-getFileMatch(const std::string &pattern_str, std::vector<std::string> &words)
+Match::
+getFileMatch(const std::string &patternStr, std::vector<std::string> &words)
 {
   CFileMatch fileMatch;
 
-  if (! fileMatch.matchPrefix(pattern_str, words)) {
+  if (! fileMatch.matchPrefix(patternStr, words)) {
     cwsh_->beep();
 
     return false;
@@ -96,10 +98,10 @@ getFileMatch(const std::string &pattern_str, std::vector<std::string> &words)
 }
 
 bool
-CwshMatch::
-getVarMatch(const std::string &pattern_str, std::vector<std::string> &words)
+Match::
+getVarMatch(const std::string &patternStr, std::vector<std::string> &words)
 {
-  CwshPattern pattern(cwsh_, pattern_str);
+  Pattern pattern(cwsh_, patternStr);
 
   if (! pattern.expandVar(words)) {
     cwsh_->beep();
@@ -111,10 +113,10 @@ getVarMatch(const std::string &pattern_str, std::vector<std::string> &words)
 }
 
 bool
-CwshMatch::
-getUsersMatch(const std::string &pattern_str, std::vector<std::string> &words)
+Match::
+getUsersMatch(const std::string &patternStr, std::vector<std::string> &words)
 {
-  if (! CwshString::matchUsers(pattern_str, words)) {
+  if (! String::matchUsers(patternStr, words)) {
     cwsh_->beep();
 
     return false;
@@ -124,38 +126,38 @@ getUsersMatch(const std::string &pattern_str, std::vector<std::string> &words)
 }
 
 void
-CwshMatch::
-print(std::vector<std::string> &words)
+Match::
+print(const std::vector<std::string> &words) const
 {
-  int max_len = CStrUtil::maxLen(words);
+  int maxLen = CStrUtil::maxLen(words);
 
-  int screen_width, screen_height;
+  int screenRows, screenCols;
 
-  COSTerm::getCharSize(&screen_width, &screen_height);
+  COSTerm::getCharSize(&screenRows, &screenCols);
 
-  int num_words = int(words.size());
+  int numWords = int(words.size());
 
-  int words_per_line = std::max(screen_width / (max_len + 1), 1);
+  int wordsPerLine = std::max(screenCols/(maxLen + 1), 1);
 
-  int num_lines = num_words / words_per_line;
+  int numLines = numWords / wordsPerLine;
 
-  if ((num_words % words_per_line) != 0)
-    ++num_lines;
+  if ((numWords % wordsPerLine) != 0)
+    ++numLines;
 
   int i = 0;
   int j = 0;
 
-  while (i < num_words && j < num_lines) {
+  while (i < numWords && j < numLines) {
     int len = int(words[i].size());
 
     std::cout << words[i];
 
-    for (int k = 0; k <= max_len - len; ++k)
+    for (int k = 0; k <= maxLen - len; ++k)
       std::cout << " ";
 
-    i += num_lines;
+    i += numLines;
 
-    if (i >= num_words) {
+    if (i >= numWords) {
       std::cout << "\n";
 
       ++j;
@@ -163,4 +165,6 @@ print(std::vector<std::string> &words)
       i = j;
     }
   }
+}
+
 }

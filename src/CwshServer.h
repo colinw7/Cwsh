@@ -3,18 +3,25 @@
 
 class CMessage;
 
-class CwshServer {
+namespace Cwsh {
+
+class Server {
  public:
-  CwshServer(Cwsh *cwsh);
- ~CwshServer();
+  using MessageP = std::shared_ptr<CMessage>;
+
+ public:
+  Server(App *cwsh);
+ ~Server();
 
   bool processMessage();
 
-  static CMessage *createMessage();
+  static MessageP createMessage();
 
  private:
-  CPtr<Cwsh>         cwsh_;
-  CAutoPtr<CMessage> message_;
+  CPtr<App> cwsh_;
+  MessageP  message_;
 };
+
+}
 
 #endif

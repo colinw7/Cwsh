@@ -1,27 +1,29 @@
 #include <CwshI.h>
 #include <CMessage.h>
 
-CwshServer::
-CwshServer(Cwsh *cwsh) :
+namespace Cwsh {
+
+Server::
+Server(App *cwsh) :
  cwsh_(cwsh)
 {
   message_ = createMessage();
 }
 
-CwshServer::
-~CwshServer()
+Server::
+~Server()
 {
 }
 
-CMessage *
-CwshServer::
+Server::MessageP
+Server::
 createMessage()
 {
-  return new CMessage("CwshServer");
+  return std::make_shared<CMessage>("CwshServer");
 }
 
 bool
-CwshServer::
+Server::
 processMessage()
 {
   std::string msg;
@@ -75,4 +77,6 @@ processMessage()
   message_->sendServerMessage(reply, 0);
 
   return true;
+}
+
 }

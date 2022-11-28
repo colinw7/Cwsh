@@ -1,30 +1,34 @@
 #include <CwshI.h>
 #include <CGlob.h>
 
-CwshWildCard::
-CwshWildCard(const std::string &pattern)
+namespace Cwsh {
+
+WildCard::
+WildCard(const std::string &pattern)
 {
-  glob_ = new CGlob(pattern);
+  glob_ = std::make_shared<CGlob>(pattern);
 
   glob_->setAllowOr(false);
   glob_->setAllowNonPrintable(true);
 }
 
-CwshWildCard::
-~CwshWildCard()
+WildCard::
+~WildCard()
 {
 }
 
 bool
-CwshWildCard::
+WildCard::
 isValid() const
 {
   return glob_->isPattern();
 }
 
 bool
-CwshWildCard::
+WildCard::
 checkMatch(const std::string &str) const
 {
   return glob_->compare(str);
+}
+
 }

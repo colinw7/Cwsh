@@ -1,46 +1,45 @@
 #include <CwshI.h>
 
-CwshStateMgr::
-CwshStateMgr(Cwsh *cwsh) :
+namespace Cwsh {
+
+StateMgr::
+StateMgr(App *cwsh) :
  cwsh_(cwsh)
 {
 }
 
 void
-CwshStateMgr::
-save(Cwsh *cwsh)
+StateMgr::
+save(App *cwsh)
 {
-  if (current_state_) {
-    state_stack_.push(current_state_);
+  if (currentState_)
+    stateStack_.push_back(currentState_);
 
-    current_state_.release();
-  }
-
-  current_state_ = new CwshState(cwsh);
+  currentState_ = std::make_shared<State>(cwsh);
 }
 
 void
-CwshStateMgr::
+StateMgr::
 restore()
 {
-  if (! current_state_)
+  if (! currentState_)
     CWSH_THROW("Not in saved state.");
 
-  if (! state_stack_.empty()) {
-    CwshState *state;
+  if (! stateStack_.empty()) {
+    auto state = stateStack_.back();
 
-    state_stack_.pop(&state);
+    stateStack_.pop_back();
 
-    current_state_ = state;
+    currentState_ = state;
   }
   else
-    current_state_ = nullptr;
+    currentState_ = StateP();
 }
 
 //-----
 
-CwshState::
-CwshState(Cwsh *cwsh) :
+State::
+State(App *cwsh) :
  cwsh_(cwsh)
 {
   dir_ = COSFile::getCurrentDir();
@@ -48,10 +47,12 @@ CwshState(Cwsh *cwsh) :
   cwsh_->saveVariables();
 }
 
-CwshState::
-~CwshState()
+State::
+~State()
 {
   cwsh_->changeDir(dir_);
 
   cwsh_->restoreVariables();
+}
+
 }

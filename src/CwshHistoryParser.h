@@ -1,10 +1,12 @@
 #ifndef CWSH_HISTORY_PARSER_H
 #define CWSH_HISTORY_PARSER_H
 
-class CwshHistoryParser {
+namespace Cwsh {
+
+class HistoryParser {
  public:
-  CwshHistoryParser(Cwsh *cwsh);
- ~CwshHistoryParser();
+  HistoryParser(App *cwsh);
+ ~HistoryParser();
 
   std::string parseLine(const std::string &str);
 
@@ -28,12 +30,14 @@ class CwshHistoryParser {
   bool isSubStrChar(char c);
 
  private:
-  CPtr<Cwsh>                 cwsh_;
-  std::string                str_;
-  uint                       pos_       { 0 };
-  CwshHistoryOperation      *operation_ { nullptr };
-  CwshHistoryOperationArray  operations_;
-  bool                       print_     { false };
+  CPtr<App>              cwsh_;
+  std::string            str_;
+  uint                   pos_       { 0 };
+  HistoryOperation      *operation_ { nullptr };
+  HistoryOperationArray  operations_;
+  bool                   print_     { false };
 };
+
+}
 
 #endif

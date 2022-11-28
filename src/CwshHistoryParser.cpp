@@ -1,7 +1,9 @@
 #include <CwshI.h>
 #include <CwshHistoryParser.h>
 
-enum class CwshHistoryCommandType {
+namespace Cwsh {
+
+enum class HistoryCommandType {
   NONE,
   QUICK_SUBSTR,
   USE_RESULT,
@@ -10,7 +12,7 @@ enum class CwshHistoryCommandType {
   SEARCH_ARG
 };
 
-enum class CwshHistoryModifierType {
+enum class HistoryModifierType {
   NONE,
   PRINT,
   SUBSTITUTE,
@@ -23,43 +25,43 @@ enum class CwshHistoryModifierType {
   TAIL
 };
 
-class CwshHistoryModifier {
- private:
-  CwshHistoryModifierType type_;
-  bool                    global_;
-  std::string             old_str_;
-  std::string             new_str_;
-
+class HistoryModifier {
  public:
-  CwshHistoryModifier(CwshHistoryModifierType type, bool global,
-                      const std::string &old_str, const std::string &new_str) :
+  HistoryModifier(HistoryModifierType type, bool global,
+                  const std::string &old_str, const std::string &new_str) :
    type_(type), global_(global), old_str_(old_str), new_str_(new_str) {
   }
 
-  CwshHistoryModifierType getType     () const { return type_   ; }
-  bool                    isGlobal    () const { return global_ ; }
-  std::string             getOldString() const { return old_str_; }
-  std::string             getNewString() const { return new_str_; }
+  HistoryModifierType getType     () const { return type_   ; }
+  bool                isGlobal    () const { return global_ ; }
+  std::string         getOldString() const { return old_str_; }
+  std::string         getNewString() const { return new_str_; }
 
   void print() const;
+
+ private:
+  HistoryModifierType type_;
+  bool                global_;
+  std::string         old_str_;
+  std::string         new_str_;
 };
 
-typedef std::vector<CwshHistoryModifier> CwshHistoryModifierList;
+using HistoryModifierList = std::vector<HistoryModifier>;
 
 //---
 
-class CwshHistoryOperation {
-  CINST_COUNT_MEMBER(CwshHistoryOperation);
+class HistoryOperation {
+  CINST_COUNT_MEMBER(HistoryOperation);
 
  public:
-  CwshHistoryOperation(Cwsh *cwsh);
- ~CwshHistoryOperation();
+  HistoryOperation(App *cwsh);
+ ~HistoryOperation();
 
   void setStartPos(int pos) { start_pos_ = pos; }
   void setEndPos  (int pos) { end_pos_   = pos; }
 
-  void setCommandType(CwshHistoryCommandType type) { command_type_ = type; }
-  void setCommandNum (int                    num ) { command_num_  = num ; }
+  void setCommandType(HistoryCommandType type) { command_type_ = type; }
+  void setCommandNum (int                num ) { command_num_  = num ; }
 
   void setNewString(const std::string &str) { new_str_ = str ; }
   void setOldString(const std::string &str) { old_str_ = str ; }
@@ -69,51 +71,51 @@ class CwshHistoryOperation {
 
   void setForceArgs(bool flag) { force_args_ = flag; }
 
-  void addModifier(const CwshHistoryModifier &modifier) {
+  void addModifier(const HistoryModifier &modifier) {
     modifiers_.push_back(modifier);
   }
 
-  std::string apply(CwshHistoryParser &parser, const std::string &line);
-  std::string apply(CwshHistoryParser &parser, const std::string &line,
+  std::string apply(HistoryParser &parser, const std::string &line);
+  std::string apply(HistoryParser &parser, const std::string &line,
                     const std::vector<std::string> &words);
 
   void display(const std::string &str) const;
 
  private:
-  CPtr<Cwsh>              cwsh_;
+  CPtr<App> cwsh_;
 
-  int                     start_pos_;
-  int                     end_pos_;
+  int start_pos_ { 0 };
+  int end_pos_   { 0 };
 
-  CwshHistoryCommandType  command_type_;
-  int                     command_num_;
-  std::string             old_str_;
-  std::string             new_str_;
+  HistoryCommandType command_type_ { HistoryCommandType::NONE };
+  int                command_num_ { 0 };
+  std::string        old_str_;
+  std::string        new_str_;
 
-  int                     start_arg_num_;
-  int                     end_arg_num_;
-  bool                    force_args_;
+  int  start_arg_num_ { 0 };
+  int  end_arg_num_   { -1 };
+  bool force_args_    { false };
 
-  CwshHistoryModifierList modifiers_;
+  HistoryModifierList modifiers_;
 };
 
 //---
 
-CwshHistoryParser::
-CwshHistoryParser(Cwsh *cwsh) :
+HistoryParser::
+HistoryParser(App *cwsh) :
  cwsh_(cwsh)
 {
 }
 
-CwshHistoryParser::
-~CwshHistoryParser()
+HistoryParser::
+~HistoryParser()
 {
   for (auto &operation : operations_)
     delete operation;
 }
 
 std::string
-CwshHistoryParser::
+HistoryParser::
 parseLine(const std::string &line)
 {
   parse(line);
@@ -127,7 +129,7 @@ parseLine(const std::string &line)
 }
 
 void
-CwshHistoryParser::
+HistoryParser::
 parse(const std::string &str)
 {
   str_ = str;
@@ -135,7 +137,7 @@ parse(const std::string &str)
   uint len = uint(str_.size());
 
   if (len > 0 && str_[0] == '^') {
-    operation_ = new CwshHistoryOperation(cwsh_);
+    operation_ = new HistoryOperation(cwsh_);
 
     operation_->setStartPos(0);
 
@@ -155,7 +157,7 @@ parse(const std::string &str)
       }
       else if (str_[pos_] == '!') {
         if (isCommand()) {
-          operation_ = new CwshHistoryOperation(cwsh_);
+          operation_ = new HistoryOperation(cwsh_);
 
           operation_->setStartPos(pos_);
 
@@ -175,7 +177,7 @@ parse(const std::string &str)
 }
 
 bool
-CwshHistoryParser::
+HistoryParser::
 isCommand()
 {
   int pos1 = pos_;
@@ -197,7 +199,7 @@ isCommand()
 }
 
 void
-CwshHistoryParser::
+HistoryParser::
 parseCommand()
 {
   pos_++;
@@ -217,7 +219,7 @@ parseCommand()
 }
 
 void
-CwshHistoryParser::
+HistoryParser::
 parseSubStr()
 {
   uint len = uint(str_.size());
@@ -237,7 +239,7 @@ parseSubStr()
 
     pos_++;
 
-    operation_->setCommandType(CwshHistoryCommandType::USE_RESULT);
+    operation_->setCommandType(HistoryCommandType::USE_RESULT);
     operation_->setNewString  (str_.substr(0, pos1));
 
     return;
@@ -260,7 +262,7 @@ parseSubStr()
     if (numeric)
       operation_->setCommandNum(int(CStrUtil::toInteger(str)));
     else {
-      operation_->setCommandType(CwshHistoryCommandType::SEARCH_START);
+      operation_->setCommandType(HistoryCommandType::SEARCH_START);
       operation_->setNewString  (str);
     }
 
@@ -290,7 +292,7 @@ parseSubStr()
       operation_->setCommandNum(command_num - int(CStrUtil::toInteger(str)));
     }
     else {
-      operation_->setCommandType(CwshHistoryCommandType::SEARCH_START);
+      operation_->setCommandType(HistoryCommandType::SEARCH_START);
       operation_->setNewString  (str);
     }
 
@@ -315,12 +317,12 @@ parseSubStr()
 
       int command_num = cwsh_->getHistoryCommandNum();
 
-      operation_->setCommandType(CwshHistoryCommandType::SEARCH_ARG);
+      operation_->setCommandType(HistoryCommandType::SEARCH_ARG);
       operation_->setCommandNum (command_num - 1);
       operation_->setNewString  (str);
     }
     else {
-      operation_->setCommandType(CwshHistoryCommandType::SEARCH_IN);
+      operation_->setCommandType(HistoryCommandType::SEARCH_IN);
       operation_->setNewString  (str);
     }
 
@@ -340,7 +342,7 @@ parseSubStr()
     if (str_[pos_] == '}')
       pos_++;
 
-    operation_->setCommandType(CwshHistoryCommandType::SEARCH_START);
+    operation_->setCommandType(HistoryCommandType::SEARCH_START);
     operation_->setNewString  (str);
 
     return;
@@ -362,12 +364,12 @@ parseSubStr()
 
   std::string str = str_.substr(pos1, pos_ - pos1);
 
-  operation_->setCommandType(CwshHistoryCommandType::SEARCH_START);
+  operation_->setCommandType(HistoryCommandType::SEARCH_START);
   operation_->setNewString  (str);
 }
 
 void
-CwshHistoryParser::
+HistoryParser::
 parseArgSelector()
 {
   bool colon_found = false;
@@ -493,7 +495,7 @@ parseArgSelector()
 }
 
 bool
-CwshHistoryParser::
+HistoryParser::
 parseModifier()
 {
   // Check if we have a History Modifier
@@ -544,7 +546,7 @@ parseModifier()
     global = true;
   }
 
-  CwshHistoryModifierType type = CwshHistoryModifierType::NONE;
+  auto type = HistoryModifierType::NONE;
 
   std::string old_str;
   std::string new_str;
@@ -552,12 +554,12 @@ parseModifier()
   if      (str_[pos_] == 'p') {
     pos_++;
 
-    type = CwshHistoryModifierType::PRINT;
+    type = HistoryModifierType::PRINT;
   }
   else if (str_[pos_] == 's') {
     pos_++;
 
-    type = CwshHistoryModifierType::SUBSTITUTE;
+    type = HistoryModifierType::SUBSTITUTE;
 
     if (pos_ >= len || str_[pos_] != '/')
       CWSH_THROW("Bad substitute.");
@@ -587,42 +589,42 @@ parseModifier()
   else if (str_[pos_] == '&') {
     pos_++;
 
-    type = CwshHistoryModifierType::REPEAT;
+    type = HistoryModifierType::REPEAT;
   }
   else if (str_[pos_] == 'q') {
     pos_++;
 
-    type = CwshHistoryModifierType::QUOTE_WORDLIST;
+    type = HistoryModifierType::QUOTE_WORDLIST;
   }
   else if (str_[pos_] == 'x') {
     pos_++;
 
-    type = CwshHistoryModifierType::QUOTE_WORDS;
+    type = HistoryModifierType::QUOTE_WORDS;
   }
   else if (str_[pos_] == 'r') {
     pos_++;
 
-    type = CwshHistoryModifierType::ROOT;
+    type = HistoryModifierType::ROOT;
   }
   else if (str_[pos_] == 'e') {
     pos_++;
 
-    type = CwshHistoryModifierType::EXTENSION;
+    type = HistoryModifierType::EXTENSION;
   }
   else if (str_[pos_] == 'h') {
     pos_++;
 
-    type = CwshHistoryModifierType::HEADER;
+    type = HistoryModifierType::HEADER;
   }
   else if (str_[pos_] == 't') {
     pos_++;
 
-    type = CwshHistoryModifierType::TAIL;
+    type = HistoryModifierType::TAIL;
   }
   else
     CWSH_THROW("Bad modifier.");
 
-  CwshHistoryModifier modifier(type, global, old_str, new_str);
+  HistoryModifier modifier(type, global, old_str, new_str);
 
   operation_->addModifier(modifier);
 
@@ -630,13 +632,13 @@ parseModifier()
 }
 
 void
-CwshHistoryParser::
+HistoryParser::
 parseQuickSubStr()
 {
   int command_num = cwsh_->getHistoryCommandNum();
 
   operation_->setCommandNum (command_num - 1);
-  operation_->setCommandType(CwshHistoryCommandType::QUICK_SUBSTR);
+  operation_->setCommandType(HistoryCommandType::QUICK_SUBSTR);
 
   //------
 
@@ -670,7 +672,7 @@ parseQuickSubStr()
 }
 
 std::string
-CwshHistoryParser::
+HistoryParser::
 apply()
 {
   std::string str = str_;
@@ -683,14 +685,14 @@ apply()
   if (print_) {
     std::cout << str << "\n";
 
-    throw CwshHistoryIgnore();
+    throw HistoryIgnore();
   }
 
   return str;
 }
 
 std::string
-CwshHistoryParser::
+HistoryParser::
 apply(const std::vector<std::string> &words)
 {
   std::string str = str_;
@@ -707,14 +709,14 @@ apply(const std::vector<std::string> &words)
   if (print_) {
     std::cout << str << "\n";
 
-    throw CwshHistoryIgnore();
+    throw HistoryIgnore();
   }
 
   return str;
 }
 
 void
-CwshHistoryParser::
+HistoryParser::
 display() const
 {
   uint num_operations = uint(operations_.size());
@@ -724,7 +726,7 @@ display() const
 }
 
 bool
-CwshHistoryParser::
+HistoryParser::
 isSubStrChar(char c)
 {
   if (c != '^' && c != '$' && c != '-' && c != '*' &&
@@ -736,29 +738,20 @@ isSubStrChar(char c)
 
 //---------------
 
-CwshHistoryOperation::
-CwshHistoryOperation(Cwsh *cwsh) :
+HistoryOperation::
+HistoryOperation(App *cwsh) :
  cwsh_(cwsh)
 {
-  start_pos_     = 0;
-  end_pos_       = 0;
-  command_num_   = 0;
-  start_arg_num_ = 0;
-  end_arg_num_   = -1;
-  force_args_    = false;
-  command_type_  = CwshHistoryCommandType::NONE;
-  old_str_       = "";
-  new_str_       = "";
 }
 
-CwshHistoryOperation::
-~CwshHistoryOperation()
+HistoryOperation::
+~HistoryOperation()
 {
 }
 
 std::string
-CwshHistoryOperation::
-apply(CwshHistoryParser &parser, const std::string &line)
+HistoryOperation::
+apply(HistoryParser &parser, const std::string &line)
 {
   std::string lstr = line.substr(0, start_pos_);
 
@@ -771,7 +764,7 @@ apply(CwshHistoryParser &parser, const std::string &line)
 
   std::string command;
 
-  if      (command_type_ == CwshHistoryCommandType::QUICK_SUBSTR) {
+  if      (command_type_ == HistoryCommandType::QUICK_SUBSTR) {
     command = cwsh_->getHistoryCommand(command_num_);
 
     std::string::size_type pos = command.find(old_str_);
@@ -790,21 +783,21 @@ apply(CwshHistoryParser &parser, const std::string &line)
 
     command = commandl + new_str_ + commandr;
   }
-  else if (command_type_ == CwshHistoryCommandType::USE_RESULT)
+  else if (command_type_ == HistoryCommandType::USE_RESULT)
     command = new_str_;
-  else if      (command_type_ == CwshHistoryCommandType::SEARCH_START) {
+  else if      (command_type_ == HistoryCommandType::SEARCH_START) {
     if (! cwsh_->findHistoryCommandStart(new_str_, command_num_))
       CWSH_THROW(new_str_ + ": Event not found.");
 
     command = cwsh_->getHistoryCommand(command_num_);
   }
-  else if (command_type_ == CwshHistoryCommandType::SEARCH_IN) {
+  else if (command_type_ == HistoryCommandType::SEARCH_IN) {
     if (! cwsh_->findHistoryCommandIn(new_str_, command_num_))
       CWSH_THROW(new_str_ + ": Event not found.");
 
     command = cwsh_->getHistoryCommand(command_num_);
   }
-  else if (command_type_ == CwshHistoryCommandType::SEARCH_ARG) {
+  else if (command_type_ == HistoryCommandType::SEARCH_ARG) {
     int arg_num;
 
     if (! cwsh_->findHistoryCommandArg(new_str_, command_num_, arg_num))
@@ -841,14 +834,14 @@ apply(CwshHistoryParser &parser, const std::string &line)
   int num_modifiers = int(modifiers_.size());
 
   for (int i = 0; i < num_modifiers; i++) {
-    CwshHistoryModifierType  type    = modifiers_[i].getType();
-    bool                     global  = modifiers_[i].isGlobal();
-    const std::string       &new_str = modifiers_[i].getNewString();
-    const std::string       &old_str = modifiers_[i].getOldString();
+    HistoryModifierType  type    = modifiers_[i].getType();
+    bool                 global  = modifiers_[i].isGlobal();
+    const std::string   &new_str = modifiers_[i].getNewString();
+    const std::string   &old_str = modifiers_[i].getOldString();
 
-    if      (type == CwshHistoryModifierType::PRINT)
+    if      (type == HistoryModifierType::PRINT)
       parser.setPrint(true);
-    else if (type == CwshHistoryModifierType::SUBSTITUTE) {
+    else if (type == HistoryModifierType::SUBSTITUTE) {
       if (! global) {
         std::string::size_type pos = command.find(old_str);
 
@@ -905,13 +898,13 @@ apply(CwshHistoryParser &parser, const std::string &line)
         }
       }
     }
-    else if (type == CwshHistoryModifierType::REPEAT) {
+    else if (type == HistoryModifierType::REPEAT) {
     }
-    else if (type == CwshHistoryModifierType::QUOTE_WORDLIST) {
+    else if (type == HistoryModifierType::QUOTE_WORDLIST) {
     }
-    else if (type == CwshHistoryModifierType::QUOTE_WORDS) {
+    else if (type == HistoryModifierType::QUOTE_WORDS) {
     }
-    else if (type == CwshHistoryModifierType::ROOT) {
+    else if (type == HistoryModifierType::ROOT) {
       CStrWords rwords = CStrUtil::toWords(command, nullptr);
 
       int num_words = int(rwords.size());
@@ -930,7 +923,7 @@ apply(CwshHistoryParser &parser, const std::string &line)
 
       command = CStrUtil::toString(rwords, " ");
     }
-    else if (type == CwshHistoryModifierType::EXTENSION) {
+    else if (type == HistoryModifierType::EXTENSION) {
       CStrWords ewords = CStrUtil::toWords(command, nullptr);
 
       int num_words = int(ewords.size());
@@ -949,7 +942,7 @@ apply(CwshHistoryParser &parser, const std::string &line)
 
       command = CStrUtil::toString(ewords, " ");
     }
-    else if (type == CwshHistoryModifierType::HEADER) {
+    else if (type == HistoryModifierType::HEADER) {
       CStrWords hwords = CStrUtil::toWords(command, nullptr);
 
       int num_words = int(hwords.size());
@@ -968,7 +961,7 @@ apply(CwshHistoryParser &parser, const std::string &line)
 
       command = CStrUtil::toString(hwords, " ");
     }
-    else if (type == CwshHistoryModifierType::TAIL) {
+    else if (type == HistoryModifierType::TAIL) {
       CStrWords twords = CStrUtil::toWords(command, nullptr);
 
       int num_words = int(twords.size());
@@ -995,8 +988,8 @@ apply(CwshHistoryParser &parser, const std::string &line)
 }
 
 std::string
-CwshHistoryOperation::
-apply(CwshHistoryParser &parser, const std::string &line, const std::vector<std::string> &words)
+HistoryOperation::
+apply(HistoryParser &parser, const std::string &line, const std::vector<std::string> &words)
 {
   int command_num = cwsh_->getHistoryCommandNum();
 
@@ -1038,14 +1031,14 @@ apply(CwshHistoryParser &parser, const std::string &line, const std::vector<std:
   int num_modifiers = int(modifiers_.size());
 
   for (int i = 0; i < num_modifiers; i++) {
-    CwshHistoryModifierType  type    = modifiers_[i].getType();
-    bool                     global  = modifiers_[i].isGlobal();
-    const std::string       &new_str = modifiers_[i].getNewString();
-    const std::string       &old_str = modifiers_[i].getOldString();
+    HistoryModifierType  type    = modifiers_[i].getType();
+    bool                 global  = modifiers_[i].isGlobal();
+    const std::string   &new_str = modifiers_[i].getNewString();
+    const std::string   &old_str = modifiers_[i].getOldString();
 
-    if      (type == CwshHistoryModifierType::PRINT)
+    if      (type == HistoryModifierType::PRINT)
       parser.setPrint(true);
-    else if (type == CwshHistoryModifierType::SUBSTITUTE) {
+    else if (type == HistoryModifierType::SUBSTITUTE) {
       if (! global) {
         std::string::size_type pos = command.find(old_str);
 
@@ -1102,13 +1095,13 @@ apply(CwshHistoryParser &parser, const std::string &line, const std::vector<std:
         }
       }
     }
-    else if (type == CwshHistoryModifierType::REPEAT) {
+    else if (type == HistoryModifierType::REPEAT) {
     }
-    else if (type == CwshHistoryModifierType::QUOTE_WORDLIST) {
+    else if (type == HistoryModifierType::QUOTE_WORDLIST) {
     }
-    else if (type == CwshHistoryModifierType::QUOTE_WORDS) {
+    else if (type == HistoryModifierType::QUOTE_WORDS) {
     }
-    else if (type == CwshHistoryModifierType::ROOT) {
+    else if (type == HistoryModifierType::ROOT) {
       CStrWords words1 = CStrUtil::toWords(command, nullptr);
 
       int num_words1 = int(words1.size());
@@ -1127,7 +1120,7 @@ apply(CwshHistoryParser &parser, const std::string &line, const std::vector<std:
 
       command = CStrUtil::toString(words1, " ");
     }
-    else if (type == CwshHistoryModifierType::EXTENSION) {
+    else if (type == HistoryModifierType::EXTENSION) {
       CStrWords words1 = CStrUtil::toWords(command, nullptr);
 
       int num_words1 = int(words1.size());
@@ -1146,7 +1139,7 @@ apply(CwshHistoryParser &parser, const std::string &line, const std::vector<std:
 
       command = CStrUtil::toString(words1, " ");
     }
-    else if (type == CwshHistoryModifierType::HEADER) {
+    else if (type == HistoryModifierType::HEADER) {
       CStrWords words1 = CStrUtil::toWords(command, nullptr);
 
       int num_words1 = int(words1.size());
@@ -1165,7 +1158,7 @@ apply(CwshHistoryParser &parser, const std::string &line, const std::vector<std:
 
       command = CStrUtil::toString(words1, " ");
     }
-    else if (type == CwshHistoryModifierType::TAIL) {
+    else if (type == HistoryModifierType::TAIL) {
       CStrWords words1 = CStrUtil::toWords(command, nullptr);
 
       int num_words1 = int(words1.size());
@@ -1192,23 +1185,23 @@ apply(CwshHistoryParser &parser, const std::string &line, const std::vector<std:
 }
 
 void
-CwshHistoryOperation::
+HistoryOperation::
 display(const std::string &str) const
 {
   std::string command = str.substr(start_pos_, end_pos_ - start_pos_);
 
   std::cout << "Command " << command << "\n";
 
-  if      (command_type_ == CwshHistoryCommandType::QUICK_SUBSTR)
+  if      (command_type_ == HistoryCommandType::QUICK_SUBSTR)
     std::cout << "Replace " << old_str_ << " with " << new_str_ << "\n";
-  else if (command_type_ == CwshHistoryCommandType::USE_RESULT)
+  else if (command_type_ == HistoryCommandType::USE_RESULT)
     std::cout << "Result " << new_str_ << "\n";
   else {
-    if      (command_type_ == CwshHistoryCommandType::SEARCH_START)
+    if      (command_type_ == HistoryCommandType::SEARCH_START)
       std::cout << "Last Command with " << new_str_ << " at start\n";
-    else if (command_type_ == CwshHistoryCommandType::SEARCH_IN)
+    else if (command_type_ == HistoryCommandType::SEARCH_IN)
       std::cout << "Last Command with " << new_str_ << " anywhere\n";
-    else if (command_type_ == CwshHistoryCommandType::SEARCH_ARG)
+    else if (command_type_ == HistoryCommandType::SEARCH_ARG)
       std::cout << "Last Arg with " << new_str_ << " anywhere\n";
     else
       std::cout << "Command Num " << command_num_ << "\n";
@@ -1223,49 +1216,51 @@ display(const std::string &str) const
 }
 
 void
-CwshHistoryModifier::
+HistoryModifier::
 print() const
 {
-  if      (type_ == CwshHistoryModifierType::PRINT)
+  if      (type_ == HistoryModifierType::PRINT)
     std::cout << "Print\n";
-  else if (type_ == CwshHistoryModifierType::SUBSTITUTE) {
+  else if (type_ == HistoryModifierType::SUBSTITUTE) {
     if (global_)
       std::cout << "Globally ";
 
     std::cout << "Substitute " << old_str_ << " with " << new_str_ << "\n";
   }
-  else if (type_ == CwshHistoryModifierType::REPEAT) {
+  else if (type_ == HistoryModifierType::REPEAT) {
     if (global_)
       std::cout << "Globally ";
 
     std::cout << "Repeat\n";
   }
-  else if (type_ == CwshHistoryModifierType::QUOTE_WORDLIST)
+  else if (type_ == HistoryModifierType::QUOTE_WORDLIST)
     std::cout << "Quote Wordlist";
-  else if (type_ == CwshHistoryModifierType::QUOTE_WORDS)
+  else if (type_ == HistoryModifierType::QUOTE_WORDS)
     std::cout << "Quote Words";
-  else if (type_ == CwshHistoryModifierType::ROOT) {
+  else if (type_ == HistoryModifierType::ROOT) {
     if (global_)
       std::cout << "Globally ";
 
     std::cout << "Root\n";
   }
-  else if (type_ == CwshHistoryModifierType::EXTENSION) {
+  else if (type_ == HistoryModifierType::EXTENSION) {
     if (global_)
       std::cout << "Globally ";
 
     std::cout << "Extension\n";
   }
-  else if (type_ == CwshHistoryModifierType::HEADER) {
+  else if (type_ == HistoryModifierType::HEADER) {
     if (global_)
       std::cout << "Globally ";
 
     std::cout << "Header\n";
   }
-  else if (type_ == CwshHistoryModifierType::TAIL) {
+  else if (type_ == HistoryModifierType::TAIL) {
     if (global_)
       std::cout << "Globally ";
 
     std::cout << "Tail\n";
   }
+}
+
 }

@@ -1,10 +1,12 @@
-enum class CwshVariableValueType {
+namespace Cwsh {
+
+enum class VariableValueType {
   VALUE,
   SIZE,
   EXISTS
 };
 
-enum class CwshVariableValueModifier {
+enum class VariableValueModifier {
   NONE,
   ROOT,
   EXTENSION,
@@ -14,19 +16,21 @@ enum class CwshVariableValueModifier {
   QUOTE_WORD
 };
 
-class CwshVariableParser {
+class VariableParser {
  public:
-  CwshVariableParser(Cwsh *cwsh, const CwshWord &word);
+  VariableParser(App *cwsh, const Word &word);
 
-  bool expandVariables(CwshWordArray &words);
+  bool expandVariables(WordArray &words);
 
  private:
-  std::string expandQuotedVariables(const CwshWord &str);
+  std::string expandQuotedVariables(const Word &str);
 
   bool expandVariables1(const std::string &str, std::vector<std::string> &words);
   bool expandVariable(const std::string &name, std::vector<std::string> &words);
 
  private:
-  CPtr<Cwsh>      cwsh_;
-  const CwshWord &word_;
+  CPtr<App>   cwsh_;
+  const Word &word_;
 };
+
+}

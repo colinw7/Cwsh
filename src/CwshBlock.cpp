@@ -1,95 +1,92 @@
 #include <CwshI.h>
 
-CwshBlockMgr::
-CwshBlockMgr(Cwsh *cwsh) :
+namespace Cwsh {
+
+BlockMgr::
+BlockMgr(App *cwsh) :
  cwsh_(cwsh)
 {
 }
 
-CwshBlockMgr::
-~CwshBlockMgr()
+BlockMgr::
+~BlockMgr()
 {
-  for (auto &block : block_stack_)
-    delete block;
 }
 
-CwshBlock *
-CwshBlockMgr::
-startBlock(CwshBlockType type, const CwshLineArray &lines)
+Block *
+BlockMgr::
+startBlock(BlockType type, const LineArray &lines)
 {
-  if (inBlock()) {
-    block_stack_.push_back(current_block_);
+  if (inBlock())
+    blockStack_.push_back(currentBlock_);
 
-    current_block_.release();
-  }
+  currentBlock_ = std::make_shared<Block>(type, lines);
 
-  current_block_ = new CwshBlock(type, lines);
+  gotoDepth_ = 0;
 
-  goto_depth_ = 0;
-
-  return current_block_;
+  return currentBlock_.get();
 }
 
 void
-CwshBlockMgr::
+BlockMgr::
 endBlock()
 {
   if (! inBlock())
     CWSH_THROW("Not in block");
 
-  if (! block_stack_.empty()) {
-    current_block_ = block_stack_.back();
+  if (! blockStack_.empty()) {
+    currentBlock_ = blockStack_.back();
 
-    block_stack_.pop_back();
+    blockStack_.pop_back();
   }
   else
-    current_block_ = nullptr;
+    currentBlock_ = BlockP();
 
-  if (goto_depth_ > 1)
-    --goto_depth_;
+  if (gotoDepth_ > 1)
+    --gotoDepth_;
 }
 
 bool
-CwshBlockMgr::
+BlockMgr::
 inBlock() const
 {
-  return current_block_;
+  return !!currentBlock_;
 }
 
 bool
-CwshBlockMgr::
+BlockMgr::
 eof() const
 {
   if (! inBlock())
     CWSH_THROW("Not in block");
 
-  return current_block_->eof();
+  return currentBlock_->eof();
 }
 
-CwshLine
-CwshBlockMgr::
+Line
+BlockMgr::
 readLine() const
 {
   if (! inBlock())
     CWSH_THROW("Not in block");
 
-  return current_block_->readLine();
+  return currentBlock_->readLine();
 }
 
-CwshBlock *
-CwshBlockMgr::
-find(CwshBlockType type)
+Block *
+BlockMgr::
+find(BlockType type)
 {
   if (! inBlock())
     return nullptr;
 
-  if (current_block_->getType() == type)
-    return current_block_;
+  if (currentBlock_->getType() == type)
+    return currentBlock_.get();
 
-  int num_blocks = int(block_stack_.size());
+  int numBlocks = int(blockStack_.size());
 
-  for (int i = num_blocks - 1; i >= 0; --i) {
-    CwshBlock *block = block_stack_[i];
+  for (int i = numBlocks - 1; i >= 0; --i) {
+    auto *block = blockStack_[i].get();
 
     if (block->getType() == type)
       return block;
@@ -99,33 +96,33 @@ find(CwshBlockType type)
 }
 
 void
-CwshBlockMgr::
+BlockMgr::
 gotoLabel(const std::string &label)
 {
   if (! inBlock())
     CWSH_THROW("goto: Not in block.");
 
-  goto_depth_ = 0;
+  gotoDepth_ = 0;
 
-  int line_num = current_block_->getLabelLineNum(label);
+  int lineNum = currentBlock_->getLabelLineNum(label);
 
-  if (line_num != -1) {
-    current_block_->setLineNum(line_num);
+  if (lineNum != -1) {
+    currentBlock_->setLineNum(lineNum);
 
     return;
   }
 
-  int num_blocks = int(block_stack_.size());
+  int numBlocks = int(blockStack_.size());
 
-  for (int i = num_blocks - 1; i >= 0; i--) {
-    CwshBlock *block = block_stack_[i];
+  for (int i = numBlocks - 1; i >= 0; i--) {
+    auto *block = blockStack_[i].get();
 
     int lineNum1 = block->getLabelLineNum(label);
 
     if (lineNum1 != -1) {
       block->setLineNum(lineNum1);
 
-      goto_depth_ = i + 1;
+      gotoDepth_ = i + 1;
 
       return;
     }
@@ -136,50 +133,52 @@ gotoLabel(const std::string &label)
 
 //----------------
 
-CwshBlock::
-CwshBlock(CwshBlockType type, const CwshLineArray &lines) :
+Block::
+Block(BlockType type, const LineArray &lines) :
  type_(type), lines_(lines)
 {
 }
 
-CwshBlock::
-~CwshBlock()
+Block::
+~Block()
 {
 }
 
-CwshLine
-CwshBlock::
+Line
+Block::
 readLine()
 {
   if (eof())
     CWSH_THROW("Block EOF");
 
-  return lines_[line_num_++];
+  return lines_[lineNum_++];
 }
 
 bool
-CwshBlock::
+Block::
 eof() const
 {
-  return (line_num_ >= int(lines_.size()));
+  return (lineNum_ >= int(lines_.size()));
 }
 
 int
-CwshBlock::
+Block::
 getLabelLineNum(const std::string &label) const
 {
-  int num_lines = int(lines_.size());
+  int numLines = int(lines_.size());
 
-  for (int i = 0; i < num_lines; i++) {
-    const CwshLine &line = lines_[i];
+  for (int i = 0; i < numLines; i++) {
+    const auto &line = lines_[i];
 
     std::vector<std::string> words;
 
-    CwshString::addWords(line.line, words);
+    String::addWords(line.line, words);
 
     if (words.size() == 2 && words[1] == ":" && words[0] == label)
       return i;
   }
 
   return -1;
+}
+
 }

@@ -1,23 +1,28 @@
 #ifndef CWSH_PROCESS_H
 #define CWSH_PROCESS_H
 
-enum class CwshProcessMatchType {
+namespace Cwsh {
+
+enum class ProcessMatchType {
   START,
   ANY,
 };
 
-class CwshProcessMgr {
+class ProcessMgr {
  public:
-  CwshProcessMgr(Cwsh *cwsh);
+  using ProcessP = std::shared_ptr<Process>;
 
-  CwshProcess *add(CwshCommandData *command);
+ public:
+  ProcessMgr(App *cwsh);
 
-  void remove(CwshProcess *process);
+  Process *add(CommandData *command);
+
+  void remove(Process *process);
 
   void kill(pid_t pid, int signal);
 
   int  getNumActive();
-  void displayActive(bool list_pids);
+  void displayActive(bool listPids);
   void displayExited();
   void deleteExited();
 
@@ -25,34 +30,37 @@ class CwshProcessMgr {
 
   pid_t stringToPid(const std::string &str);
 
-  CwshProcess *getActiveProcess(const std::string &str);
-  CwshProcess *getCurrentActiveProcess();
-  CwshProcess *getPreviousActiveProcess();
-  CwshProcess *getActiveProcess(int num);
-  CwshProcess *matchActiveProcess(const std::string &str, CwshProcessMatchType match_type);
+  Process *getActiveProcess(const std::string &str);
+  Process *getCurrentActiveProcess();
+  Process *getPreviousActiveProcess();
+  Process *getActiveProcess(int num);
+  Process *matchActiveProcess(const std::string &str, ProcessMatchType matchType);
 
-  CwshProcess *lookupProcess(pid_t pid);
+  Process *lookupProcess(pid_t pid);
 
  private:
-  typedef std::list<CwshProcess *> ProcessList;
+  void remove(ProcessP process);
 
-  CPtr<Cwsh>  cwsh_;
+ private:
+  using ProcessList = std::list<ProcessP>;
+
+  CPtr<App>   cwsh_;
   ProcessList processes_;
 };
 
 //---
 
-class CwshProcess {
-  CINST_COUNT_MEMBER(CwshProcess);
+class Process {
+  CINST_COUNT_MEMBER(Process);
 
  private:
-  typedef std::vector<CwshCommandData *> SubCommands;
+  using SubCommands = std::vector<CommandData *>;
 
  public:
-  CwshProcess(CwshCommandData *command, int num=1);
- ~CwshProcess();
+  Process(CommandData *command, int num=1);
+ ~Process();
 
-  CwshCommandData *getCommand() const { return command_; }
+  CommandData *getCommand() const { return command_; }
 
   int getNum() const { return num_; }
 
@@ -60,7 +68,7 @@ class CwshProcess {
   std::string     getCommandString() const;
   pid_t           getCommandPid() const;
 
-  void addSubCommand(CwshCommandData *command);
+  void addSubCommand(CommandData *command);
 
   const SubCommands &getSubCommands() const { return subCommands_; }
 
@@ -78,9 +86,11 @@ class CwshProcess {
   void print() const;
 
  private:
-  CwshCommandData *command_;
-  int              num_;
-  SubCommands      subCommands_;
+  CommandData *command_;
+  int          num_;
+  SubCommands  subCommands_;
 };
+
+}
 
 #endif

@@ -1,47 +1,53 @@
 #include <CwshI.h>
 #include <CwshHistoryParser.h>
 
-CwshAliasMgr::
-CwshAliasMgr(Cwsh *cwsh) :
+namespace Cwsh {
+
+//---
+
+AliasMgr::
+AliasMgr(App *cwsh) :
  cwsh_(cwsh)
 {
 }
 
-CwshAliasMgr::
-~CwshAliasMgr()
+AliasMgr::
+~AliasMgr()
 {
 }
 
-CwshAlias *
-CwshAliasMgr::
-define(const CwshAliasName &name, const CwshAliasValue &value)
+Alias *
+AliasMgr::
+define(const std::string &name, const std::string &value)
 {
-  auto *alias = new CwshAlias(name, value);
+  auto alias = std::make_shared<Alias>(name, value);
 
-  aliases_.setValue(name, alias);
+  aliases_[name] = alias;
 
-  return alias;
+  return alias.get();
 }
 
 void
-CwshAliasMgr::
-undefine(const CwshAliasName &name)
+AliasMgr::
+undefine(const std::string &name)
 {
-  aliases_.unsetValue(name);
+  aliases_.erase(name);
 }
 
-CwshAlias *
-CwshAliasMgr::
+Alias *
+AliasMgr::
 lookup(const std::string &name) const
 {
-  return aliases_.getValue(name);
+  auto p = aliases_.find(name);
+
+  return (p != aliases_.end() ? (*p).second.get() : nullptr);
 }
 
 bool
-CwshAliasMgr::
-substitute(CwshCmd *cmd, CwshCmdArray &cmds) const
+AliasMgr::
+substitute(Cmd *cmd, CmdArray &cmds) const
 {
-  const CwshWord &word = cmd->getWord(0);
+  const auto &word = cmd->getWord(0);
 
   //------
 
@@ -52,14 +58,14 @@ substitute(CwshCmd *cmd, CwshCmdArray &cmds) const
 
   //------
 
-  CwshAlias *alias = lookup(str);
+  Alias *alias = lookup(str);
 
-  if (! alias || alias == last_alias_)
+  if (! alias || alias == lastAlias_)
     return false;
 
   //------
 
-  CwshHistoryParser parser(cwsh_);
+  HistoryParser parser(cwsh_);
 
   parser.parse(alias->getValue());
 
@@ -75,23 +81,23 @@ substitute(CwshCmd *cmd, CwshCmdArray &cmds) const
 
   //------
 
-  CwshWordArray words1;
+  WordArray words1;
 
-  CwshWord::toWords(line, words1);
+  Word::toWords(line, words1);
 
   if (cwsh_->getDebug()) {
     std::cerr << "Split String Into Words\n";
 
-    CwshWord::printWords(words1);
+    Word::printWords(words1);
   }
 
   //------
 
-  auto *th = const_cast<CwshAliasMgr *>(this);
+  auto *th = const_cast<AliasMgr *>(this);
 
-  th->last_alias_ = alias;
+  th->lastAlias_ = alias;
 
-  CwshCmdSplit::wordsToCommands(words1, cmds);
+  CmdSplit::wordsToCommands(words1, cmds);
 
   int num_cmds = int(cmds.size());
 
@@ -101,10 +107,10 @@ substitute(CwshCmd *cmd, CwshCmdArray &cmds) const
   if (cwsh_->getDebug()) {
     std::cerr << "Substitute Alias\n";
 
-    CwshCmd::displayCmdArray(cmds);
+    Cmd::displayCmdArray(cmds);
   }
 
-  th->last_alias_ = nullptr;
+  th->lastAlias_ = nullptr;
 
   //------
 
@@ -112,7 +118,7 @@ substitute(CwshCmd *cmd, CwshCmdArray &cmds) const
 }
 
 void
-CwshAliasMgr::
+AliasMgr::
 display(bool all) const
 {
   for (auto &alias : aliases_)
@@ -120,7 +126,7 @@ display(bool all) const
 }
 
 std::string
-CwshAliasMgr::
+AliasMgr::
 getAliasesMsg() const
 {
   std::string msg;
@@ -137,42 +143,48 @@ getAliasesMsg() const
 
 //-------------------
 
-CwshAlias::
-CwshAlias(const std::string &name, const std::string &value) :
+Alias::
+Alias(const std::string &name, const std::string &value) :
  name_(name), value_(value)
 {
 }
 
-CwshAlias::
-~CwshAlias()
+Alias::
+~Alias()
 {
 }
 
 void
-CwshAlias::
+Alias::
 display(bool all) const
 {
-  std::cout << CwshMgrInst.aliasNameColorStr() << getName() <<
-               CwshMgrInst.resetColorStr() << " ";
+  auto *mgr = CwshMgrInst;
+
+  std::cout << mgr->aliasNameColorStr() << getName() << mgr->resetColorStr() << " ";
 
   displayValue(all);
 }
 
 void
-CwshAlias::
+Alias::
 displayValue(bool all) const
 {
-  std::cout << CwshMgrInst.aliasValueColorStr() << getValue() <<
-               CwshMgrInst.resetColorStr();
+  auto *mgr = CwshMgrInst;
+
+  std::cout << mgr->aliasValueColorStr() << getValue() << mgr->resetColorStr();
 
   if (all) {
     std::cout << " [";
 
-    std::cout << CwshMgrInst.locationColorStr() << getFilename() << ":" << getLineNum() <<
-                 CwshMgrInst.resetColorStr();
+    std::cout << mgr->locationColorStr() << getFilename() << ":" << getLineNum() <<
+                 mgr->resetColorStr();
 
     std::cout << "]";
   }
 
   std::cout << "\n";
+}
+
+//---
+
 }

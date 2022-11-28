@@ -2,15 +2,17 @@
 #include <CFileMatch.h>
 #include <CPathList.h>
 
-CwshPattern::
-CwshPattern(Cwsh *cwsh, const std::string &pattern) :
+namespace Cwsh {
+
+Pattern::
+Pattern(App *cwsh, const std::string &pattern) :
  cwsh_(cwsh), pattern_(pattern)
 {
 }
 
 bool
-CwshPattern::
-expandWordToFiles(const CwshWord &word, CwshWordArray &words)
+Pattern::
+expandWordToFiles(const Word &word, WordArray &words)
 {
   auto *variable = cwsh_->lookupVariable("noglob");
 
@@ -28,10 +30,9 @@ expandWordToFiles(const CwshWord &word, CwshWordArray &words)
   for (size_t i = 0; i < num_sub_words; i++) {
     auto type = sub_words[i].getType();
 
-    if      (type == CwshSubWordType::BACK_QUOTED)
+    if      (type == SubWordType::BACK_QUOTED)
       word1 += sub_words[i].getWord();
-    else if (type == CwshSubWordType::DOUBLE_QUOTED ||
-             type == CwshSubWordType::SINGLE_QUOTED) {
+    else if (type == SubWordType::DOUBLE_QUOTED || type == SubWordType::SINGLE_QUOTED) {
       std::string word2 = CStrUtil::addEscapeChars(sub_words[i].getWord(), "*?[]");
 
       word1 += word2;
@@ -40,7 +41,7 @@ expandWordToFiles(const CwshWord &word, CwshWordArray &words)
       word1 += sub_words[i].getWord();
   }
 
-  CwshWildCard wildcard(word1);
+  WildCard wildcard(word1);
 
   if (! wildcard.isValid())
     return false;
@@ -64,13 +65,13 @@ expandWordToFiles(const CwshWord &word, CwshWordArray &words)
   CStrUtil::sort(words1);
 
   for (const auto &word1 : words1)
-    words.push_back(CwshWord(word1));
+    words.push_back(Word(word1));
 
   return true;
 }
 
 bool
-CwshPattern::
+Pattern::
 expandPath(std::vector<std::string> &files)
 {
   CPathList pathList;
@@ -83,21 +84,20 @@ expandPath(std::vector<std::string> &files)
 }
 
 bool
-CwshPattern::
+Pattern::
 expandVar(std::vector<std::string> &names)
 {
-  CwshWildCard compile(pattern_);
+  WildCard compile(pattern_);
 
-  auto pvariable1 = cwsh_->variablesBegin();
-  auto pvariable2 = cwsh_->variablesEnd  ();
-
-  for ( ; pvariable1 != pvariable2; ++pvariable1) {
-    if (compile.checkMatch((*pvariable1)->getName()))
-      names.push_back((*pvariable1)->getName());
+  for (auto *var : cwsh_->variables()) {
+    if (compile.checkMatch(var->getName()))
+      names.push_back(var->getName());
   }
 
   if (! CEnvInst.matchPattern(pattern_, names))
     return false;
 
   return true;
+}
+
 }

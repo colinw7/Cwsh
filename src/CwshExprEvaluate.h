@@ -1,9 +1,11 @@
 #ifndef CWSH_EVAULATE_H
 #define CWSH_EVAULATE_H
 
-class CwshExprEvaluate {
+namespace Cwsh {
+
+class ExprEvaluate {
  public:
-  CwshExprEvaluate(Cwsh *cwsh, const std::string &expression);
+  ExprEvaluate(App *cwsh, const std::string &expression);
 
   int process();
 
@@ -16,12 +18,16 @@ class CwshExprEvaluate {
   void        unstackBinary();
   void        unstackBracketed();
   void        skip();
-  bool        checkUnstack(CwshExprOperator *opr);
+  bool        checkUnstack(ExprOperator *opr);
 
  private:
-  CPtr<Cwsh>                   cwsh_;
-  std::string                  expression_;
-  CAutoPtr<CwshExprStackStack> stack_;
+  using ExprStackStackP = std::unique_ptr<ExprStackStack>;
+
+  CPtr<App>       cwsh_;
+  std::string     expression_;
+  ExprStackStackP stack_;
 };
+
+}
 
 #endif

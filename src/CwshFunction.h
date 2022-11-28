@@ -1,37 +1,40 @@
 #ifndef CWSH_FUNCTION_H
 #define CWSH_FUNCTION_H
 
-class CwshFunctionMgr {
+namespace Cwsh {
+
+class FunctionMgr {
  public:
-  CwshFunctionMgr(Cwsh *cwsh);
+  FunctionMgr(App *cwsh);
 
-  CwshFunction *define(const CwshFunctionName &name, const CwshLineArray &lines);
+  Function *define(const std::string &name, const LineArray &lines);
 
-  void undefine(const CwshFunctionName &name);
+  void undefine(const std::string &name);
 
-  CwshFunction *lookup(const CwshFunctionName &name);
+  Function *lookup(const std::string &name);
 
   void listAll(bool all);
 
  private:
-  typedef CAutoPtrMap<CwshFunctionName,CwshFunction> FunctionList;
+  using FunctionP    = std::shared_ptr<Function>;
+  using FunctionList = std::map<std::string, FunctionP>;
 
-  CPtr<Cwsh>   cwsh_;
-  FunctionList function_list_;
+  CPtr<App>    cwsh_;
+  FunctionList functionList_;
 };
 
 //---
 
-class CwshFunction {
+class Function {
  public:
-  CwshFunction(Cwsh *cwsh, const CwshFunctionName &name, const CwshLineArray &lines);
- ~CwshFunction();
+  Function(App *cwsh, const std::string &name, const LineArray &lines);
+ ~Function();
 
-  static void runProc(const CwshArgArray &args, CCommand::CallbackData data);
+  static void runProc(const ArgArray &args, CCommand::CallbackData data);
 
-  void run(const CwshArgArray &args);
+  void run(const ArgArray &args);
 
-  const CwshFunctionName &getName() const { return name_; }
+  const std::string &getName() const { return name_; }
 
   const std::string &getFilename() const { return filename_; }
   void setFilename(const std::string &v) { filename_ = v; }
@@ -42,11 +45,12 @@ class CwshFunction {
   void list(bool all);
 
  private:
-  CPtr<Cwsh>       cwsh_;
-  CwshFunctionName name_;
-  CwshLineArray    lines_;
-  std::string      filename_;
-  int              lineNum_ { -1 };
+  CPtr<App>   cwsh_;
+  std::string name_;
+  LineArray   lines_;
+  std::string filename_;
+  int         lineNum_ { -1 };
 };
 
+}
 #endif

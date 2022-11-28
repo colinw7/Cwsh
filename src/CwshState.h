@@ -1,32 +1,36 @@
 #ifndef CWSH_STATE_H
 #define CWSH_STATE_H
 
-class CwshStateMgr {
- public:
-  CwshStateMgr(Cwsh *cwsh);
- ~CwshStateMgr() { }
+namespace Cwsh {
 
-  void save(Cwsh *cwsh);
+class StateMgr {
+ public:
+  StateMgr(App *cwsh);
+ ~StateMgr() { }
+
+  void save(App *cwsh);
   void restore();
 
  private:
-  typedef CAutoPtrStack<CwshState> StateArray;
+  using StateP     = std::shared_ptr<State>;
+  using StateArray = std::vector<StateP>;
 
-  CPtr<Cwsh>          cwsh_;
-  CAutoPtr<CwshState> current_state_;
-  StateArray          state_stack_;
+  CPtr<App>  cwsh_;
+  StateP     currentState_;
+  StateArray stateStack_;
 };
 
 //---
 
-class CwshState {
+class State {
  public:
-  CwshState(Cwsh *cwsh);
- ~CwshState();
+  State(App *cwsh);
+ ~State();
 
  private:
-  CPtr<Cwsh>  cwsh_;
+  CPtr<App>   cwsh_;
   std::string dir_;
 };
 
+}
 #endif

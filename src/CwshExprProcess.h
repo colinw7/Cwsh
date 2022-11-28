@@ -1,20 +1,24 @@
 #ifndef CWSH_EXPR_PROCESS_H
 #define CWSH_EXPR_PROCESS_H
 
-enum class CwshExprProcessValueType {
+namespace Cwsh {
+
+enum class ExprProcessValueType {
   STRING,
   INTEGER,
 };
 
-class CwshExprProcess {
+class ExprProcess {
  public:
-  CwshExprProcess();
+  ExprProcess();
 
-  std::string process(CwshExprOperator *opr, const std::string &value);
-  std::string process(const std::string &value1, CwshExprOperator *opr, const std::string &value2);
+  std::string process(ExprOperator *opr, const std::string &value);
+  std::string process(const std::string &value1, ExprOperator *opr, const std::string &value2);
 
  private:
-  CwshExprProcessValueType getValueType(const std::string &value, int *integer);
+  ExprProcessValueType getValueType(const std::string &value, int *integer);
 };
+
+}
 
 #endif

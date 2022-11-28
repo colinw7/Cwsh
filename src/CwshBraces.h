@@ -1,8 +1,12 @@
 #ifndef CWSH_BRACES_H
 #define CWSH_BRACES_H
 
-namespace CwshBraces {
-  bool expand(const CwshWord &word, CwshWordArray &words);
+namespace Cwsh {
+
+namespace Braces {
+  bool expand(const Word &word, WordArray &words);
+}
+
 }
 
 #endif

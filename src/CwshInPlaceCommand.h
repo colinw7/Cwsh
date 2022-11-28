@@ -1,20 +1,24 @@
 #ifndef CWSH_IN_PLACE_COMMAND_H
 #define CWSH_IN_PLACE_COMMAND_H
 
-class CwshInPlaceCommand {
+namespace Cwsh {
+
+class InPlaceCommand {
  public:
-  CwshInPlaceCommand(Cwsh *cwsh, const CwshWord &word);
+  InPlaceCommand(App *cwsh, const Word &word);
 
-  bool expand(CwshWordArray &word_array);
+  bool expand(WordArray &wordArray);
 
  private:
-  bool        expandQuotedWord(const CwshWord &word, std::string &word1);
+  bool        expandQuotedWord(const Word &word, std::string &word1);
   std::string expandCommand(const std::string &str);
-  std::string executeCommands(const CwshCmdArray &cmds);
+  std::string executeCommands(const CmdArray &cmds);
 
  private:
-  CPtr<Cwsh>      cwsh_;
-  const CwshWord &word_;
+  CPtr<App>   cwsh_;
+  const Word &word_;
 };
+
+}
 
 #endif

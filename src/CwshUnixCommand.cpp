@@ -1,9 +1,11 @@
 #include <CwshI.h>
 #include <CPathList.h>
 
+namespace Cwsh {
+
 std::string
-CwshUnixCommand::
-search(Cwsh *cwsh, const std::string &name)
+UnixCommand::
+search(App *cwsh, const std::string &name)
 {
   CPathList pathList;
 
@@ -17,4 +19,6 @@ search(Cwsh *cwsh, const std::string &name)
   cwsh->addFilePath(name, path);
 
   return path;
+}
+
 }
