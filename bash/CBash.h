@@ -204,6 +204,7 @@ class Cmd {
   std::string     name_;
   Tokens          args_;
   StringArray     ops_;
+  bool            inited_  { false };
   CCommandP       command_;
   BuiltinCommand* builtin_ { nullptr };
   bool            pipe_    { false };
@@ -224,7 +225,7 @@ class Variable {
  public:
   Variable() { }
 
-  Variable(const std::string &name, const std::string &value, bool exported=false) :
+  Variable(const std::string &name, const std::string &value="", bool exported=false) :
    name_(name), value_(value), exported_(exported) {
   }
 
@@ -236,10 +237,18 @@ class Variable {
   bool isExported() const { return exported_; }
   void setExported(bool b) { exported_ = b; }
 
+  bool isReadOnly() const { return readOnly_; }
+  void setReadOnly(bool b) { readOnly_ = b; }
+
+  bool isTrace() const { return trace_; }
+  void setTrace(bool b) { trace_ = b; }
+
  private:
   std::string name_;
   std::string value_;
   bool        exported_ { false };
+  bool        readOnly_ { false };
+  bool        trace_    { false };
 };
 
 using VariableMap = std::map<std::string, Variable>;
@@ -258,8 +267,14 @@ class BuiltinCommand {
 
   virtual void exec(const Cmd *cmd) = 0;
 
+  void parseArgs(const Cmd *cmd);
+
+  virtual bool processOpt(const std::string &opt);
+  virtual bool processArg(const std::string &arg);
+
  protected:
-  App *app_ { nullptr };
+  App*        app_ { nullptr };
+  StringArray args_;
 };
 
 //---
@@ -337,13 +352,22 @@ class App {
   //---
 
   void addVariable(const std::string &name, const std::string &value, bool exported=false);
+  void addVariable(const std::string &name, const Variable &var);
+
+  void removeVariable(const std::string &name);
+
   bool getVariable(const std::string &name, std::string &value) const;
 
   bool completeVariable(const std::string &name, std::string &expandedName) const;
 
   bool showMatchingVariables(const std::string &name)  const;
 
-  void listVariables() const;
+  struct ListVariablesData {
+    bool exported { false };
+    bool declare  { false };
+  };
+
+  void listVariables(const ListVariablesData &data) const;
 
   //---
 
@@ -352,6 +376,15 @@ class App {
   void listAliases() const;
   void listAlias(const std::string &name) const;
   void addAlias(const std::string &name, const StringArray &values);
+
+  //---
+
+  bool hasDirStack() const;
+  void clearDirStack();
+  void pushDirStack(const std::string &dir);
+  std::string rotateDirStack();
+  std::string popDirStack();
+  void listDirStack(bool /*verbose*/) const;
 
   //---
 
@@ -373,6 +406,7 @@ class App {
   using Commands        = std::map<std::string, BuiltinCommandP>;
   using AliasMap        = std::map<std::string, AliasP>;
   using BgCommands      = std::set<CCommandP>;
+  using DirStack        = std::vector<std::string>;
 
   bool        debug_ { false };
   ReadLineP   readLine_;
@@ -383,6 +417,7 @@ class App {
   HistoryP    history_;
   int         commandNum_ { 1 };
   BgCommands  bgCommands_;
+  DirStack    dirStack_;
   int         returnCode_ { 0 };
 };
 
@@ -470,6 +505,47 @@ class CdCommand : public BuiltinCommand {
   void exec(const Cmd *cmd) override;
 };
 
+class DeclareCommand : public BuiltinCommand {
+ public:
+  DeclareCommand(App *app) :
+   BuiltinCommand(app) {
+  }
+
+  void exec(const Cmd *cmd) override;
+};
+
+class DirsCommand : public BuiltinCommand {
+ public:
+  DirsCommand(App *app) :
+   BuiltinCommand(app) {
+  }
+
+  void exec(const Cmd *cmd) override;
+
+  bool processOpt(const std::string &opt) override;
+
+ private:
+  bool clear_   { false };
+  bool list_    { false };
+  bool print_   { false };
+  bool verbose_ { false };
+};
+
+class EchoCommand : public BuiltinCommand {
+ public:
+  EchoCommand(App *app) :
+   BuiltinCommand(app) {
+  }
+
+  void exec(const Cmd *cmd) override;
+
+  bool processOpt(const std::string &opt) override;
+
+ private:
+  bool nonewline_    { false };
+  bool enableEscape_ { false };
+};
+
 class ExitCommand : public BuiltinCommand {
  public:
   ExitCommand(App *app) :
@@ -479,9 +555,34 @@ class ExitCommand : public BuiltinCommand {
   void exec(const Cmd *cmd) override;
 };
 
+class ExportCommand : public BuiltinCommand {
+ public:
+  ExportCommand(App *app) :
+   BuiltinCommand(app) {
+  }
+
+  void exec(const Cmd *cmd) override;
+
+  bool processOpt(const std::string &opt) override;
+
+ private:
+  bool function_ { false };
+  bool unexport_ { false };
+  bool display_  { false };
+};
+
 class HistoryCommand : public BuiltinCommand {
  public:
   HistoryCommand(App *app) :
+   BuiltinCommand(app) {
+  }
+
+  void exec(const Cmd *cmd) override;
+};
+
+class PopdCommand : public BuiltinCommand {
+ public:
+  PopdCommand(App *app) :
    BuiltinCommand(app) {
   }
 
@@ -495,6 +596,30 @@ class PrintfCommand : public BuiltinCommand {
   }
 
   void exec(const Cmd *cmd) override;
+};
+
+class PushdCommand : public BuiltinCommand {
+ public:
+  PushdCommand(App *app) :
+   BuiltinCommand(app) {
+  }
+
+  void exec(const Cmd *cmd) override;
+};
+
+class PwdCommand : public BuiltinCommand {
+ public:
+  PwdCommand(App *app) :
+   BuiltinCommand(app) {
+  }
+
+  void exec(const Cmd *cmd) override;
+
+  bool processOpt(const std::string &opt) override;
+
+ private:
+  bool list_  { false };
+  bool print_ { false };
 };
 
 class SetCommand : public BuiltinCommand {

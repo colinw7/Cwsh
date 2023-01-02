@@ -83,13 +83,14 @@ addShellCommands()
 //shellCommands_["command"  ] = std::make_shared<CommandCommand  >(this);
 //shellCommands_["compgen"  ] = std::make_shared<CommandCommand  >(this);
 //shellCommands_["continue" ] = std::make_shared<ContinueCommand >(this);
-//shellCommands_["declare"  ] = std::make_shared<DeclareCommand  >(this);
-//shellCommands_["echo"     ] = std::make_shared<EchoCommand     >(this);
+  shellCommands_["declare"  ] = std::make_shared<DeclareCommand  >(this);
+  shellCommands_["dirs"     ] = std::make_shared<DirsCommand     >(this);
+  shellCommands_["echo"     ] = std::make_shared<EchoCommand     >(this);
 //shellCommands_["enable"   ] = std::make_shared<EnableCommand   >(this);
 //shellCommands_["eval"     ] = std::make_shared<EvalCommand     >(this);
 //shellCommands_["exec"     ] = std::make_shared<ExecCommand     >(this);
   shellCommands_["exit"     ] = std::make_shared<ExitCommand     >(this);
-//shellCommands_["export"   ] = std::make_shared<ExportCommand   >(this);
+  shellCommands_["export"   ] = std::make_shared<ExportCommand   >(this);
 //shellCommands_["getopts"  ] = std::make_shared<GetoptsCommand  >(this);
 //shellCommands_["hash"     ] = std::make_shared<HashCommand     >(this);
 //shellCommands_["help"     ] = std::make_shared<HelpCommand     >(this);
@@ -98,8 +99,10 @@ addShellCommands()
 //shellCommands_["local"    ] = std::make_shared<LocalCommand    >(this);
 //shellCommands_["logout"   ] = std::make_shared<LogoutCommand   >(this);
 //shellCommands_["mapfile"  ] = std::make_shared<MapfileCommand  >(this);
+  shellCommands_["popd"     ] = std::make_shared<PopdCommand     >(this);
   shellCommands_["printf"   ] = std::make_shared<PrintfCommand   >(this);
-//shellCommands_["pwd"      ] = std::make_shared<PwdCommand      >(this);
+  shellCommands_["pushd"    ] = std::make_shared<PushdCommand    >(this);
+  shellCommands_["pwd"      ] = std::make_shared<PwdCommand      >(this);
 //shellCommands_["read"     ] = std::make_shared<ReadCommand     >(this);
 //shellCommands_["readarray"] = std::make_shared<ReadArrayCommand>(this);
 //shellCommands_["readonly" ] = std::make_shared<ReadonlyCommand >(this);
@@ -968,7 +971,7 @@ expandArg(const Token &token, StringArray &args) const
 
   std::string arg2;
 
-  if (CFile::expandTilde(str1, arg2)) {
+  if (CFile::expandBashTilde(str1, arg2)) {
     token1 = arg2;
     changed = true;
   }
@@ -1072,8 +1075,32 @@ expandVariableToken(const Token &token, std::string &arg1) const
 
   ++i;
 
+  // $*
+  if      (arg[i] == '*') {
+  }
+  // $@
+  else if (arg[i] == '@') {
+  }
+  // $#
+  else if (arg[i] == '#') {
+  }
+  // $?
+  else if (arg[i] == '?') {
+    arg1 = std::to_string(returnCode()) + arg.substr(2);
+
+    changed = true;
+  }
+  // $-
+  else if (arg[i] == '-') {
+  }
+  // $!
+  else if (arg[i] == '!') {
+  }
+  // $0
+  else if (arg[i] == '0') {
+  }
   // $$
-  if      (arg[i] == '$') {
+  else if (arg[i] == '$') {
     arg1 = expandVarName("$", /*bracketed*/false) + arg.substr(2);
 
     changed = true;
@@ -1590,6 +1617,9 @@ void
 App::
 waitCommand(const CmdP &cmd)
 {
+  if (! cmd->command())
+    return;
+
   if (cmd->isWait()) {
     if (cmd->command()->isState(CCommand::State::RUNNING))
       cmd->wait();
@@ -1689,7 +1719,21 @@ void
 App::
 addVariable(const std::string &name, const std::string &value, bool exported)
 {
-  variableMap_[name] = Variable(name, value, exported);
+  addVariable(name, Variable(name, value, exported));
+}
+
+void
+App::
+addVariable(const std::string &name, const Variable &var)
+{
+  variableMap_[name] = var;
+}
+
+void
+App::
+removeVariable(const std::string &name)
+{
+  variableMap_.erase(name);
 }
 
 bool
@@ -1735,7 +1779,7 @@ completeVariable(const std::string &name, std::string &expandedName) const
 
 bool
 App::
-showMatchingVariables(const std::string &name)  const
+showMatchingVariables(const std::string &name) const
 {
   CGlob glob(name + "*");
 
@@ -1767,10 +1811,19 @@ showMatchingVariables(const std::string &name)  const
 
 void
 App::
-listVariables() const
+listVariables(const ListVariablesData &data) const
 {
   for (const auto &pv : variableMap_) {
-    std::cout << pv.first << "=" << pv.second.value() << "\n";
+    const auto &var = pv.second;
+
+    if (! data.declare)
+      std::cout << pv.first << "=" << var.value() << "\n";
+    else {
+      if (data.exported && ! var.isExported())
+        continue;
+
+      std::cout << "declare -x " << pv.first << "=" << var.value() << "\n";
+    }
   }
 }
 
@@ -1958,6 +2011,106 @@ App::
 addAlias(const std::string &name, const StringArray &values)
 {
   aliases_[name] = std::make_shared<Alias>(name, values);
+}
+
+//------
+
+bool
+App::
+hasDirStack() const
+{
+  return ! dirStack_.empty();
+}
+
+void
+App::
+clearDirStack()
+{
+  dirStack_.clear();
+}
+
+void
+App::
+pushDirStack(const std::string &dir)
+{
+  dirStack_.push_back(dir);
+}
+
+std::string
+App::
+rotateDirStack()
+{
+  auto n = dirStack_.size();
+
+  assert(n != 0);
+
+  if (n > 1)
+    std::swap(dirStack_[n - 1], dirStack_[n - 2]);
+
+  return dirStack_[n - 1];
+}
+
+std::string
+App::
+popDirStack()
+{
+  assert(! dirStack_.empty());
+
+  auto dir = dirStack_.back();
+
+  dirStack_.pop_back();
+
+  return dir;
+}
+
+void
+App::
+listDirStack(bool /*verbose*/) const
+{
+  for (const auto &dir : dirStack_)
+    std::cout << dir << "\n";
+}
+
+//------
+
+void
+BuiltinCommand::
+parseArgs(const Cmd *cmd)
+{
+  args_.clear();
+
+  auto numArgs = cmd->numArgs();
+
+  for (uint i = 0; i < numArgs; ++i) {
+    const auto &token = cmd->arg(i);
+
+    const auto &str = token.str();
+
+    if (str[0] == '-') {
+      if (! processOpt(str.substr(1)))
+        std::cerr << "Bad option '" << str << "'\n";
+    }
+    else {
+      if (! processArg(str))
+        std::cerr << "Bad arg '" << str << "'\n";
+    }
+  }
+}
+
+bool
+BuiltinCommand::
+processOpt(const std::string &)
+{
+  return false;
+}
+
+bool
+BuiltinCommand::
+processArg(const std::string &arg)
+{
+  args_.push_back(arg);
+
+  return true;
 }
 
 //------
@@ -2294,6 +2447,284 @@ exec(const Cmd *cmd)
 //---
 
 void
+DeclareCommand::
+exec(const Cmd *cmd)
+{
+  StringArray nameValues;
+
+  auto numArgs = cmd->numArgs();
+
+  bool print          = false;
+//bool function_names = false;
+//bool global         = false;
+//bool inherit        = false;
+//bool integer        = false;
+  bool lower_case     = false;
+//bool nameref        = false;
+  bool read_only      = false;
+  bool trace          = false;
+  bool upper_case     = false;
+  bool exported       = false;
+
+//bool print_index_array       = false;
+//bool print_associative_array = false;
+//bool print_function_names    = false;
+
+  for (uint i = 0; i < numArgs; ++i) {
+    const auto &token = cmd->arg(i);
+
+    const auto &str = token.str();
+
+    if (str[0] == '-') {
+      if      (str == "-a") { /*print_index_array = true; */ }
+      else if (str == "-A") { /*print_associative_array = true; */ }
+      else if (str == "-f") { /*print_function_names = true; */ }
+      else if (str == "-F") { /*function_names = true; */ }
+      else if (str == "-g") { /*global = true; */ }
+      else if (str == "-i") { /*integer = true; */ }
+      else if (str == "-I") { /*inherit = true; */ }
+      else if (str == "-l") { lower_case = true; }
+      else if (str == "-n") { /*nameref = true; */ }
+      else if (str == "-p") { print = true; }
+      else if (str == "-r") { read_only = true; }
+      else if (str == "-t") { trace = true; }
+      else if (str == "-u") { upper_case = true; }
+      else if (str == "-x") { exported = true; }
+      else { std::cerr << "Bad option '" << str << "'\n"; }
+    }
+    else {
+      nameValues.push_back(str);
+    }
+  }
+
+  //---
+
+  for (const auto &nv : nameValues) {
+    CStrParse parse(nv);
+
+    std::string name, value;
+    bool        isName = true;
+
+    while (! parse.eof()) {
+      if (parse.isChar('=')) {
+        isName = false;
+      }
+      else if (isName)
+        name += parse.readChar();
+      else
+        value += parse.readChar();
+    }
+
+    if      (lower_case)
+      value = CStrUtil::toLower(value);
+    else if (upper_case)
+      value = CStrUtil::toUpper(value);
+
+    Variable var(name);
+
+    var.setValue(value);
+
+    var.setExported(exported);
+    var.setReadOnly(read_only);
+    var.setTrace   (trace);
+
+    app_->addVariable(name, var);
+
+    if (print) {
+      if (app_->getVariable(name, value))
+        std::cout << name << "=" << value << "\n";
+    }
+  }
+}
+
+//---
+
+void
+DirsCommand::
+exec(const Cmd *cmd)
+{
+  clear_   = false;
+  list_    = false;
+  print_   = false;
+  verbose_ = false;
+
+  parseArgs(cmd);
+
+  if (clear_)
+    app_->clearDirStack();
+
+  app_->listDirStack(verbose_);
+}
+
+bool
+DirsCommand::
+processOpt(const std::string &opt)
+{
+  if      (opt == "c") { clear_ = true; }
+  else if (opt == "l") { list_ = true; }
+  else if (opt == "p") { print_ = true; }
+  else if (opt == "v") { verbose_ = true; }
+  else return false;
+
+  return true;
+}
+
+//---
+
+void
+EchoCommand::
+exec(const Cmd *cmd)
+{
+  nonewline_    = false;
+  enableEscape_ = false;
+
+  parseArgs(cmd);
+
+  int n = 0;
+
+  for (const auto &arg : args_) {
+    CStrParse parse1(arg);
+
+    std::string arg1;
+
+    bool output = true;
+
+    auto addChar = [&](char c) {
+      if (output)
+        arg1 += c;
+    };
+
+    while (! parse1.eof()) {
+      if (parse1.isChar('\\')) {
+        parse1.skipChar();
+
+        auto c = parse1.readChar();
+
+        switch (c) {
+          case 'a' : addChar('\a'); break;
+          case 'b' : addChar('\b'); break;
+          case 'c' : output = false; break;
+          case 'e' : case 'E' : addChar('\033'); break;
+          case 'f' : addChar('\f'); break;
+          case 'n' : addChar('\n'); break;
+          case 'r' : addChar('\r'); break;
+          case 't' : addChar('\t'); break;
+          case 'v' : addChar('\v'); break;
+          case '\\': addChar('\\'); break;
+
+          // \nnn
+          case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': {
+            uint nc = (c - '0');
+
+            for (uint j = 0; j < 2; ++j) {
+              if (! parse1.eof() && CStrUtil::isodigit(parse1.getCharAt()))
+                nc = 8*nc + (parse1.readChar() - '0');
+            }
+
+            addChar(char(nc));
+
+            break;
+          }
+          // \xHH
+          case 'x': {
+            if (! parse1.eof()) {
+              uint nc = 0;
+
+              uint hex_value;
+
+              for (uint j = 0; j < 2; ++j) {
+                if (! parse1.eof() && CStrUtil::isxdigit(parse1.getCharAt())) {
+                  if (CStrUtil::decodeHexChar(parse1.readChar(), &hex_value))
+                    nc = 16*nc + hex_value;
+                }
+              }
+
+              if (nc < 255)
+                addChar(char(nc));
+            }
+            else
+             addChar(c);
+
+            break;
+          }
+          // \uHHHH
+          case 'u': {
+            if (! parse1.eof()) {
+              uint nc = 0;
+
+              for (uint j = 0; j < 4; ++j) {
+                uint hex_value;
+
+                if (! parse1.eof() && CStrUtil::isxdigit(parse1.getCharAt())) {
+                  if (CStrUtil::decodeHexChar(parse1.readChar(), &hex_value))
+                    nc = 16*nc + hex_value;
+                }
+              }
+
+              if (nc < 255)
+                addChar(char(nc));
+            }
+            else
+              addChar(c);
+
+            break;
+          }
+          // \UHHHHHHHH
+          case 'U': {
+            if (! parse1.eof()) {
+              uint nc = 0;
+
+              for (uint j = 0; j < 8; ++j) {
+                uint hex_value;
+
+                if (! parse1.eof() && CStrUtil::isxdigit(parse1.getCharAt())) {
+                  if (CStrUtil::decodeHexChar(parse1.readChar(), &hex_value))
+                    nc = 16*nc + hex_value;
+                }
+              }
+
+              if (nc < 255)
+                addChar(char(nc));
+            }
+            else
+              addChar(c);
+
+            break;
+          }
+        }
+      }
+      else {
+        addChar(parse1.readChar());
+      }
+    }
+
+    if (n > 0)
+      std::cout << " ";
+
+    std::cout << arg1;
+
+    ++n;
+  }
+
+  if (! nonewline_)
+    std::cout << "\n";
+}
+
+bool
+EchoCommand::
+processOpt(const std::string &opt)
+{
+  if      (opt == "n") { nonewline_ = true; }
+  else if (opt == "e") { enableEscape_ = true; }
+  else if (opt == "E") { enableEscape_ = false; }
+  else return false;
+
+  return true;
+}
+
+//---
+
+void
 ExitCommand::
 exec(const Cmd *)
 {
@@ -2303,10 +2734,84 @@ exec(const Cmd *)
 //---
 
 void
+ExportCommand::
+exec(const Cmd *cmd)
+{
+  function_ = false;
+  unexport_ = false;
+  display_  = false;
+
+  parseArgs(cmd);
+
+  if (args_.empty()) {
+    App::ListVariablesData data;
+
+    data.exported = true;
+    data.declare  = true;
+
+    app_->listVariables(data);
+  }
+  else {
+    for (const auto &arg : args_) {
+      CStrParse parse(arg);
+
+      std::string name, value;
+      bool        isName = true;
+
+      while (! parse.eof()) {
+        if (isName) {
+          if (parse.isChar('='))
+            isName = false;
+          else
+            name += parse.readChar();
+        }
+        else
+          value += parse.readChar();
+      }
+
+      if (unexport_)
+        app_->removeVariable(name);
+      else
+        app_->addVariable(name, value, /*export*/true);
+    }
+  }
+}
+
+bool
+ExportCommand::
+processOpt(const std::string &opt)
+{
+  if      (opt == "f") { function_ = true; }
+  else if (opt == "n") { unexport_ = true; }
+  else if (opt == "p") { display_  = true; }
+  else return false;
+
+  return true;
+}
+
+//---
+
+void
 HistoryCommand::
 exec(const Cmd *)
 {
   app_->listHistory();
+}
+
+//---
+
+void
+PopdCommand::
+exec(const Cmd *cmd)
+{
+  parseArgs(cmd);
+
+  if (! app_->hasDirStack())
+    return;
+
+  auto dir = app_->popDirStack();
+
+  app_->changeDir(dir);
 }
 
 //---
@@ -2352,11 +2857,11 @@ exec(const Cmd *cmd)
      CPrintF(format), args_(args) {
     }
 
-    int         getInt     () const { if (! getArg()) return 0; return std::stoi(arg_); }
-    long        getLong    () const { if (! getArg()) return 0; return std::stoi(arg_); }
-    long        getLongLong() const { if (! getArg()) return 0; return std::stoi(arg_); }
-    double      getDouble  () const { if (! getArg()) return 0; return std::stod(arg_); }
-    std::string getString  () const { if (! getArg()) return 0; return arg_; }
+    int         getInt     () const override { if (! getArg()) return 0; return std::stoi(arg_); }
+    long        getLong    () const override { if (! getArg()) return 0; return std::stoi(arg_); }
+    long        getLongLong() const override { if (! getArg()) return 0; return std::stoi(arg_); }
+    double      getDouble  () const override { if (! getArg()) return 0; return std::stod(arg_); }
+    std::string getString  () const override { if (! getArg()) return 0; return arg_; }
 
   private:
     bool getArg() const {
@@ -2381,10 +2886,64 @@ exec(const Cmd *cmd)
 //---
 
 void
+PwdCommand::
+exec(const Cmd *cmd)
+{
+  list_  = false;
+  print_ = false;
+
+  parseArgs(cmd);
+
+  auto dir = COSFile::getCurrentDir();
+
+  std::cout << dir;
+}
+
+bool
+PwdCommand::
+processOpt(const std::string &opt)
+{
+  if      (opt == "L") { list_  = true; }
+  else if (opt == "P") { print_ = true; }
+  else return false;
+
+  return true;
+}
+
+//---
+
+void
+PushdCommand::
+exec(const Cmd *cmd)
+{
+  parseArgs(cmd);
+
+  if (! args_.empty()) {
+    auto cwd = COSFile::getCurrentDir();
+
+    app_->pushDirStack(cwd);
+
+    const auto &dir = args_[0];
+
+    app_->changeDir(dir);
+  }
+  else {
+    auto dir = app_->rotateDirStack();
+
+    if (app_->hasDirStack())
+      app_->changeDir(dir);
+  }
+}
+
+//---
+
+void
 SetCommand::
 exec(const Cmd *)
 {
-  app_->listVariables();
+  App::ListVariablesData data;
+
+  app_->listVariables(data);
 }
 
 //------
@@ -2427,7 +2986,7 @@ void
 Cmd::
 init() const
 {
-  if (! builtin_ && ! command_) {
+  if (! inited_) {
     auto *th = const_cast<Cmd *>(this);
 
     th->builtin_ = app_->getShellCommand(name_);
@@ -2451,6 +3010,8 @@ init() const
 
       th->command_ = std::make_unique<CCommand>(name_, path, args);
     }
+
+    th->inited_ = true;
   }
 }
 

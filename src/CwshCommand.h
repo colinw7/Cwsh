@@ -40,7 +40,7 @@ class Command : public CCommand {
 
   void setNotify(bool notify) { notify_ = notify; }
 
-  void setState(State state);
+  void setState(State state) override;
 
  private:
   CPtr<App> cwsh_;
