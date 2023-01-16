@@ -44,8 +44,8 @@ executeFile(CFile *file)
 {
   bool rc = true;
 
-  bool        saveHistoryActive = historyActive_;
-  CFile*      saveFile          = inputFile_;
+  bool   saveHistoryActive = historyActive_;
+  CFile* saveFile          = inputFile_;
 
   historyActive_ = false;
   inputFile_     = file;
